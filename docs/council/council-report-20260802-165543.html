@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MPI Council Report — Roadmap Sequencing</title>
+  <style>
+    :root {
+      --bg: #fff;
+      --ink: #1a1f26;
+      --muted: #5c6670;
+      --line: #e6eaee;
+      --accent: #0f766e;
+      --soft: #f4f7f8;
+      --warn: #9a3412;
+      --ok: #166534;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      color: var(--ink);
+      background: var(--bg);
+      line-height: 1.5;
+    }
+    .wrap { max-width: 880px; margin: 0 auto; padding: 32px 20px 64px; }
+    h1 { font-size: 1.5rem; margin: 0 0 8px; }
+    .meta { color: var(--muted); font-size: 0.9rem; margin-bottom: 24px; }
+    .question {
+      background: var(--soft);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 16px 18px;
+      margin-bottom: 28px;
+    }
+    .question h2 { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin: 0 0 8px; }
+    .verdict {
+      border: 2px solid var(--accent);
+      border-radius: 12px;
+      padding: 20px 22px;
+      margin-bottom: 28px;
+    }
+    .verdict h2 { margin: 0 0 12px; color: var(--accent); font-size: 1.15rem; }
+    .verdict h3 { margin: 18px 0 8px; font-size: 0.95rem; }
+    .verdict ul { margin: 0; padding-left: 1.2rem; }
+    .verdict li { margin: 4px 0; }
+    .one-thing {
+      background: #ecfdf5;
+      border: 1px solid #a7f3d0;
+      border-radius: 8px;
+      padding: 12px 14px;
+      margin-top: 12px;
+      font-weight: 600;
+    }
+    .align {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 10px;
+      margin-bottom: 28px;
+    }
+    .chip {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      background: var(--soft);
+      font-size: 0.85rem;
+    }
+    .chip strong { display: block; margin-bottom: 4px; }
+    .chip.agree { border-color: #86efac; background: #f0fdf4; }
+    .chip.clash { border-color: #fdba74; background: #fff7ed; }
+    details {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      margin-bottom: 10px;
+      background: #fff;
+    }
+    summary {
+      cursor: pointer;
+      padding: 12px 14px;
+      font-weight: 600;
+      list-style: none;
+    }
+    summary::-webkit-details-marker { display: none; }
+    summary::before { content: "▸ "; color: var(--muted); }
+    details[open] summary::before { content: "▾ "; }
+    .body { padding: 0 14px 14px; color: var(--muted); font-size: 0.92rem; white-space: pre-wrap; }
+    footer {
+      margin-top: 36px;
+      padding-top: 16px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>MPI Council Report</h1>
+    <p class="meta">Roadmap sequencing · 2026-08-02 · Decision: what ships first</p>
+
+    <section class="question">
+      <h2>Question</h2>
+      <p>How should we sequence building <strong>MPI (My Personal Interviewer)</strong> from a working local mock-interview app into a private hosted product — given a large wishlist and a known Start/context bug that replays old interview turns?</p>
+    </section>
+
+    <section class="verdict">
+      <h2>Council Verdict</h2>
+
+      <h3>Where the Council Agrees</h3>
+      <ul>
+        <li>Fix Start/context + branch-on-alter before auth, deploy, Drive, or graphs.</li>
+        <li>Auth (Google allowlist) before any public URL.</li>
+        <li>Drive + resume score/improve are v2 / second product surface.</li>
+        <li>Slice 0 also includes: smart titles, resume filename+datetime, voice pause/play, model picker + errors, resizable + mobile.</li>
+        <li>GitHub early for backup — not a product milestone.</li>
+      </ul>
+
+      <h3>Where the Council Clashes</h3>
+      <ul>
+        <li><strong>Moat timing:</strong> Expansionist wants graph/Drive soon after host; Contrarian/Executor defer or skip in v1.</li>
+        <li><strong>Brand order:</strong> landing before auth vs brand+deploy together after auth (all block naked deploy).</li>
+        <li><strong>Schema:</strong> First Principles demands <code>parent_interview_id</code> now; others said “branch” without fork semantics.</li>
+      </ul>
+
+      <h3>Blind Spots Caught</h3>
+      <ul>
+        <li>OpenClaw is localhost-only — breaks on deploy unless redesigned.</li>
+        <li>SQLite → hosted DB migration (not just add <code>user_id</code>).</li>
+        <li>In-memory rate limits fail multi-instance hosting.</li>
+        <li>Observability, PII retention, allowlist admin UX, fork copy-vs-reference.</li>
+      </ul>
+
+      <h3>The Recommendation</h3>
+      <ul>
+        <li><strong>Phase 0:</strong> Kill Start ghost + lineage schema (<code>parent_interview_id</code>) + Slice 0 UX bundle.</li>
+        <li><strong>Phase 1:</strong> MPI branding + landing-as-login shell.</li>
+        <li><strong>Phase 2:</strong> Google Sign-In, allowlist, admin, per-user rows.</li>
+        <li><strong>Phase 2.5:</strong> Deploy prereqs — hosted AI path, DB, persistent rate limits, basics of obs/PII.</li>
+        <li><strong>Phase 3:</strong> <code>mpi.tomorrowtools.dev</code> behind auth.</li>
+        <li><strong>Phase 4:</strong> Profile + performance graph.</li>
+        <li><strong>Phase 5:</strong> Drive + resume improve/score.</li>
+      </ul>
+
+      <div class="one-thing">
+        One thing first: reproduce Start bug → failing test → branch-on-context-change with <code>parent_interview_id</code> (new opener from new resume/JD; old attempt kept).
+      </div>
+    </section>
+
+    <h2 style="font-size:1rem;margin:0 0 12px;">Agreement / disagreement map</h2>
+    <div class="align">
+      <div class="chip agree"><strong>All 5</strong>Start bug before everything</div>
+      <div class="chip agree"><strong>All 5</strong>Auth before public domain</div>
+      <div class="chip agree"><strong>4/5 peers</strong>D strongest (JTBD + schema)</div>
+      <div class="chip clash"><strong>Clash</strong>How soon graph/Drive after host</div>
+      <div class="chip clash"><strong>Clash</strong>Brand shell before vs with deploy</div>
+      <div class="chip agree"><strong>Peers</strong>Infra gaps between auth &amp; DNS</div>
+    </div>
+
+    <h2 style="font-size:1rem;margin:0 0 12px;">Advisor responses</h2>
+    <details>
+      <summary>The Contrarian</summary>
+      <div class="body">Kill the ghost first. Auth/Drive/deploy on buggy Start = multi-tenant theater. Order: core trust → brand → allowlist auth → deploy behind auth → profile → Drive last.</div>
+    </details>
+    <details>
+      <summary>The First Principles Thinker</summary>
+      <div class="body">Four jobs. Job 1 on fire (correct practice). Job 2 before any URL. parent_interview_id now or regret at auth migration. Job1 → Job2 → Job3 → Job4.</div>
+    </details>
+    <details>
+      <summary>The Expansionist</summary>
+      <div class="body">Product is private interview OS. Fix trust, then race to career loop (profile graph + Drive resume) after auth+host — that is the moat.</div>
+    </details>
+    <details>
+      <summary>The Outsider</summary>
+      <div class="body">“New resume, old interview” breaks trust. Branch = keep old + child under it. Human titles. Pause voice. Model picker. Domain only after login.</div>
+    </details>
+    <details>
+      <summary>The Executor</summary>
+      <div class="body">Slice 0 this week: Start/branch + titles + resume name + voice + model picker + resizable/mobile. Monday: failing test then ship. Auth later.</div>
+    </details>
+
+    <h2 style="font-size:1rem;margin:24px 0 12px;">Peer review highlights</h2>
+    <details>
+      <summary>Peer review consensus</summary>
+      <div class="body">Strongest: D (First Principles) — JTBD + parent_interview_id.
+Biggest blind spot (most): C — moat race underweights ops.
+All missed: OpenClaw localhost, SQLite→hosted DB, in-memory rate limits, observability, PII, allowlist UX, fork semantics.</div>
+    </details>
+
+    <footer>
+      Counciled: MPI roadmap sequencing · Report 20260802-165543 · Methodology: Karpathy-style LLM Council (5 lenses + peer review + chairman)
+    </footer>
+  </div>
+</body>
+</html>

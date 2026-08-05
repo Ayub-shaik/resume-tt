@@ -1,0 +1,28 @@
+---
+description: Compatible skill recipes for pipeline stages — no competing authorities
+alwaysApply: true
+---
+
+# Skill compatibility (global hard rule)
+
+## Authority order
+
+1. Global rules  
+2. `requirements-manager` + `.cursor/REQUIREMENTS.md`  
+3. `adaptive-workflow` (skip on Tiny)  
+4. Domain skills (implement / debug / eng review)  
+5. `acceptance-review` — sole Pass / Passed-with-follow-up / Fail  
+
+## Do not run as peer authorities
+
+- Do not use brainstorming HARD-GATE, llm-council (default), verification-loop-as-Pass, PM Butler Gatekeeper/Sculptor, OpenCastle always-on gates, or fullstack-forge-all alongside this pipeline.
+- gstack `qa` / `design-review` may fix code only in **impl/rework**, not as Pass.
+- For UI evidence into acceptance prefer `browser-qa` or `qa-only`.
+
+## Recipes
+
+Follow combinations in:
+
+`~/.cursor/SKILL_COMPATIBILITY_AND_COMBOS.md`
+
+(project `.cursor/` copy is fine if present). Pick one recipe per task set; do not stack opposing explore/plan/accept skills.

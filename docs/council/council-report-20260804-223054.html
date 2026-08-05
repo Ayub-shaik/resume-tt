@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>LLM Council — MPI audio + ATS backlog</title>
+  <style>
+    :root { --ink:#1a1f1c; --muted:#5c6b63; --line:#d5ddd8; --accent:#1f6f4a; --bg:#fafbfa; --soft:#eef3f0; }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif; color: var(--ink); background: var(--bg); line-height: 1.5; }
+    .wrap { max-width: 880px; margin: 0 auto; padding: 32px 20px 64px; }
+    h1 { font-size: 1.5rem; margin: 0 0 8px; }
+    .meta { color: var(--muted); font-size: 0.875rem; margin-bottom: 28px; }
+    .q { background: white; border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; margin-bottom: 24px; }
+    .verdict { background: white; border: 2px solid var(--accent); border-radius: 12px; padding: 20px 22px; margin-bottom: 28px; }
+    .verdict h2 { margin: 0 0 12px; font-size: 1.15rem; color: var(--accent); }
+    .verdict h3 { margin: 18px 0 8px; font-size: 0.95rem; }
+    .verdict p, .verdict li { font-size: 0.95rem; }
+    .grid { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); margin: 16px 0 8px; }
+    .chip { border: 1px solid var(--line); border-radius: 10px; padding: 10px; background: var(--soft); text-align: center; font-size: 0.8rem; }
+    .chip strong { display: block; font-size: 0.85rem; margin-bottom: 4px; }
+    .agree { border-color: #8fbfa4; background: #eef8f2; }
+    .clash { border-color: #e0c48a; background: #fff8ea; }
+    details { background: white; border: 1px solid var(--line); border-radius: 10px; margin-bottom: 10px; padding: 0 14px; }
+    summary { cursor: pointer; padding: 12px 0; font-weight: 600; }
+    footer { margin-top: 36px; color: var(--muted); font-size: 0.8rem; border-top: 1px solid var(--line); padding-top: 16px; }
+    .first { background: var(--accent); color: white; border-radius: 10px; padding: 14px 16px; margin-top: 12px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>LLM Council Report</h1>
+    <p class="meta">2026-08-04 22:30 IST · MPI interview audio leak + ATS reopen backlog</p>
+
+    <div class="q">
+      <strong>Question</strong>
+      <p>While answer analysis ran, user switched Interview → ATS and still heard TTS. Also implement saved 10+ todos (reopened dual-page Analyze, Improve stay, draft persist, mobile templates, plus this audio/session bug).</p>
+    </div>
+
+    <div class="verdict">
+      <h2>Council Verdict</h2>
+
+      <h3>Where the Council Agrees</h3>
+      <ul>
+        <li>P0 is the post-await <code>speak()</code> race after leaving <code>/studio</code>.</li>
+        <li>Leave interview → hard-cancel TTS + mic. Analysis may finish on the server.</li>
+        <li>Return → reload turns; no auto-speak (Play to hear).</li>
+        <li>Do not build a SessionOrchestrator before the leak is fixed.</li>
+      </ul>
+
+      <h3>Where the Council Clashes</h3>
+      <p><strong>Scope:</strong> audio-only this session (Contrarian/Outsider) vs audio + draftStore (Executor) vs substrate then full A–E (First Principles) vs continuity layer first (Expansionist).</p>
+      <p><strong>Resolution:</strong> P0 audio now, then continue reopen A→B→C→D→E because the user explicitly asked to implement the backlog — but each item needs acceptance criteria, not “done” labels.</p>
+
+      <h3>Blind Spots Caught</h3>
+      <ul>
+        <li>Two TTS owners: <code>useInterviewVoice</code> and <code>AppShell.endInterview</code>.</li>
+        <li>Need route-leave cancel, not only unmount cleanup.</li>
+        <li>False-complete culture without leave→silent / return→resume tests.</li>
+      </ul>
+
+      <h3>The Recommendation</h3>
+      <p>Ship <strong>stop-only P0</strong> (mounted/generation guard + global cancel when leaving studio). Then implement reopen backlog in order: true dual-page Analyze → hide templates on Improve → ATS draftStore → mobile templates parity → prod smoke. Server analysis continues; UI restores silently.</p>
+
+      <div class="first">
+        <strong>One thing first:</strong> Guard post-await <code>voice.speak</code> in InterviewCenter and cancel speechSynthesis when pathname leaves /studio.
+      </div>
+    </div>
+
+    <h2 style="font-size:1rem;margin-bottom:8px;">Advisor alignment</h2>
+    <div class="grid">
+      <div class="chip agree"><strong>Contrarian</strong>P0 audio only; no BG restore</div>
+      <div class="chip agree"><strong>Outsider</strong>Hard mute on leave</div>
+      <div class="chip agree"><strong>Executor</strong>mountedRef + files</div>
+      <div class="chip clash"><strong>First Princ.</strong>+ substrate stores</div>
+      <div class="chip clash"><strong>Expansionist</strong>SessionOrchestrator next</div>
+    </div>
+
+    <h2 style="font-size:1rem;margin:24px 0 8px;">Advisor details</h2>
+    <details><summary>Contrarian</summary><p>Generation token required. No A–E until audio PR with acceptance criteria. Marking done without criteria is the fatal flaw.</p></details>
+    <details><summary>First Principles</summary><p>Never act off owning page; long work persists; return = resume. Generation token + pending-speak optional; draftStore same pattern.</p></details>
+    <details><summary>Expansionist</summary><p>Continuity as product thesis — but after P0 stop. SessionOrchestrator collapses future backlog.</p></details>
+    <details><summary>Outsider</summary><p>Ghost interviewer on wrong screen. Fix ghost first. Leave silent; return same screen, no auto-talk.</p></details>
+    <details><summary>Executor</summary><p>InterviewCenter mountedRef → smoke → draftStore → verify TemplatePicker on Improve → dual-page if still cards.</p></details>
+
+    <details><summary>Peer review highlights</summary>
+      <p>Strongest often B/E/D. Blind spot: Expansionist sequencing / underspecified ATS persist. All missed dual TTS owners and layout-level kill switch.</p>
+    </details>
+
+    <footer>
+      Counciled: MPI TTS-after-navigate + ATS reopen A–E · Methodology: Karpathy-style LLM Council · Transcript: council-transcript-20260804-223054.md
+    </footer>
+  </div>
+</body>
+</html>

@@ -1,0 +1,34 @@
+---
+description: Project requirements contract file and hidden-work policy
+alwaysApply: true
+---
+
+# Requirements checklist (global hard rule)
+
+## Canonical contract file (per project)
+
+```
+.cursor/REQUIREMENTS.md
+```
+
+- This is the acceptance contract for the current task set.
+- `SESSION_HANDOFF.md` is context/summary only — not the requirements list.
+- Create `.cursor/` if missing. Do not put secrets in this file.
+
+## Ownership flow
+
+1. `requirements-manager` gathers atomic requirements (or Tiny inline extract).
+2. Implementation agent works the checklist.
+3. `acceptance-review` verifies against the checklist and repo.
+
+## Hidden work (policy C)
+
+- Broad scope only (e.g. “premium”, “whole app”, “entire page look”): expand implied UX/quality items into **must-pass** checklist rows.
+- Narrow scope: do **not** expand; keep implied items as notes / nice-to-haves.
+- Always **notify the user what was discarded** (not expanded into must-pass).
+
+## Do not
+
+- Reduce scope when writing requirements (e.g. “whole app” → “login only”).
+- Merge unrelated requests into one row.
+- Mark incomplete work complete.

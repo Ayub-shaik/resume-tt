@@ -1,0 +1,31 @@
+---
+description: Project rules defer to machine-global Cursor hard rules — no competing pipelines
+alwaysApply: true
+---
+
+# Global authority (project hard rule)
+
+This workspace **follows** the machine-global Cursor rules in `~/.cursor/rules/`.
+
+Local copies under `.cursor/rules/` exist so the same pipeline is visible in-repo.
+If local and global ever diverge, **global wins**.
+
+## Canonical pipeline
+
+1. Read `.cursor/SESSION_HANDOFF.md`
+2. Capture asks in `.cursor/REQUIREMENTS.md` (`requirements-manager` / Tiny extract)
+3. `adaptive-workflow` unless Tiny
+4. Implement with global skills (`~/.cursor/skills/`, see `.cursor/GLOBAL_SKILL_SET.md`)
+5. `acceptance-review` is the **only** Pass / Pass-with-follow-up / Fail authority
+
+## Do not
+
+- Invent a second planning / Pass / handoff system for this repo
+- Run brainstorming HARD-GATE, llm-council-as-default, verification-loop-as-Pass, or other demoted gates as peer authorities (see `.cursor/SKILL_COMPATIBILITY_AND_COMBOS.md`)
+- Shrink broad user scope silently
+- Skip acceptance because the ask was informal
+
+## Project-only notes (non-pipeline)
+
+- Next.js guidance in `AGENTS.md` / `CLAUDE.md` stays for framework APIs
+- MPI UI taste skills under `.cursor/skills/` are domain helpers, not Pass authorities

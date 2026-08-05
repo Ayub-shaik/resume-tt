@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MPI Landing Preview — Linear-clean</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,500;9..144,650&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #f7f8f8;
+      --ink: #0b0f0e;
+      --muted: #66736e;
+      --line: #e4e8e6;
+      --accent: #0f766e;
+      --accent-ink: #fff;
+      --font-d: "Fraunces", Georgia, serif;
+      --font-b: "Manrope", system-ui, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: var(--font-b);
+      color: var(--ink);
+      background: var(--bg);
+    }
+    .bar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 28px; border-bottom: 1px solid var(--line);
+      background: #fff;
+    }
+    .bar a { color: var(--muted); text-decoration: none; font-size: 13px; margin-left: 16px; }
+    .bar a:hover { color: var(--ink); }
+    .badge {
+      font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--accent); font-weight: 700;
+    }
+    .hero {
+      max-width: 720px; margin: 0 auto; padding: 88px 24px 64px; text-align: left;
+    }
+    .brand {
+      display: flex; align-items: center; gap: 12px; margin-bottom: 48px;
+    }
+    .brand img { width: 36px; height: 36px; }
+    .brand h1 {
+      margin: 0; font-family: var(--font-d); font-size: 1.15rem; font-weight: 650;
+      letter-spacing: -0.02em;
+    }
+    .brand p { margin: 0; font-size: 11px; color: var(--muted); letter-spacing: 0.14em; text-transform: uppercase; }
+    h2 {
+      margin: 0 0 16px; font-family: var(--font-d); font-size: clamp(2.4rem, 5vw, 3.4rem);
+      line-height: 1.08; letter-spacing: -0.03em; font-weight: 650; max-width: 14ch;
+    }
+    .sub {
+      margin: 0 0 32px; color: var(--muted); font-size: 1.05rem; line-height: 1.55; max-width: 42ch;
+    }
+    .cta {
+      display: inline-flex; align-items: center; gap: 10px;
+      background: var(--ink); color: #fff; border: 0; border-radius: 10px;
+      padding: 12px 20px; font: 600 14px var(--font-b); cursor: default;
+    }
+    .ghost {
+      margin-left: 10px; background: transparent; color: var(--ink);
+      border: 1px solid var(--line); border-radius: 10px; padding: 12px 18px;
+      font: 600 14px var(--font-b);
+    }
+    .rail {
+      margin-top: 72px; padding-top: 28px; border-top: 1px solid var(--line);
+      display: grid; gap: 28px; grid-template-columns: repeat(3, 1fr);
+    }
+    .rail h3 { margin: 0 0 6px; font-size: 14px; font-weight: 700; }
+    .rail p { margin: 0; font-size: 13px; color: var(--muted); line-height: 1.45; }
+    @media (max-width: 720px) {
+      .rail { grid-template-columns: 1fr; }
+      .hero { padding-top: 56px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="bar">
+    <span class="badge">Preview A · Linear-clean</span>
+    <div>
+      <a href="/preview-landing/">Compare</a>
+      <a href="/preview-landing/editorial.html">Editorial →</a>
+    </div>
+  </div>
+  <main class="hero">
+    <div class="brand">
+      <img src="/mpi-logo.svg" alt="" />
+      <div>
+        <p>TomorrowTools</p>
+        <h1>My Personal Interviewer</h1>
+      </div>
+    </div>
+    <h2>Practice like the offer depends on it.</h2>
+    <p class="sub">
+      Adaptive mock interviews from your JD and resume. One question at a time,
+      real coaching, private invite-only access.
+    </p>
+    <button type="button" class="cta">Continue with Google</button>
+    <button type="button" class="ghost">Email sign-in</button>
+    <section class="rail" aria-label="Features">
+      <div>
+        <h3>Adaptive depth</h3>
+        <p>Questions evolve from answers — not a fixed script.</p>
+      </div>
+      <div>
+        <h3>Coaching Ask</h3>
+        <p>Probe every improvement suggestion until it clicks.</p>
+      </div>
+      <div>
+        <h3>Progress graph</h3>
+        <p>Scores and gaps tracked across attempts.</p>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

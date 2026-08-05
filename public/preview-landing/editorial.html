@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MPI Landing Preview — Editorial</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,700;1,9..144,500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --ink: #0f1a16;
+      --paper: #f3f0e8;
+      --muted: #5c6b63;
+      --accent: #0f766e;
+      --gold: #c4a574;
+      --font-d: "Fraunces", Georgia, serif;
+      --font-b: "Manrope", system-ui, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: var(--font-b);
+      color: var(--ink);
+      background:
+        radial-gradient(1000px 500px at 10% -10%, rgba(15, 118, 110, 0.18), transparent 55%),
+        radial-gradient(800px 420px at 100% 0%, rgba(196, 165, 116, 0.22), transparent 50%),
+        linear-gradient(165deg, #eef4f1 0%, var(--paper) 42%, #e6ebe4 100%);
+    }
+    .bar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 28px;
+      background: rgba(255,255,255,0.55);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(15,26,22,0.08);
+    }
+    .bar a { color: var(--muted); text-decoration: none; font-size: 13px; margin-left: 16px; }
+    .badge {
+      font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+      color: var(--accent); font-weight: 700;
+    }
+    .stage {
+      min-height: calc(100vh - 52px);
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 0;
+    }
+    .copy {
+      padding: 72px 48px 64px 56px;
+      display: flex; flex-direction: column; justify-content: center;
+    }
+    .eyebrow {
+      margin: 0 0 18px;
+      font-size: 12px; letter-spacing: 0.2em; text-transform: uppercase;
+      color: var(--muted); font-weight: 600;
+    }
+    .brand-mark {
+      display: flex; align-items: center; gap: 14px; margin-bottom: 36px;
+    }
+    .brand-mark img { width: 48px; height: 48px; filter: drop-shadow(0 8px 18px rgba(15,118,110,0.25)); }
+    .brand-mark strong {
+      font-family: var(--font-d); font-size: 1.55rem; font-weight: 700;
+      letter-spacing: -0.03em; display: block; line-height: 1.1;
+    }
+    .brand-mark span { font-size: 12px; color: var(--muted); letter-spacing: 0.12em; text-transform: uppercase; }
+    h2 {
+      margin: 0 0 18px;
+      font-family: var(--font-d);
+      font-size: clamp(2.8rem, 5.5vw, 4.1rem);
+      line-height: 1.02; letter-spacing: -0.035em; font-weight: 700;
+      max-width: 11ch;
+    }
+    h2 em { font-style: italic; color: var(--accent); font-weight: 500; }
+    .sub {
+      margin: 0 0 28px; font-size: 1.08rem; line-height: 1.6; color: var(--muted);
+      max-width: 38ch;
+    }
+    .quote {
+      margin: 0 0 28px; padding-left: 16px; border-left: 3px solid var(--gold);
+      font-family: var(--font-d); font-style: italic; font-size: 1.15rem;
+      color: var(--ink); max-width: 36ch;
+    }
+    .cta {
+      display: inline-flex; align-items: center;
+      background: var(--accent); color: #f0fdfa; border: 0; border-radius: 999px;
+      padding: 14px 26px; font: 700 14px var(--font-b); letter-spacing: 0.02em;
+    }
+    .panel {
+      margin: 40px 40px 40px 0;
+      border-radius: 28px;
+      background:
+        linear-gradient(160deg, rgba(255,255,255,0.72), rgba(255,255,255,0.35)),
+        url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%230f766e' fill-opacity='0.06'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+      border: 1px solid rgba(15,26,22,0.08);
+      box-shadow: 0 30px 80px rgba(15,26,22,0.1);
+      padding: 36px 32px;
+      display: flex; flex-direction: column; justify-content: flex-end;
+      min-height: 420px;
+      position: relative; overflow: hidden;
+    }
+    .panel::before {
+      content: "";
+      position: absolute; inset: auto -20% -30% 20%;
+      height: 70%;
+      background: radial-gradient(circle at 30% 30%, rgba(15,118,110,0.35), transparent 60%);
+      filter: blur(20px);
+    }
+    .panel-inner { position: relative; z-index: 1; }
+    .panel h3 {
+      margin: 0 0 10px; font-family: var(--font-d); font-size: 1.75rem; font-weight: 650;
+    }
+    .panel p { margin: 0; color: var(--muted); line-height: 1.5; }
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 22px; }
+    .chips span {
+      font-size: 12px; font-weight: 600; padding: 6px 12px; border-radius: 999px;
+      background: rgba(255,255,255,0.75); border: 1px solid rgba(15,26,22,0.08);
+    }
+    @media (max-width: 900px) {
+      .stage { grid-template-columns: 1fr; }
+      .panel { margin: 0 20px 32px; min-height: 280px; }
+      .copy { padding: 40px 24px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="bar">
+    <span class="badge">Preview B · Richer editorial</span>
+    <div>
+      <a href="/preview-landing/">Compare</a>
+      <a href="/preview-landing/linear.html">← Linear</a>
+    </div>
+  </div>
+  <div class="stage">
+    <main class="copy">
+      <p class="eyebrow">TomorrowTools</p>
+      <div class="brand-mark">
+        <img src="/mpi-logo.svg" alt="" />
+        <div>
+          <span>Private · Invite-only</span>
+          <strong>My Personal Interviewer</strong>
+        </div>
+      </div>
+      <p class="quote">Preparation beats panic — rehearse the room before you enter it.</p>
+      <h2>Practice like the <em>offer</em> depends on it.</h2>
+      <p class="sub">
+        Warm-up, then depth. Adaptive questions from your JD and resume,
+        coaching that talks back, a graph of how you actually improve.
+      </p>
+      <button type="button" class="cta">Continue with Google</button>
+    </main>
+    <aside class="panel" aria-label="Atmosphere">
+      <div class="panel-inner">
+        <h3>The room, before the room.</h3>
+        <p>
+          Senior interviews reward ownership and trade-offs — not buzzword lists.
+          MPI is your private rehearsal space.
+        </p>
+        <div class="chips">
+          <span>Adaptive turns</span>
+          <span>Topic drills</span>
+          <span>ATS studio</span>
+          <span>Progress</span>
+        </div>
+      </div>
+    </aside>
+  </div>
+</body>
+</html>

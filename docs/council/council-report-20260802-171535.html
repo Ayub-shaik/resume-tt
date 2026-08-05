@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MPI Council — Feedback Sequencing</title>
+  <style>
+    :root { --ink:#1a1f26; --muted:#5c6670; --line:#e6eaee; --accent:#0f766e; --soft:#f4f7f8; }
+    body { margin:0; font-family: system-ui, sans-serif; color:var(--ink); line-height:1.5; }
+    .wrap { max-width:880px; margin:0 auto; padding:32px 20px 64px; }
+    h1 { font-size:1.45rem; margin:0 0 8px; }
+    .meta { color:var(--muted); font-size:0.9rem; margin-bottom:20px; }
+    .box { background:var(--soft); border:1px solid var(--line); border-radius:10px; padding:16px 18px; margin-bottom:22px; }
+    .verdict { border:2px solid var(--accent); border-radius:12px; padding:20px; margin-bottom:22px; }
+    .verdict h2 { color:var(--accent); margin:0 0 12px; font-size:1.1rem; }
+    .verdict h3 { font-size:0.95rem; margin:16px 0 6px; }
+    .one { background:#ecfdf5; border:1px solid #a7f3d0; border-radius:8px; padding:12px; font-weight:600; margin-top:12px; }
+    .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:10px; margin-bottom:22px; }
+    .chip { border:1px solid var(--line); border-radius:8px; padding:12px; background:var(--soft); font-size:0.85rem; }
+    .chip.ok { background:#f0fdf4; border-color:#86efac; }
+    .chip.warn { background:#fff7ed; border-color:#fdba74; }
+    details { border:1px solid var(--line); border-radius:8px; margin-bottom:8px; }
+    summary { cursor:pointer; padding:12px 14px; font-weight:600; }
+    .body { padding:0 14px 14px; color:var(--muted); font-size:0.92rem; }
+    footer { margin-top:32px; padding-top:14px; border-top:1px solid var(--line); color:var(--muted); font-size:0.85rem; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>MPI Council Report</h1>
+    <p class="meta">Sequencing ~30 interview-realism + dashboard suggestions · 2026-08-02</p>
+
+    <div class="box">
+      <strong>Question:</strong> After Phase 0 trust slice is approved, which feedback items go into Phase 0 prompts, Phase 0.5 realism, Phase 1+ dashboards (post-auth), or get cut?
+    </div>
+
+    <div class="verdict">
+      <h2>Council Verdict</h2>
+      <h3>Agrees</h3>
+      <ul>
+        <li>Phase 0 = trust + Ask + experience notes + warm-up + thin prompt seeds. No dashboard UI.</li>
+        <li>Phase 0.5 = senior realism moat (memory, drill, contradiction, architecture, sharper role).</li>
+        <li>Phase 1+ = charts/heatmaps/compare-last-5 after auth. Fake analytics at n=1 = cut.</li>
+        <li>Cut: knowledge graph UI, persona picker early, hiring probability, replay theater.</li>
+      </ul>
+      <h3>Clashes</h3>
+      <ul>
+        <li>How much realism in Phase 0 — auto-pick: same-session callbacks + text debrief scores only.</li>
+        <li>Personas — cut picker; sharper JD-derived role in 0.5.</li>
+      </ul>
+      <h3>Blind spots</h3>
+      <ul>
+        <li>Need <code>eval.v1</code> schema + logging now for future dashboards.</li>
+        <li>“Feels senior” acceptance bar before 0.5 pile-on.</li>
+        <li>Ask-on-improve already Phase 0 — don’t drop it.</li>
+      </ul>
+      <h3>Recommendation</h3>
+      <p><strong>Phase 0:</strong> ship approved trust slice + prompt seeds (reference earlier, deepen/ease, ownership bias) + end text debrief 3–5 dims + <code>eval.v1</code>.</p>
+      <p><strong>Phase 0.5:</strong> memory callbacks, contradiction, drilling, architecture mode, multi-dim JSON richer — still no dashboard chrome.</p>
+      <p><strong>Phase 1+:</strong> full evaluation dashboard, trends, study plans, growth vs consistency — after auth.</p>
+      <div class="one">One thing first: Phase 0 trust code + prompt seeds + eval.v1 logging. No 0.5 in that PR.</div>
+    </div>
+
+    <div class="grid">
+      <div class="chip ok"><strong>All 5</strong>Trust before dashboards</div>
+      <div class="chip ok"><strong>All 5</strong>0.5 = realism moat</div>
+      <div class="chip warn"><strong>Clash</strong>How much in Phase 0</div>
+      <div class="chip ok"><strong>Cut</strong>KG / hiring % / early heatmaps</div>
+    </div>
+
+    <details><summary>Contrarian</summary><div class="body">30 items = new product while Start broken. Phase 0 prompts only. Cut KG, personas, hiring-as-truth, early dashboard.</div></details>
+    <details><summary>First Principles</summary><div class="body">Jobs: senior pressure in-session + one improvement path after. Charts wait. Cut KG/replay/gamified hiring.</div></details>
+    <details><summary>Expansionist</summary><div class="body">Moat is 0.5 realism not heatmaps. Stuff memory/contradiction early as prompts; multi-dim JSON before UI.</div></details>
+    <details><summary>Outsider</summary><div class="body">Broken Start + quiz-bot feel. Text debrief scores now. compare-last-5 waits login. No fake charts at n=1.</div></details>
+    <details><summary>Executor</summary><div class="body">Monday = Phase 0 code only. Prompt seeds in same PR. Everything chart-shaped after auth.</div></details>
+    <details><summary>Peer review highlights</summary><div class="body">Strongest: B/D. Blind spot: A overloads Phase 0. All missed: eval schema contract, Ask-on-improve weight, acceptance bar, instrumentation.</div></details>
+
+    <footer>Counciled: MPI feedback sequencing · 20260802-171535 · Phase 0 spec committed separately</footer>
+  </div>
+</body>
+</html>

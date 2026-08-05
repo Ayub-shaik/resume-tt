@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Council Report — Interview Prep Recovery</title>
+  <style>
+    :root {
+      --ink: #1a1f1c;
+      --muted: #5a655e;
+      --line: #d5ddd7;
+      --bg: #f7f8f6;
+      --card: #fff;
+      --accent: #1f6f5b;
+      --warn: #9a3412;
+      --agree: #166534;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.5;
+    }
+    .wrap { max-width: 880px; margin: 0 auto; padding: 32px 20px 64px; }
+    h1 { font-size: 1.6rem; margin: 0 0 8px; }
+    .meta { color: var(--muted); font-size: 0.9rem; margin-bottom: 24px; }
+    .question {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 16px 18px;
+      margin-bottom: 24px;
+    }
+    .verdict {
+      background: #ecf6f1;
+      border: 1px solid #b7d8cc;
+      border-radius: 12px;
+      padding: 20px 22px;
+      margin-bottom: 28px;
+    }
+    .verdict h2 { margin: 0 0 12px; color: var(--accent); font-size: 1.25rem; }
+    .verdict h3 { margin: 18px 0 6px; font-size: 0.95rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); }
+    .verdict p, .verdict li { margin: 0 0 8px; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+      margin: 16px 0 8px;
+    }
+    @media (max-width: 700px) { .grid { grid-template-columns: 1fr 1fr; } }
+    .chip {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px 8px;
+      text-align: center;
+      font-size: 0.78rem;
+    }
+    .chip strong { display: block; font-size: 0.85rem; margin-bottom: 4px; }
+    .chip.align { border-color: #86b89f; background: #f0faf5; }
+    .chip.diverge { border-color: #e8b4a0; background: #fff7f3; }
+    details {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      margin-bottom: 10px;
+      padding: 0 14px;
+    }
+    summary {
+      cursor: pointer;
+      padding: 12px 0;
+      font-weight: 600;
+    }
+    details p { margin: 0 0 14px; color: #333; font-size: 0.95rem; }
+    footer { margin-top: 32px; color: var(--muted); font-size: 0.85rem; }
+    .first { font-weight: 700; color: var(--accent); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>LLM Council Report</h1>
+    <p class="meta">Interview Prep recovery · 2026-08-02 17:13 IST</p>
+
+    <section class="question">
+      <strong>Question</strong>
+      <p style="margin:8px 0 0">How should we recover the Interview Prep app so it matches the original product request (always-on 3-pane studio), given what was already built and the “dead page” experience?</p>
+    </section>
+
+    <section class="verdict">
+      <h2>Chairman verdict</h2>
+
+      <h3>Where the council agrees</h3>
+      <ul>
+        <li>The product is gated: studio only appears after selecting an interview; idle right panel uses <code>hidden xl:block</code>.</li>
+        <li>Recovery is primarily a <strong>shell/layout PR</strong>, not a backend rebuild. APIs/DB/voice hooks largely exist.</li>
+        <li>Always mount left + banner + center + right; empty states live inside panes; auto-select/create a draft on load.</li>
+        <li>Do not start with PDF parsing, Whisper, or more runtime plumbing.</li>
+      </ul>
+
+      <h3>Where the council clashes</h3>
+      <ul>
+        <li><strong>ADO content now:</strong> most advisors want <strong>(A) interviewer calibration only</strong> today; Expansionist wants <strong>(C) both</strong> immediately; Outsider wants <strong>(C) phased</strong> (A now, Study later).</li>
+        <li>Peer review unanimously called Expansionist’s “ship study library now” the biggest blind spot vs “keep simple / restore trust.”</li>
+      </ul>
+
+      <h3>Blind spots the council caught</h3>
+      <ul>
+        <li>Voice UX (listen / type-suppress) must be verified inside the ungated studio.</li>
+        <li>Auto-draft lifecycle (orphan drafts, history clutter, refresh races).</li>
+        <li>Center-column IA audit: question → answer under → blue EVALUATION → follow-ups → code pane beside.</li>
+        <li>Runtime fallback (Cursor → OpenClaw) for the first 60 seconds after layout fix.</li>
+      </ul>
+
+      <h3>The recommendation</h3>
+      <p>Ship one focused UI recovery PR that matches the brief literally:</p>
+      <ol>
+        <li>Always-on 3-pane studio (ungate <code>AppShell</code>; remove right-panel <code>xl</code> hide).</li>
+        <li>Auto-create/select draft interview so banner uploads work on first paint.</li>
+        <li>Banner spans center+right with resume | JD+URL boxes.</li>
+        <li>ADO pack = <strong>live interviewer prompt / seniority calibration (A)</strong> for this phase; Study library only after the mock loop feels alive.</li>
+        <li>Acceptance: open the app → see full studio with no clicks; Start → speak → answer → blue EVALUATION opens right coaching.</li>
+      </ol>
+
+      <p class="first">The one thing to do first: ungate the studio shell and always show the right coaching column.</p>
+    </section>
+
+    <h2 style="font-size:1.1rem;margin-bottom:8px">Advisor alignment</h2>
+    <div class="grid">
+      <div class="chip align"><strong>Contrarian</strong>Shell first; pick A vs B</div>
+      <div class="chip align"><strong>First Principles</strong>Always-on room; A only</div>
+      <div class="chip diverge"><strong>Expansionist</strong>Shell + Study now (C)</div>
+      <div class="chip align"><strong>Outsider</strong>Shell first; C phased</div>
+      <div class="chip align"><strong>Executor</strong>Shippable layout PR; A</div>
+    </div>
+    <p class="meta">Peer reviews: strongest = Executor; biggest blind spot = Expansionist (scope).</p>
+
+    <h2 style="font-size:1.1rem;margin:24px 0 8px">Advisor detail</h2>
+    <details>
+      <summary>Contrarian</summary>
+      <p>Architectural gate behind <code>selected</code> + hidden right column are fatal. Force ADO A vs B before more AI. Invert shell; first 60s must feel like an interview.</p>
+    </details>
+    <details>
+      <summary>First Principles</summary>
+      <p>Ship the room, not a wizard. Interview is a session inside an always-on studio. ADO content is calibration, not a curriculum product.</p>
+    </details>
+    <details>
+      <summary>Expansionist</summary>
+      <p>Always-on studio plus treat 100 scenarios as both live calibration and Study mode for retention. Exceed the brief.</p>
+    </details>
+    <details>
+      <summary>Outsider</summary>
+      <p>“Create interview first” is a secret handshake. Always render panes; delete xl hide; A now / Study later; match center stack literally.</p>
+    </details>
+    <details>
+      <summary>Executor (peer-review favorite)</summary>
+      <p>Time-boxed: always 3-pane + draft → kill xl:block → banner spanning. ADO = A. Acceptance test on :3456. One UI PR.</p>
+    </details>
+
+    <details>
+      <summary>Peer-review highlights</summary>
+      <p>All five reviewers picked Response B (Executor) as strongest and A (Expansionist) as biggest blind spot. Shared misses: voice loop, auto-draft junk, center IA audit, runtime failures after shell opens.</p>
+    </details>
+
+    <footer>
+      Methodology: Karpathy-style LLM Council (5 advisors → anonymous peer review → chairman).<br />
+      Transcript: docs/council/council-transcript-20260802-114319.md
+    </footer>
+  </div>
+</body>
+</html>

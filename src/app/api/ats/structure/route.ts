@@ -1,0 +1,126 @@
+import { requireSession } from "@/lib/auth/session";
+import {
+  improveJsonResume,
+  improveResumeText,
+  structureResumeToJson,
+  tailorJsonResume,
+} from "@/lib/ats/structure";
+import { JsonResumeSchema } from "@/lib/ats/jsonresume";
+import { createResume } from "@/lib/db";
+import { formatResumeDisplayName } from "@/lib/context";
+import { ephemeralOpenClawSession } from "@/lib/runtime/sessionKey";
+import { jsonError, jsonOk, readJsonBody } from "@/lib/api";
+import { clientKey, rateLimit } from "@/lib/security/rateLimit";
+import { LIMITS, sanitizeText } from "@/lib/security/validate";
+import { z } from "zod";
+
+export const runtime = "nodejs";
+export const maxDuration = 180;
+
+export async function POST(req: Request) {
+  const ctx = await requireSession();
+  if (!ctx) return jsonError("Unauthorized", 401);
+
+  const rl = rateLimit({
+    key: clientKey(req, "ats:structure"),
+    limit: 12,
+    windowMs: 60_000,
+  });
+  if (!rl.ok) {
+    return jsonError("Too many requests", 429, {
+      retryAfterSec: rl.retryAfterSec,
+    });
+  }
+
+  const body = await readJsonBody<unknown>(req);
+  if (!body.ok) return jsonError(body.error, 400);
+
+  const parsed = z
+    .object({
+      action: z.enum(["structure", "tailor", "improve"]).default("structure"),
+      resumeText: z.string().max(LIMITS.resume).optional(),
+      jdText: z.string().max(LIMITS.jd).optional(),
+      instruction: z.string().max(4000).optional(),
+      jsonResume: z.unknown().optional(),
+      saveAsResume: z.boolean().optional(),
+    })
+    .safeParse(body.data);
+  if (!parsed.success) return jsonError("Invalid body", 400);
+
+  try {
+    if (parsed.data.action === "structure") {
+      const text = sanitizeText(parsed.data.resumeText || "", LIMITS.resume);
+      if (!text) return jsonError("resumeText required", 400);
+      const out = await structureResumeToJson({
+        resumeText: text,
+        sessionKey: `ats-structure-${ctx.user.id}`,
+      });
+      let saved = null;
+      if (parsed.data.saveAsResume) {
+        saved = createResume(
+          formatResumeDisplayName("structured-resume.json"),
+          out.markdown,
+          ctx.user.id,
+        );
+      }
+      return jsonOk({ ...out, resume: saved });
+    }
+
+    const jd = sanitizeText(parsed.data.jdText || "", LIMITS.jd);
+
+    if (parsed.data.action === "improve") {
+      const instruction = sanitizeText(parsed.data.instruction || "", 4000);
+      if (!instruction) return jsonError("instruction required", 400);
+
+      let out;
+      if (parsed.data.jsonResume) {
+        const jr = JsonResumeSchema.parse(parsed.data.jsonResume);
+        out = await improveJsonResume({
+          jsonResume: jr,
+          instruction,
+          jdText: jd,
+          sessionKey: `ats-improve-${ctx.user.id}`,
+        });
+      } else {
+        const text = sanitizeText(parsed.data.resumeText || "", LIMITS.resume);
+        if (!text) {
+          return jsonError("jsonResume or resumeText required", 400);
+        }
+        out = await improveResumeText({
+          resumeText: text,
+          instruction,
+          jdText: jd,
+          sessionKey: `ats-improve-${ctx.user.id}`,
+        });
+      }
+
+      let saved = null;
+      if (parsed.data.saveAsResume !== false) {
+        saved = createResume(
+          formatResumeDisplayName("improved-resume.json"),
+          out.markdown,
+          ctx.user.id,
+        );
+      }
+      return jsonOk({ ...out, resume: saved });
+    }
+
+    const jr = JsonResumeSchema.parse(parsed.data.jsonResume);
+    const out = await tailorJsonResume({
+      jsonResume: jr,
+      jdText: jd,
+      sessionKey: `ats-tailor-json-${ctx.user.id}`,
+    });
+    let saved = null;
+    if (parsed.data.saveAsResume !== false) {
+      saved = createResume(
+        formatResumeDisplayName("tailored-resume.json"),
+        out.markdown,
+        ctx.user.id,
+      );
+    }
+    return jsonOk({ ...out, resume: saved });
+  } catch (e) {
+    return jsonError(e instanceof Error ? e.message : String(e), 502);
+  }
+}

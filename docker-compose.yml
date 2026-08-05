@@ -1,0 +1,22 @@
+services:
+  mpi:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - AUTH_SECRET=${AUTH_SECRET}
+      - AUTH_DEV_LOGIN=${AUTH_DEV_LOGIN:-0}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
+      - GOOGLE_DRIVE_REFRESH_TOKEN=${GOOGLE_DRIVE_REFRESH_TOKEN:-}
+      - NEXTAUTH_URL=${NEXTAUTH_URL:-https://mpi.tomorrowtools.dev}
+      - CURSOR_API_KEY=${CURSOR_API_KEY:-}
+      - OPENCLAW_BASE_URL=${OPENCLAW_BASE_URL:-}
+      - OPENCLAW_GATEWAY_TOKEN=${OPENCLAW_GATEWAY_TOKEN:-}
+      - AI_RUNTIME=${AI_RUNTIME:-auto}
+    volumes:
+      - mpi-data:/app/data
+    restart: unless-stopped
+
+volumes:
+  mpi-data:

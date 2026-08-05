@@ -1,0 +1,38 @@
+---
+description: Global implementation pipeline — requirements, Tiny path, acceptance, retries
+alwaysApply: true
+---
+
+# Workflow pipeline (global hard rule)
+
+Applies to every Cursor workspace on this machine.
+
+## Default pipeline (non-Tiny)
+
+1. `requirements-manager` → write/update `.cursor/REQUIREMENTS.md`
+2. `adaptive-workflow` → minimal workflow (skills, agents, context routing)
+3. Implementation (reuse existing domain skills; do not recreate them)
+4. `acceptance-review` → only authority that may declare Pass
+
+## Tiny work
+
+Examples: one logical change, one file or tight pair, rename/label/padding/colour/icon, small backend equivalent.
+
+1. Inline extract checklist into `.cursor/REQUIREMENTS.md` (no full multi-stage orchestration)
+2. Implement
+3. Run `acceptance-review`
+4. **Skip** `adaptive-workflow`
+
+Frontend and backend Tiny work use the same rules.
+
+## Passes and retries
+
+- One intentional pass per task set given at once.
+- On acceptance **Failed**: auto rework up to **2** retries, then stop and ask the user.
+- Do not start another full loop without user approval after retries are exhausted.
+
+## Completion
+
+- Incomplete checklist items ⇒ not complete (Failed / remaining work).
+- Overall: `Passed` | `Passed with Follow-up` | `Failed`.
+- Do not trust implementation summaries as proof; repository + checklist are the contract.

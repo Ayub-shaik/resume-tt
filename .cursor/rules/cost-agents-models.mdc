@@ -1,0 +1,33 @@
+---
+description: Cheap-capable-first models, max 5 agents with justification, minimize context
+alwaysApply: true
+---
+
+# Cost, agents, and models (global hard rule)
+
+## Models
+
+- Prefer the cheapest capable model/path first.
+- Main chat model is user-controlled (Composer); do not fight settings.
+- When spawning agents or choosing models, follow cheap-and-capable-first.
+- Escalate only with a short justification.
+
+## Agents
+
+- Default: **1** implementation agent.
+- Hard maximum without further user approval after the fact report: **5**.
+- If using more than 1 agent, report: count, reason, expected benefit.
+- If approaching or using 5, report clearly why 5 were needed (usage review).
+
+## Context
+
+- Do not forward the full user prompt to every specialist.
+- Each specialist gets only relevant requirements, files, and decisions.
+- Prefer references to existing summaries over duplicating large context.
+- Do not spawn agents or invoke skills because they exist — only when required.
+
+## Skills
+
+- Orchestrate existing skills; do not recreate their functionality.
+- Skip planning/brainstorming/browser research on trivial work.
+- Browser automation via MCP when automating the browser; browser QC via skill when validating UI quality.

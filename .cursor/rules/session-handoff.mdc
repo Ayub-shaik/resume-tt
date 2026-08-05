@@ -1,0 +1,64 @@
+---
+description: Global session handoff — read .cursor/SESSION_HANDOFF.md at chat start; /compact near context limit
+alwaysApply: true
+---
+
+# Session handoff (global hard rule)
+
+Applies to **every** Cursor workspace for this user.
+
+## Canonical file (per project — fixed name)
+
+```
+.cursor/SESSION_HANDOFF.md
+```
+
+Relative to the **current workspace root**. Do not rename. Do not use alternate handoff filenames.
+
+## On every new chat / session start
+
+1. **First tool action:** `Read` `{workspace}/.cursor/SESSION_HANDOFF.md`.
+2. If missing: create `.cursor/` if needed, write the file from the template below, then continue.
+3. Treat **Status / Done / Next steps / Gotchas** as authoritative resume context.
+4. Do not ask the user to re-explain work already summarized there.
+
+## Near context limit / user runs `/compact`
+
+When the user runs **`/compact`**, says context/cache is near the limit (~90% of ~256k), or the thread is about to compact:
+
+1. Run the **compact** skill / command workflow immediately (overwrite handoff; do not only chat about it).
+2. Tell the user the handoff path was refreshed.
+
+## Template (for missing or overwritten files)
+
+```markdown
+# Cursor session handoff
+
+## Updated
+ISO timestamp
+
+## Goal
+…
+
+## Status
+in progress | blocked | done-for-now
+
+## Done
+- …
+
+## Next steps
+1. …
+
+## Gotchas
+- …
+
+## Open decisions
+- …
+```
+
+## Do not
+
+- Skip the start-of-chat read
+- Rely on chat history alone across IDE restarts
+- Put secrets (API tokens, keys, passwords) in the handoff file
+- Write handoffs only under `~/.cursor/` — always use the **project** `.cursor/SESSION_HANDOFF.md`

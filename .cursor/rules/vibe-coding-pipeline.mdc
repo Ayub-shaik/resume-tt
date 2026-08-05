@@ -1,0 +1,28 @@
+---
+description: Vibe-coding preload — auto-run pipeline on unstructured development asks
+alwaysApply: true
+---
+
+# Vibe coding (global hard rule)
+
+User often gives informal / unstructured development asks. Do **not** wait for perfect prompts.
+
+## On any actionable coding request
+
+1. Read `.cursor/SESSION_HANDOFF.md` (create if missing).
+2. Capture asks into `.cursor/REQUIREMENTS.md` via `requirements-manager` (or Tiny inline extract).
+3. If not Tiny: run `adaptive-workflow` and follow **one** recipe.
+4. Implement using preloaded global skills (`frontend-patterns`, `backend-patterns`, `investigate`, etc.).
+5. Before saying done: run `acceptance-review`. Only **Passed** / **Passed with Follow-up** counts as complete.
+6. On Fail: rework ≤2 times, then ask the user.
+
+## Defaults for vague asks
+
+- Prefer interpreting intent into checklist rows over asking many preference questions.
+- Ask only when blocked (true conflict, missing secret, destructive prod action).
+- Never shrink scope silently.
+- Never skip acceptance because the ask was casual.
+
+## Skill set
+
+Use `~/.cursor/GLOBAL_SKILL_SET.md` and `~/.cursor/SKILL_COMPATIBILITY_AND_COMBOS.md`.
