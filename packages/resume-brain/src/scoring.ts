@@ -1,6 +1,4 @@
-/**
- * Compatibility shim — mirrors @tomorrowtools/resume-brain scoring (kept local for client bundle).
- */
+import type { TripleScores } from "./types.js";
 
 const STOP = new Set([
   "the", "and", "for", "with", "you", "your", "are", "this", "that", "from",
@@ -48,16 +46,19 @@ function coveredByResume(term: string, corpus: string): boolean {
   const t = normalize(term);
   if (!t) return true;
   if (corpus.includes(t)) return true;
+
   const stripped = t
     .replace(/\b(pipelines?|systems?|tools?|platforms?|solutions?|services?|environments?)\b/g, "")
     .replace(/\s+/g, " ")
     .trim();
   if (stripped && stripped !== t && corpus.includes(stripped)) return true;
+
   for (const group of EQUIV) {
     if (group.some((g) => t.includes(g) || g.includes(t))) {
       if (group.some((g) => corpus.includes(g))) return true;
     }
   }
+
   const parts = t.split(" ").filter(Boolean);
   if (parts.length >= 2) {
     const head = parts.slice(0, -1).join(" ");
@@ -66,12 +67,12 @@ function coveredByResume(term: string, corpus: string): boolean {
   return false;
 }
 
-export function keywordHeuristic(resumeText: string, jdText: string) {
-  if (!jdText.trim()) {
+export function keywordHeuristic(resumeText: string, jdOrRoleText: string) {
+  if (!jdOrRoleText.trim()) {
     return { matched: [] as string[], missing: [] as string[], pct: 0 };
   }
   const corpus = normalize(resumeText);
-  const raw = tokenize(jdText);
+  const raw = tokenize(jdOrRoleText);
   const sorted = [...new Set(raw)].sort((a, b) => b.length - a.length);
   const uniq: string[] = [];
   for (const t of sorted) {
@@ -79,6 +80,7 @@ export function keywordHeuristic(resumeText: string, jdText: string) {
     uniq.push(t);
     if (uniq.length >= 36) break;
   }
+
   const matched: string[] = [];
   const missing: string[] = [];
   for (const k of uniq) {
@@ -100,22 +102,7 @@ export function atsFormatHeuristic(resumeText: string): number {
   return Math.max(20, Math.min(100, score));
 }
 
-export type QuickScores = {
-  overall: number;
-  keywordMatchPct: number;
-  atsReadability: number;
-};
-
-export type ImproveFocus = "ats" | "jd" | "balanced";
-export type ResumeVersion = 1 | 2 | 3 | 4;
-
-export type TripleScores = QuickScores & {
-  ats: number;
-  jd: number;
-  matchedKeywords: string[];
-  missingKeywords: string[];
-};
-
+/** Unified triple score used by resume-tt and job-search. */
 export function scoreTriple(
   resumeText: string,
   jdText = "",
@@ -139,19 +126,27 @@ export function scoreTriple(
   };
 }
 
-export function quickScores(resumeText: string, jdText: string): QuickScores {
-  const t = scoreTriple(resumeText, jdText);
+export function scoreDelta(before: TripleScores, after: TripleScores) {
   return {
-    overall: t.overall,
-    keywordMatchPct: t.keywordMatchPct,
-    atsReadability: t.atsReadability,
+    ats: after.ats - before.ats,
+    jd: after.jd - before.jd,
+    overall: after.overall - before.overall,
   };
 }
 
-export function scoreDeltas(before: QuickScores, after: QuickScores) {
-  return {
-    overall: after.overall - before.overall,
-    keywordMatchPct: after.keywordMatchPct - before.keywordMatchPct,
-    atsReadability: after.atsReadability - before.atsReadability,
-  };
+export function isSaturated(
+  before: TripleScores,
+  after: TripleScores,
+  minGain = 2,
+): boolean {
+  const d = scoreDelta(before, after);
+  return d.ats < minGain && d.jd < minGain && d.overall < minGain;
+}
+
+export function selectModelTier(matchScore: number): "premium" | "standard" {
+  return matchScore >= 65 ? "premium" : "standard";
+}
+
+export function deliverVersionForMatch(matchScore: number): 1 | 3 {
+  return matchScore >= 75 ? 3 : 1;
 }

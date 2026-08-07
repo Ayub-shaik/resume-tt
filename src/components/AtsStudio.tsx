@@ -12,7 +12,10 @@ import {
   fetchPreviewBlob,
   ResumeAsIsPreview,
 } from "@/components/ResumeAsIsPreview";
+import { ImproveSpeedometers } from "@/components/ImproveSpeedometers";
 import { fetchJson } from "@/lib/fetchJson";
+import { scoreTriple, type TripleScores } from "@/lib/ats/keywords";
+import type { ImproveFocus, ResumeVersion } from "@tomorrowtools/resume-brain";
 import type { AtsAnalysis } from "@/lib/ats/analyze";
 import { isNovelSuggestion } from "@/lib/ats/dedupe";
 import { applyAllSuggestions } from "@/lib/ats/applySuggestions";
@@ -82,6 +85,12 @@ export function AtsStudio() {
   const [improveView, setImproveView] = useState<"modified" | "original">(
     "modified",
   );
+  const [masterScores, setMasterScores] = useState<TripleScores | null>(null);
+  const [currentScores, setCurrentScores] = useState<TripleScores | null>(null);
+  const [versionEntries, setVersionEntries] = useState<
+    Array<{ version: ResumeVersion; scores: TripleScores; resumeMd: string }>
+  >([]);
+  const [brainSaturated, setBrainSaturated] = useState(false);
   const [pdfPreviewPages, setPdfPreviewPages] = useState<string[]>([]);
   const [showPdfPreview, setShowPdfPreview] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -564,6 +573,101 @@ export function AtsStudio() {
     setResumeText(next);
     setImprovedText(next);
     markDirty();
+  }
+
+  const nextBrainVersion = useMemo((): ResumeVersion | null => {
+    if (versionEntries.length >= 4 || brainSaturated) return null;
+    return (versionEntries.length + 1) as ResumeVersion;
+  }, [versionEntries.length, brainSaturated]);
+
+  async function runBrainImprove(focus: ImproveFocus = "balanced") {
+    if (!resumeText.trim()) return;
+    setBusy("improve");
+    setError(null);
+    setImproveStarted(true);
+    const baseline = (originalText.trim() || resumeText.trim());
+    freezeOriginalIfNeeded();
+    if (!masterScores) {
+      setMasterScores(scoreTriple(baseline, jdText));
+    }
+    try {
+      const isFirst = versionEntries.length === 0;
+      const body: Record<string, unknown> = {
+        action: isFirst ? "pass" : "more",
+        masterResume: baseline,
+        currentResume: resumeText.trim(),
+        jdText,
+        focus,
+        matchScore:
+          currentScores?.overall ??
+          masterScores?.overall ??
+          scoreTriple(baseline, jdText).overall,
+      };
+      if (isFirst) {
+        body.currentVersion = 1;
+      } else {
+        body.currentVersion = versionEntries[versionEntries.length - 1].version;
+      }
+
+      const { res, data } = await fetchJson<{
+        error?: string;
+        pass?: {
+          version: ResumeVersion;
+          resumeMd: string;
+          scores: TripleScores;
+          saturated?: boolean;
+          notes?: string[];
+        };
+      }>("/api/brain/improve", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok || !data.pass) {
+        throw new Error(data.error || "Brain improve failed");
+      }
+      const pass = data.pass;
+      commitWorkingDraft(pass.resumeMd);
+      setVersionEntries((prev) => [
+        ...prev,
+        {
+          version: pass.version,
+          scores: pass.scores,
+          resumeMd: pass.resumeMd,
+        },
+      ]);
+      setCurrentScores(pass.scores);
+      setScoresBefore(quickScores(baseline, jdText));
+      setScoresAfter(quickScores(pass.resumeMd, jdText));
+      setBrainSaturated(Boolean(pass.saturated) || pass.version >= 4);
+      setChat((c) => [
+        ...c,
+        {
+          role: "assistant",
+          text: `v${pass.version} ready (${focus} focus). ${
+            pass.notes?.[0] || "Refinements applied."
+          }`,
+        },
+      ]);
+      markDirty();
+      await runAnalyze({ silentTab: true });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  function downloadBrainVersion(v: ResumeVersion) {
+    const entry = versionEntries.find((x) => x.version === v);
+    if (!entry) return;
+    const blob = new Blob([entry.resumeMd], { type: "text/markdown" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `resume_v${v}.md`;
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   async function runImprove(custom?: string) {
@@ -1243,14 +1347,19 @@ export function AtsStudio() {
               {!improveStarted ? (
                 <div className="rounded-xl border border-[var(--line)] bg-white/70 p-4">
                   <p className="text-sm text-[var(--muted)]">
-                    Content edits from Analyze are already in the working draft
-                    above. Use Start improving only for extra AI refinements.
+                    One-click auto-tailor uses the shared resume brain (v1–v4).
+                    Manual chat refinements are still available below.
                   </p>
                   <button
                     type="button"
                     className="btn-primary mt-3 px-4 py-2 text-sm disabled:opacity-40"
                     disabled={!resumeText.trim() || Boolean(busy)}
-                    onClick={() => setImproveStarted(true)}
+                    onClick={() => {
+                      setImproveStarted(true);
+                      const baseline = resumeText.trim();
+                      setMasterScores(scoreTriple(baseline, jdText));
+                      setCurrentScores(scoreTriple(baseline, jdText));
+                    }}
                   >
                     Start improving
                   </button>
@@ -1296,11 +1405,17 @@ export function AtsStudio() {
                 </div>
               )}
 
-              {improveStarted && scoresBefore && scoresAfter ? (
-                <div className="grid gap-2 sm:grid-cols-2">
-                  <ScoreCard label="Before refine" value={scoresBefore.overall} />
-                  <ScoreCard label="After refine" value={scoresAfter.overall} />
-                </div>
+              {improveStarted && masterScores && currentScores ? (
+                <ImproveSpeedometers
+                  masterScores={masterScores}
+                  currentScores={currentScores}
+                  versions={versionEntries}
+                  nextVersion={nextBrainVersion}
+                  busy={busy === "improve"}
+                  saturated={brainSaturated}
+                  onImprove={(focus) => void runBrainImprove(focus)}
+                  onDownloadVersion={downloadBrainVersion}
+                />
               ) : null}
 
               <div className="flex flex-wrap gap-2">
