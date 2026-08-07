@@ -91,6 +91,7 @@ export function AtsStudio() {
     Array<{ version: ResumeVersion; scores: TripleScores; resumeMd: string }>
   >([]);
   const [brainSaturated, setBrainSaturated] = useState(false);
+  const [benchmarkScore, setBenchmarkScore] = useState<number | null>(null);
   const [pdfPreviewPages, setPdfPreviewPages] = useState<string[]>([]);
   const [showPdfPreview, setShowPdfPreview] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -618,6 +619,7 @@ export function AtsStudio() {
           saturated?: boolean;
           notes?: string[];
         };
+        benchmark?: { benchmark?: { score: number; tool: string } };
       }>("/api/brain/improve", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -640,6 +642,7 @@ export function AtsStudio() {
       setScoresBefore(quickScores(baseline, jdText));
       setScoresAfter(quickScores(pass.resumeMd, jdText));
       setBrainSaturated(Boolean(pass.saturated) || pass.version >= 4);
+      setBenchmarkScore(data.benchmark?.benchmark?.score ?? null);
       setChat((c) => [
         ...c,
         {
@@ -1406,16 +1409,23 @@ export function AtsStudio() {
               )}
 
               {improveStarted && masterScores && currentScores ? (
-                <ImproveSpeedometers
-                  masterScores={masterScores}
-                  currentScores={currentScores}
-                  versions={versionEntries}
-                  nextVersion={nextBrainVersion}
-                  busy={busy === "improve"}
-                  saturated={brainSaturated}
-                  onImprove={(focus) => void runBrainImprove(focus)}
-                  onDownloadVersion={downloadBrainVersion}
-                />
+                <>
+                  <ImproveSpeedometers
+                    masterScores={masterScores}
+                    currentScores={currentScores}
+                    versions={versionEntries}
+                    nextVersion={nextBrainVersion}
+                    busy={busy === "improve"}
+                    saturated={brainSaturated}
+                    onImprove={(focus) => void runBrainImprove(focus)}
+                    onDownloadVersion={downloadBrainVersion}
+                  />
+                  {benchmarkScore != null ? (
+                    <p className="text-center text-xs text-[var(--muted)]">
+                      OSS benchmark ({`resume-matcher-style`}): {benchmarkScore}/100
+                    </p>
+                  ) : null}
+                </>
               ) : null}
 
               <div className="flex flex-wrap gap-2">

@@ -1,33 +1,137 @@
 import { keywordHeuristic } from "./scoring.js";
 import type { TripleScores } from "./types.js";
 
+export type BenchmarkResult = {
+  tool: string;
+  score: number;
+  matched: string[];
+  missing: string[];
+  breakdown?: {
+    keywordMatch: number;
+    skillsCoverage: number;
+    sectionCompleteness: number;
+  };
+};
+
+function extractSkillsBlock(resumeText: string): string {
+  const lines = resumeText.split("\n");
+  const out: string[] = [];
+  let inSkills = false;
+  for (const line of lines) {
+    if (/^##\s+skills\b/i.test(line) || /^skills\s*$/i.test(line.trim())) {
+      inSkills = true;
+      continue;
+    }
+    if (inSkills && /^##\s+/.test(line)) break;
+    if (inSkills) out.push(line);
+  }
+  return out.join("\n").toLowerCase();
+}
+
+function sectionCompletenessScore(resumeText: string): number {
+  const lower = resumeText.toLowerCase();
+  const checks = [
+    /\b(summary|professional summary|profile)\b/,
+    /\b(experience|employment|work history)\b/,
+    /\b(education|degree|university)\b/,
+    /\b(skills|technical skills|competencies)\b/,
+  ];
+  const hit = checks.filter((re) => re.test(lower)).length;
+  return Math.round((hit / checks.length) * 100);
+}
+
+function skillsCoverageScore(resumeText: string, jdText: string): number {
+  if (!jdText.trim()) return 70;
+  const skills = extractSkillsBlock(resumeText);
+  const corpus = skills || resumeText.toLowerCase();
+  const jdTokens = [
+    ...new Set(
+      (jdText.toLowerCase().match(/[a-z][a-z0-9+.#-]{2,}/g) || []).filter(
+        (t) => t.length > 2,
+      ),
+    ),
+  ].slice(0, 24);
+  if (!jdTokens.length) return 70;
+  const matched = jdTokens.filter((t) => corpus.includes(t));
+  return Math.round((100 * matched.length) / jdTokens.length);
+}
+
 /**
- * Lightweight OSS-style benchmark (token overlap — Resume-Matcher-like).
- * Reference line only; primary UX uses scoreTriple().
+ * Resume-Matcher-inspired ATS benchmark (no LLM, no Docker).
+ * Weights mirror public breakdown: keyword 55%, skills 25%, sections 20%.
  */
-export function benchmarkScore(
+export function resumeMatcherStyleScore(
   resumeText: string,
   jdText: string,
-): { tool: string; score: number; matched: string[]; missing: string[] } {
+): BenchmarkResult {
   const kw = keywordHeuristic(resumeText, jdText);
-  // Slightly stricter weighting for benchmark display
-  const score = Math.round(kw.pct * 0.9);
+  const keywordMatch = kw.pct;
+  const skillsCoverage = skillsCoverageScore(resumeText, jdText);
+  const sectionCompleteness = sectionCompletenessScore(resumeText);
+  const score = Math.round(
+    keywordMatch * 0.55 + skillsCoverage * 0.25 + sectionCompleteness * 0.2,
+  );
   return {
-    tool: "keyword-overlap-benchmark",
+    tool: "resume-matcher-style",
     score,
     matched: kw.matched,
     missing: kw.missing,
+    breakdown: { keywordMatch, skillsCoverage, sectionCompleteness },
   };
 }
 
-export function benchmarkTriple(
+/** @deprecated use resumeMatcherStyleScore */
+export function benchmarkScore(resumeText: string, jdText: string): BenchmarkResult {
+  return resumeMatcherStyleScore(resumeText, jdText);
+}
+
+export async function fetchRemoteResumeMatcherScore(
+  resumeText: string,
+  jdText: string,
+): Promise<BenchmarkResult | null> {
+  const base = (process.env.RESUME_MATCHER_BENCHMARK_URL || "").replace(/\/$/, "");
+  if (!base) return null;
+  try {
+    const res = await fetch(`${base}/api/v1/scores`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        resume_text: resumeText.slice(0, 20_000),
+        job_description: jdText.slice(0, 20_000),
+      }),
+      signal: AbortSignal.timeout(25_000),
+    });
+    if (!res.ok) return null;
+    const data = (await res.json()) as {
+      score?: number;
+      overall_score?: number;
+      matched_keywords?: string[];
+      missing_keywords?: string[];
+    };
+    const score = Number(data.score ?? data.overall_score);
+    if (!Number.isFinite(score)) return null;
+    return {
+      tool: "resume-matcher-api",
+      score: Math.round(score),
+      matched: data.matched_keywords || [],
+      missing: data.missing_keywords || [],
+    };
+  } catch {
+    return null;
+  }
+}
+
+export async function benchmarkTriple(
   resumeText: string,
   jdText: string,
   internal: TripleScores,
 ) {
-  const bench = benchmarkScore(resumeText, jdText);
+  const local = resumeMatcherStyleScore(resumeText, jdText);
+  const remote = await fetchRemoteResumeMatcherScore(resumeText, jdText);
   return {
     internal,
-    benchmark: bench,
+    benchmark: remote ?? local,
+    benchmarkLocal: local,
+    benchmarkRemote: remote,
   };
 }

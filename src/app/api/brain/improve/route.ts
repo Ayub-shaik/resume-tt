@@ -49,8 +49,8 @@ export async function POST(req: Request) {
       });
       return NextResponse.json({
         chain,
-        benchmark: chain.versions.map((v) =>
-          benchmarkTriple(v.resumeMd, jdText, v.scores),
+        benchmark: await Promise.all(
+          chain.versions.map((v) => benchmarkTriple(v.resumeMd, jdText, v.scores)),
         ),
       });
     }
@@ -69,7 +69,7 @@ export async function POST(req: Request) {
       });
       return NextResponse.json({
         pass,
-        benchmark: benchmarkTriple(pass.resumeMd, jdText, pass.scores),
+        benchmark: await benchmarkTriple(pass.resumeMd, jdText, pass.scores),
       });
     }
 
@@ -87,7 +87,7 @@ export async function POST(req: Request) {
     return NextResponse.json({
       pass,
       preScores: scoreTriple(current, jdText, targetRole),
-      benchmark: benchmarkTriple(pass.resumeMd, jdText, pass.scores),
+      benchmark: await benchmarkTriple(pass.resumeMd, jdText, pass.scores),
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
