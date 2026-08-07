@@ -1,30 +1,28 @@
 # Cursor session handoff
 
 ## Updated
-2026-08-07T17:20:00Z
+2026-08-07T17:40:00Z
 
 ## Goal
-Unified resume-brain: shared scoring/tailor v1–v4, job-search automation tiers, resume-tt 3-row speedometer UI.
+Unified resume-brain deployed: scoring, v1–v4 tailor, job-search automation, resume-tt speedometer UI.
 
 ## Status
-in progress — P0 implemented, deploy/restart pending
+done-for-now
 
 ## Done
-- Snapshots: `snapshot/pre-resume-brain-20260807` + tags in **resume-tt** and **automation**
-- Branches: `feat/resume-brain-unification` (both repos)
-- New package: `automation/packages/resume-brain` (scoreTriple, improve chain, fact validator, benchmark stub)
-- job-search-ayub: brainAdapter, pipeline uses brain; ≥75% → v3 PDF; `/improve_the_resume_more` command
-- resume-tt: `/api/brain/improve`, ImproveSpeedometers UI (3 rows), keywords aligned with brain scoring
-- Copy of brain in `resume-tt/packages/resume-brain` for Turbopack (sync via rsync — see brain README)
+- Merged `feat/resume-brain-unification` → automation `main` (20ce9a5), resume-tt `master` (8a03d1e); pushed both
+- Services restarted: `resume-tt-web`, `job-search-ayub-daemon` (active)
+- Sync script: `automation/scripts/sync-resume-brain-to-resume-tt.sh`
+- Benchmark: `resume-matcher-style` (55/25/20 weights); optional `RESUME_MATCHER_BENCHMARK_URL`
+- Snapshots preserved: `snapshot/pre-resume-brain-20260807`
 
 ## Next steps
-1. Commit + push both feature branches
-2. Restart job-search daemon + resume-tt-web after merge
-3. Live test: resume-tt Improve tab speedometers; Telegram `/job` 75+ → v3
-4. Add rsync script or CI step to keep resume-tt copy in sync
-5. Optional: wire real Resume-Matcher OSS benchmark subprocess
+1. Live QA: resume.tomorrowtools.dev → Improve tab → speedometers + v1 improve
+2. Telegram: `/job` on 75+ match → v3 PDF; `/improve_the_resume_more` for v2–v4
+3. After brain edits: run `automation/scripts/sync-resume-brain-to-resume-tt.sh`
+4. Optional: run Resume-Matcher Docker and set `RESUME_MATCHER_BENCHMARK_URL=http://127.0.0.1:3000`
 
 ## Gotchas
-- `NODE_ENV=production` skips devDeps — run `npm install --include=dev` before `npm run build` in resume-brain
-- resume-tt cannot use `file:../automation/...` with Turbopack — use in-repo `packages/resume-brain` copy
-- toolfactory remains templates/posters only — no brain
+- `npm install --include=dev` required when `NODE_ENV=production`
+- resume-tt uses in-repo `packages/resume-brain` copy (not cross-repo symlink)
+- toolfactory = templates/posters only

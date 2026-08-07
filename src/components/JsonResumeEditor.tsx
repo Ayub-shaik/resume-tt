@@ -192,9 +192,10 @@ export function JsonResumeEditor({
           <div className="sm:col-span-2">
             <label className={labelClass()}>Summary</label>
             <textarea
-              className={`${inputClass()} min-h-[88px] resize-y`}
+              className={`${inputClass()} min-h-[120px] resize-y`}
               value={basics.summary || ""}
               onChange={(e) => patchBasics({ summary: e.target.value })}
+              rows={Math.min(12, Math.max(5, (basics.summary || "").split("\n").length + 2))}
             />
           </div>
         </div>
@@ -299,8 +300,12 @@ export function JsonResumeEditor({
               <div className="sm:col-span-2">
                 <label className={labelClass()}>Bullets (one per line)</label>
                 <textarea
-                  className={`${inputClass()} min-h-[72px] resize-y font-mono text-xs`}
+                  className={`${inputClass()} min-h-[110px] resize-y font-mono text-xs`}
                   value={(w.highlights || []).join("\n")}
+                  rows={Math.min(
+                    14,
+                    Math.max(4, (w.highlights || []).length + 2),
+                  )}
                   onChange={(e) =>
                     patchList("work", work, i, {
                       ...w,
@@ -599,16 +604,18 @@ function ProjectCard({
       <div>
         <label className={labelClass()}>Description</label>
         <textarea
-          className={`${inputClass()} min-h-[64px] resize-y`}
+          className={`${inputClass()} min-h-[96px] resize-y`}
           value={project.description || ""}
           onChange={(e) => onChange({ ...project, description: e.target.value })}
+          rows={Math.min(10, Math.max(3, (project.description || "").split("\n").length + 2))}
         />
       </div>
       <div>
         <label className={labelClass()}>Highlights (one per line)</label>
         <textarea
-          className={`${inputClass()} min-h-[56px] resize-y font-mono text-xs`}
+          className={`${inputClass()} min-h-[96px] resize-y font-mono text-xs`}
           value={(project.highlights || []).join("\n")}
+          rows={Math.min(12, Math.max(4, (project.highlights || []).length + 2))}
           onChange={(e) =>
             onChange({
               ...project,

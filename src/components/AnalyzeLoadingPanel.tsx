@@ -1,30 +1,32 @@
 "use client";
 
-const STAGES = [
-  "Parsing resume…",
-  "Reading job description…",
-  "Scoring coverage…",
-  "Building dual view…",
-] as const;
-
 export function AnalyzeLoadingPanel({
-  stage,
+  stageLabel,
+  progress,
   onStop,
   label = "Analyzing your resume",
 }: {
-  stage: number;
+  stageLabel: string;
+  /** 0–1 estimated progress through stages (no loop). */
+  progress: number;
   onStop?: () => void;
   label?: string;
 }) {
+  const pct = Math.max(0, Math.min(100, Math.round(progress * 100)));
+
   return (
     <div className="flex min-h-[min(520px,70vh)] flex-col items-center justify-center gap-4 rounded-xl border border-[var(--line)] bg-white/80 p-8 text-center">
       <span className="stream-status__spinner" />
       <p className="font-[family-name:var(--font-display)] text-xl text-[var(--ink)]">
         {label}
       </p>
-      <p className="text-sm font-medium text-[var(--accent)]">
-        {STAGES[stage % STAGES.length]}
-      </p>
+      <p className="text-sm font-medium text-[var(--accent)]">{stageLabel}</p>
+      <div className="h-1.5 w-full max-w-xs overflow-hidden rounded-full bg-[var(--accent-soft)]">
+        <div
+          className="h-full rounded-full bg-[var(--accent)] transition-[width] duration-700"
+          style={{ width: `${pct}%` }}
+        />
+      </div>
       {onStop ? (
         <button
           type="button"

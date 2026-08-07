@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { JsonResumeEditor } from "@/components/JsonResumeEditor";
 import { ImproveResumeViewer } from "@/components/ImproveResumeViewer";
 import { TemplateGalleryModal } from "@/components/TemplateGalleryModal";
@@ -40,6 +40,8 @@ export function ResumeBuilder({
   const [mobilePane, setMobilePane] = useState<"edit" | "preview">("edit");
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [galleryStart, setGalleryStart] = useState<TemplateId>(selectedTemplate);
+  const templatesScrollRef = useRef<HTMLDivElement>(null);
+  const atBottomRef = useRef(false);
 
   useEffect(() => {
     if (!jsonResume && resumeText.trim()) {
@@ -149,7 +151,22 @@ export function ResumeBuilder({
                 </button>
               ))}
             </div>
-            <div className="grid max-h-[40vh] grid-cols-2 gap-3 overflow-y-auto sm:grid-cols-3 xl:grid-cols-5">
+            <div
+              ref={templatesScrollRef}
+              className="grid max-h-[40vh] grid-cols-2 gap-3 overflow-y-auto sm:grid-cols-3 xl:grid-cols-5"
+              onScroll={(e) => {
+                const el = e.currentTarget;
+                const atBottom =
+                  el.scrollTop + el.clientHeight >= el.scrollHeight - 8;
+                if (atBottom && atBottomRef.current) {
+                  // Second scroll gesture at bottom collapses templates into a bar
+                  setLayoutsOpen(false);
+                  atBottomRef.current = false;
+                  return;
+                }
+                atBottomRef.current = atBottom;
+              }}
+            >
               {visible.map((t) => (
                 <button
                   key={t.id}
@@ -175,8 +192,23 @@ export function ResumeBuilder({
                 </button>
               ))}
             </div>
+            <p className="text-[10px] text-[var(--muted)]">
+              Scroll to the end of templates, then scroll again to minimise into
+              a bar.
+            </p>
           </div>
-        ) : null}
+        ) : (
+          <button
+            type="button"
+            className="mt-2 flex w-full items-center justify-between rounded-xl border border-[var(--line)] bg-white/80 px-3 py-2 text-left text-xs font-semibold"
+            onClick={() => setLayoutsOpen(true)}
+          >
+            <span>
+              Templates · {TEMPLATE_META.find((t) => t.id === selectedTemplate)?.name || selectedTemplate}
+            </span>
+            <span className="text-[var(--muted)]">Expand</span>
+          </button>
+        )}
       </div>
 
       <div className="grid min-h-0 flex-1 grid-cols-1 gap-0 lg:grid-cols-2">

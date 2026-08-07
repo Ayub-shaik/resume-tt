@@ -3,6 +3,7 @@ const STOP = new Set([
     "have", "will", "role", "team", "experience", "years", "work", "ability",
     "using", "including", "strong", "knowledge", "skills", "must", "should",
     "preferred", "required", "plus", "etc", "such", "able", "good", "deep", "solid",
+    "engineer", "engineering",
 ]);
 const EQUIV = [
     ["ci/cd", "cicd", "ci-cd", "continuous integration", "continuous delivery", "continuous deployment"],
@@ -17,6 +18,52 @@ const EQUIV = [
     ["angular", "angularjs"],
     ["react", "reactjs", "react.js"],
     ["pipeline", "pipelines"],
+    ["finops", "cloud cost", "cost optimization", "cost management"],
+];
+const ROLE_PACKS = [
+    {
+        match: /\bfinops\b/i,
+        terms: [
+            "finops",
+            "cloud cost optimization",
+            "cost allocation",
+            "showback",
+            "chargeback",
+            "tagging strategy",
+            "cost explorer",
+            "CUR",
+            "budgeting",
+            "forecasting",
+            "unit cost",
+            "waste reduction",
+            "rightsizing",
+        ],
+    },
+    {
+        match: /\bmlops\b/i,
+        terms: [
+            "mlops",
+            "model deployment",
+            "feature store",
+            "model monitoring",
+            "experiment tracking",
+            "ML pipeline",
+            "training infrastructure",
+            "inference",
+        ],
+    },
+    {
+        match: /\bdevops\b|\bsre\b/i,
+        terms: [
+            "devops",
+            "kubernetes",
+            "terraform",
+            "ci/cd",
+            "observability",
+            "incident response",
+            "aws",
+        ],
+    },
 ];
 function normalize(s) {
     return s
@@ -27,9 +74,18 @@ function normalize(s) {
 }
 function tokenize(text) {
     const n = normalize(text);
-    const multi = n.match(/\b(?:ci\/cd|ci-cd|cicd|infrastructure as code|amazon web services|google cloud|microsoft azure|continuous (?:integration|delivery|deployment))\b/g) || [];
+    const multi = n.match(/\b(?:ci\/cd|ci-cd|cicd|infrastructure as code|amazon web services|google cloud|microsoft azure|continuous (?:integration|delivery|deployment)|cloud cost optimization|cost allocation|tagging strategy|unit cost)\b/g) || [];
     const singles = (n.match(/[a-z][a-z0-9+.#/-]{1,}/g) || []).filter((t) => !STOP.has(t) && t.length > 1);
     return [...multi, ...singles];
+}
+function expandJdTerms(jdText) {
+    const base = tokenize(jdText);
+    const extra = [];
+    for (const pack of ROLE_PACKS) {
+        if (pack.match.test(jdText))
+            extra.push(...pack.terms);
+    }
+    return [...base, ...extra];
 }
 function coveredByResume(term, corpus) {
     const t = normalize(term);
@@ -62,8 +118,8 @@ export function keywordHeuristic(resumeText, jdOrRoleText) {
         return { matched: [], missing: [], pct: 0 };
     }
     const corpus = normalize(resumeText);
-    const raw = tokenize(jdOrRoleText);
-    const sorted = [...new Set(raw)].sort((a, b) => b.length - a.length);
+    const raw = expandJdTerms(jdOrRoleText);
+    const sorted = [...new Set(raw.map(normalize).filter(Boolean))].sort((a, b) => b.length - a.length);
     const uniq = [];
     for (const t of sorted) {
         if (uniq.some((u) => u.includes(t) || t.includes(u)))
@@ -80,13 +136,19 @@ export function keywordHeuristic(resumeText, jdOrRoleText) {
         else
             missing.push(k);
     }
-    const pct = uniq.length ? Math.round((100 * matched.length) / uniq.length) : 0;
-    return { matched, missing, pct };
+    let pct = uniq.length ? Math.round((100 * matched.length) / uniq.length) : 0;
+    if (uniq.length < 5) {
+        pct = Math.min(pct, 55 + matched.length * 8);
+    }
+    return { matched, missing, pct: Math.max(0, Math.min(100, pct)) };
 }
+/** ATS format score — resume structure only. Independent of JD. */
 export function atsFormatHeuristic(resumeText) {
-    let score = 70;
-    if (/\|.+\|/.test(resumeText))
-        score -= 15;
+    let score = 72;
+    const pipeCount = (resumeText.match(/\|/g) || []).length;
+    if (pipeCount >= 8 || (/^\s*\|.+\|.+\|/m.test(resumeText) && pipeCount >= 4)) {
+        score -= 12;
+    }
     if (/^---+$/m.test(resumeText))
         score -= 10;
     if (/[✉✆🔗📍●]/.test(resumeText))
@@ -94,25 +156,29 @@ export function atsFormatHeuristic(resumeText) {
     if (resumeText.split(/\n/).length < 20)
         score -= 10;
     if (/#{1,3}\s|^\s*[-*]\s/m.test(resumeText))
-        score += 10;
+        score += 12;
     if (/\b(experience|skills|education|summary)\b/i.test(resumeText))
         score += 10;
+    if (/\b(email|@|linkedin|phone|\+?\d{10,})\b/i.test(resumeText))
+        score += 4;
     return Math.max(20, Math.min(100, score));
 }
 /** Unified triple score used by resume-tt and job-search. */
 export function scoreTriple(resumeText, jdText = "", targetRole = "") {
+    const hasJd = Boolean(jdText.trim() || targetRole.trim());
     const jdSource = jdText.trim() || targetRole.trim();
     const kw = keywordHeuristic(resumeText, jdSource);
     const ats = atsFormatHeuristic(resumeText);
-    const jd = jdSource ? kw.pct : Math.round(ats * 0.75);
-    const overall = jdSource
+    const jd = hasJd ? kw.pct : 0;
+    const overall = hasJd
         ? Math.round(ats * 0.4 + jd * 0.6)
-        : Math.round(ats * 0.85);
+        : ats;
     return {
         ats,
         jd,
+        jdAvailable: hasJd,
         overall,
-        keywordMatchPct: kw.pct,
+        keywordMatchPct: hasJd ? kw.pct : 0,
         atsReadability: ats,
         matchedKeywords: kw.matched,
         missingKeywords: kw.missing,
@@ -126,7 +192,11 @@ export function scoreDelta(before, after) {
     };
 }
 export function isSaturated(before, after, minGain = 2) {
-    const d = scoreDelta(before, after);
+    const d = {
+        ats: after.ats - before.ats,
+        jd: after.jd - before.jd,
+        overall: after.overall - before.overall,
+    };
     return d.ats < minGain && d.jd < minGain && d.overall < minGain;
 }
 export function selectModelTier(matchScore) {

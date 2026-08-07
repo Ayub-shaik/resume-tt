@@ -4,42 +4,113 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AppNav } from "@/components/AppNav";
 import { DriveBrowserModal } from "@/components/DriveBrowserModal";
 import { AnalyzeLoadingPanel } from "@/components/AnalyzeLoadingPanel";
-import { AnalyzeWorkbench } from "@/components/AnalyzeWorkbench";
+import { AnalyzeWorkbench, suggestionKey } from "@/components/AnalyzeWorkbench";
 import { ResumeBuilder } from "@/components/ResumeBuilder";
-import { ImproveResumeViewer } from "@/components/ImproveResumeViewer";
 import { PdfPreview } from "@/components/PdfPreview";
 import {
   fetchPreviewBlob,
   ResumeAsIsPreview,
 } from "@/components/ResumeAsIsPreview";
-import { ImproveSpeedometers } from "@/components/ImproveSpeedometers";
+import { ImproveSpeedometers, type TailorRowState } from "@/components/ImproveSpeedometers";
+import { diffResumeLines } from "@/lib/ats/resumeLineDiff";
+import {
+  buildScoreExplanation,
+  type ScoreExplainTopic,
+} from "@/lib/ats/scoreExplain";
 import { fetchJson } from "@/lib/fetchJson";
-import { scoreTriple, type TripleScores } from "@/lib/ats/keywords";
+import {
+  scoreTriple,
+  isUsableJdText,
+  type TripleScores,
+} from "@/lib/ats/keywords";
 import type { ImproveFocus, ResumeVersion } from "@tomorrowtools/resume-brain";
 import type { AtsAnalysis } from "@/lib/ats/analyze";
 import { isNovelSuggestion } from "@/lib/ats/dedupe";
 import { applyAllSuggestions } from "@/lib/ats/applySuggestions";
+import { accommodateKeywordInExperience } from "@/lib/ats/dualPage";
 import type { JsonResume } from "@/lib/ats/jsonresume";
 import { jsonResumeToMarkdown } from "@/lib/ats/jsonresume";
 import { quickScores, type QuickScores } from "@/lib/ats/keywords";
+import { isStandaloneJobUrl } from "@/lib/ats/jdUrl";
 import type { TemplateId } from "@/lib/ats/templates";
 import { TEMPLATE_META, isTemplateId } from "@/lib/ats/templates";
-import { loadAtsDraft, saveAtsDraft } from "@/lib/ats/draftStore";
+import { loadAtsDraft, saveAtsDraft, clearAtsDraft } from "@/lib/ats/draftStore";
 import type { Resume } from "@/lib/types";
+
+const TAILOR_FEED_TICKS = [
+  "Scanning sections…",
+  "Matching JD vocabulary…",
+  "Reordering bullets…",
+  "Checking fact ledger…",
+  "Polishing wording…",
+] as const;
+
+function emptyTailorRow(): TailorRowState {
+  return {
+    improveCount: 0,
+    afterScores: null,
+    changeLines: [],
+    feedActive: false,
+    history: [],
+  };
+}
+
+type AnalyzeVersionSnap = {
+  id: string;
+  label: string; // v1, v2…
+  resumeText: string;
+  jdText: string;
+  analysis: AtsAnalysis;
+  masterScores: TripleScores | null;
+  tailorRows: Record<ImproveFocus, TailorRowState>;
+  createdAt: string;
+};
+
+function isDestructiveSuggestion(s: {
+  area: string;
+  current: string;
+  suggested: string;
+  why: string;
+}): boolean {
+  const t = `${s.area} ${s.why} ${s.suggested} ${s.current}`.toLowerCase();
+  if (/\b(remove|delete|strip|drop)\b.*\b(address|phone|email|location|contact|linkedin)\b/.test(t)) {
+    return true;
+  }
+  if (/^(remove|delete|cut)\b/i.test(s.suggested.trim())) return true;
+  if (
+    s.suggested.trim().length < 20 &&
+    /\b(remove|delete)\b/i.test(`${s.why} ${s.suggested}`)
+  ) {
+    return true;
+  }
+  return false;
+}
+
+function defaultTailorRows(): Record<ImproveFocus, TailorRowState> {
+  return {
+    ats: emptyTailorRow(),
+    jd: emptyTailorRow(),
+    balanced: emptyTailorRow(),
+  };
+}
 
 const ANALYZE_STAGES = [
   "Parsing resume…",
   "Reading job description…",
   "Scoring coverage…",
   "Building dual view…",
+  "Finalising analysis…",
 ] as const;
+/** Target analyse UX pacing (~28s to last stage; hold after). */
+const ANALYZE_STAGE_MS = 5600;
 
-type Tab = "prepare" | "analyze" | "improve" | "builder";
+type Tab = "prepare" | "analyze" | "builder";
+type StoredTab = Tab | "improve";
 type ChatMsg = { role: "user" | "assistant"; text: string };
 type AtsSessionRow = {
   id: string;
   name: string;
-  step: Tab;
+  step: StoredTab;
   resumeText: string;
   jdText: string;
   originalText: string;
@@ -55,6 +126,8 @@ export function AtsStudio() {
   const [tab, setTab] = useState<Tab>("prepare");
   const [resumeText, setResumeText] = useState("");
   const [jdText, setJdText] = useState("");
+  const [jdSourceUrl, setJdSourceUrl] = useState<string | null>(null);
+  const [jdFetching, setJdFetching] = useState(false);
   const [jsonResume, setJsonResume] = useState<JsonResume | null>(null);
   const [analysis, setAnalysis] = useState<AtsAnalysis | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
@@ -66,6 +139,7 @@ export function AtsStudio() {
   const [driveMsg, setDriveMsg] = useState<string | null>(null);
   const [uploadMenu, setUploadMenu] = useState(false);
   const [originalText, setOriginalText] = useState("");
+  const [analyzeBaselineText, setAnalyzeBaselineText] = useState("");
   const [improvedText, setImprovedText] = useState("");
   const [scoresBefore, setScoresBefore] = useState<QuickScores | null>(null);
   const [scoresAfter, setScoresAfter] = useState<QuickScores | null>(null);
@@ -81,17 +155,28 @@ export function AtsStudio() {
   const [sessionName, setSessionName] = useState("");
   const [dirty, setDirty] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<TemplateId>("classic");
-  const [improveStarted, setImproveStarted] = useState(false);
-  const [improveView, setImproveView] = useState<"modified" | "original">(
-    "modified",
-  );
   const [masterScores, setMasterScores] = useState<TripleScores | null>(null);
-  const [currentScores, setCurrentScores] = useState<TripleScores | null>(null);
-  const [versionEntries, setVersionEntries] = useState<
-    Array<{ version: ResumeVersion; scores: TripleScores; resumeMd: string }>
-  >([]);
-  const [brainSaturated, setBrainSaturated] = useState(false);
+  const [tailorRows, setTailorRows] = useState(defaultTailorRows);
+  const [busyFocus, setBusyFocus] = useState<ImproveFocus | null>(null);
+  const [scoreExplain, setScoreExplain] = useState<ScoreExplainTopic | null>(
+    null,
+  );
   const [benchmarkScore, setBenchmarkScore] = useState<number | null>(null);
+  const [appliedSuggestionKeys, setAppliedSuggestionKeys] = useState<Set<string>>(
+    () => new Set(),
+  );
+  const [queuedMissingKeywords, setQueuedMissingKeywords] = useState<string[]>(
+    [],
+  );
+  const [jdPromptDismissed, setJdPromptDismissed] = useState(false);
+  const [showInlineJd, setShowInlineJd] = useState(false);
+  const [analyzeVersions, setAnalyzeVersions] = useState<AnalyzeVersionSnap[]>(
+    [],
+  );
+  const [activeAnalyzeVersion, setActiveAnalyzeVersion] = useState<
+    string | null
+  >(null);
+  const [applyingAll, setApplyingAll] = useState(false);
   const [pdfPreviewPages, setPdfPreviewPages] = useState<string[]>([]);
   const [showPdfPreview, setShowPdfPreview] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -99,13 +184,151 @@ export function AtsStudio() {
   const blobUrlRef = useRef<string | null>(null);
   const pdfBlobRef = useRef<string | null>(null);
   const draftHydrated = useRef(false);
+  const pendingAutoAnalyze = useRef(false);
   const analyzeAbortRef = useRef<AbortController | null>(null);
-  const [askIncludeAll, setAskIncludeAll] = useState<{
-    busy: boolean;
-    messages: Array<{ role: "user" | "assistant"; text: string }>;
-  } | null>(null);
 
   const markDirty = useCallback(() => setDirty(true), []);
+
+  function resetAnalysisPipeline(opts?: { keepResume?: boolean }) {
+    setAnalysis(null);
+    setMasterScores(null);
+    setTailorRows(defaultTailorRows());
+    setAppliedSuggestionKeys(new Set());
+    setQueuedMissingKeywords([]);
+    setBenchmarkScore(null);
+    setAnalyzeBaselineText("");
+    setAnalyzeVersions([]);
+    setActiveAnalyzeVersion(null);
+    setJdPromptDismissed(false);
+    setShowInlineJd(false);
+    if (!opts?.keepResume) {
+      setResumeText("");
+      setJdText("");
+      setJdSourceUrl(null);
+      setOriginalText("");
+      setImprovedText("");
+      setJsonResume(null);
+      setPreviewUrl(null);
+      setPreviewMime(null);
+      setPreviewName(null);
+      setShowExtracted(true);
+    }
+    setSessionId(null);
+    setSessionName("");
+    setDirty(false);
+    clearAtsDraft();
+  }
+
+  function restartWithDoubleConfirm() {
+    if (
+      !window.confirm(
+        "Restart analysis? This clears analyse/tailor progress and returns to Prepare.",
+      )
+    ) {
+      return;
+    }
+    if (
+      !window.confirm(
+        "Confirm restart: unsaved analyse history and tailor versions will be lost.",
+      )
+    ) {
+      return;
+    }
+    resetAnalysisPipeline({ keepResume: true });
+    setTab("prepare");
+  }
+
+  function invalidatePipelineOnInputChange() {
+    setAnalysis(null);
+    setMasterScores(null);
+    setTailorRows(defaultTailorRows());
+    setAppliedSuggestionKeys(new Set());
+    setQueuedMissingKeywords([]);
+    setBenchmarkScore(null);
+    setAnalyzeBaselineText("");
+    setScoresBefore(null);
+    setScoresAfter(null);
+    setAnalyzeVersions([]);
+    setActiveAnalyzeVersion(null);
+    setJdPromptDismissed(false);
+  }
+
+  function queueMissingKeyword(keyword: string) {
+    const kw = keyword.trim();
+    if (!kw) return;
+    setQueuedMissingKeywords((prev) =>
+      prev.includes(kw) ? prev : [...prev, kw],
+    );
+  }
+
+  function startNewAnalysis() {
+    if (
+      dirty &&
+      !window.confirm("Start a new analysis? Unsaved changes will be lost.")
+    ) {
+      return;
+    }
+    resetAnalysisPipeline({ keepResume: true });
+    setTab("prepare");
+  }
+
+  function syncKeywordChipsFromDraft(draft: string, jd: string) {
+    const scored = scoreTriple(draft, jd);
+    setAnalysis((prev) =>
+      prev
+        ? {
+            ...prev,
+            matchedKeywords: scored.matchedKeywords,
+            missingKeywords: scored.missingKeywords,
+            keywordMatchPct: scored.keywordMatchPct,
+            heuristic: {
+              keywordMatchPct: scored.keywordMatchPct,
+              matchedKeywords: scored.matchedKeywords,
+              missingKeywords: scored.missingKeywords,
+            },
+          }
+        : prev,
+    );
+    setQueuedMissingKeywords((prev) =>
+      prev.filter(
+        (k) =>
+          !draft.toLowerCase().includes(k.toLowerCase()) &&
+          scored.missingKeywords.some(
+            (m) => m.toLowerCase() === k.toLowerCase(),
+          ),
+      ),
+    );
+  }
+
+  async function resolveJdText(raw = jdText): Promise<string> {
+    const trimmed = raw.trim();
+    if (!trimmed || !isStandaloneJobUrl(trimmed)) {
+      return trimmed;
+    }
+    setJdFetching(true);
+    setError(null);
+    try {
+      const { res, data } = await fetchJson<{
+        error?: string;
+        text?: string;
+        sourceUrl?: string;
+        title?: string;
+      }>("/api/ats/jd", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: trimmed }),
+      });
+      if (!res.ok || !data.text?.trim()) {
+        throw new Error(data.error || "Could not fetch job description");
+      }
+      setJdText(data.text);
+      setJdSourceUrl(data.sourceUrl || trimmed);
+      markDirty();
+      return data.text;
+    } finally {
+      setJdFetching(false);
+    }
+  }
 
   const refreshResumes = useCallback(async () => {
     const res = await fetch("/api/resumes");
@@ -128,7 +351,7 @@ export function AtsStudio() {
     if (!draft.resumeText.trim() && !draft.jdText.trim() && !draft.analysis) {
       return;
     }
-    setTab(draft.tab);
+    setTab(draft.tab === "improve" ? "analyze" : draft.tab);
     setResumeText(draft.resumeText);
     setJdText(draft.jdText);
     setOriginalText(draft.originalText);
@@ -250,6 +473,7 @@ export function AtsStudio() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Import failed");
       const text = data.resume.content as string;
+      invalidatePipelineOnInputChange();
       setResumeText(text);
       setOriginalText(text);
       setImprovedText("");
@@ -281,6 +505,7 @@ export function AtsStudio() {
   function loadEarlierResume(id: string) {
     const found = resumes.find((r) => r.id === id);
     if (!found) return;
+    invalidatePipelineOnInputChange();
     setResumeText(found.content);
     setOriginalText(found.content);
     setImprovedText("");
@@ -356,12 +581,11 @@ export function AtsStudio() {
       if (choice) await saveSession({ nextStep: next });
       else if (!window.confirm("Discard unsaved changes and continue?")) return;
     }
-    if (next === "improve") {
+    if (next === "analyze") {
       freezeOriginalIfNeeded();
       if (!improvedText.trim() && resumeText.trim()) {
         setImprovedText(resumeText);
       }
-      setImproveView("modified");
     }
     setTab(next);
     if (next === "builder") {
@@ -383,7 +607,7 @@ export function AtsStudio() {
     const s = data.session as AtsSessionRow;
     setSessionId(s.id);
     setSessionName(s.name);
-    setTab(s.step || "prepare");
+    setTab(s.step === "improve" ? "analyze" : s.step || "prepare");
     setResumeText(s.resumeText || "");
     setJdText(s.jdText || "");
     setOriginalText(s.originalText || "");
@@ -454,19 +678,17 @@ export function AtsStudio() {
       return;
     }
     setAnalyzeStage(0);
+    const started = Date.now();
     const id = window.setInterval(() => {
-      setAnalyzeStage((s) => (s + 1) % ANALYZE_STAGES.length);
-    }, 2200);
+      const elapsed = Date.now() - started;
+      const idx = Math.min(
+        ANALYZE_STAGES.length - 1,
+        Math.floor(elapsed / ANALYZE_STAGE_MS),
+      );
+      setAnalyzeStage(idx);
+    }, 400);
     return () => window.clearInterval(id);
   }, [busy]);
-
-  useEffect(() => {
-    if (tab !== "improve" || improveView !== "modified") return;
-    const text = (improvedText || resumeText).trim();
-    if (!text || jsonResume) return;
-    void ensureJsonResume();
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- structure once when opening modified view
-  }, [tab, improveView, improvedText, resumeText, jsonResume]);
 
   useEffect(
     () => () => {
@@ -502,26 +724,123 @@ export function AtsStudio() {
     setBusy(null);
   }
 
-  async function runAnalyze(opts?: { silentTab?: boolean }) {
+  async function runAnalyze(opts?: {
+    silentTab?: boolean;
+    /** Preserve tailor version counters (re-score only). */
+    preserveTailor?: boolean;
+  }) {
     if (!resumeText.trim()) return;
     analyzeAbortRef.current?.abort();
     const ac = new AbortController();
     analyzeAbortRef.current = ac;
+    const preserveTailor = Boolean(opts?.preserveTailor);
+    // Always clear stale analysis UI immediately so Prepare→Analyse never flashes old JD results
+    setAnalysis(null);
+    if (!preserveTailor) {
+      setMasterScores(null);
+      setTailorRows(defaultTailorRows());
+      setAppliedSuggestionKeys(new Set());
+      setQueuedMissingKeywords([]);
+    }
     setBusy("analyze");
     setError(null);
     if (!opts?.silentTab) setTab("analyze");
     try {
+      const resolvedRaw = await resolveJdText();
+      const usableJd = isUsableJdText(resolvedRaw) ? resolvedRaw.trim() : "";
+      if (!usableJd) setJdPromptDismissed(true);
+      setShowInlineJd(false);
+
+      const working = resumeText.trim();
+      // Freeze original once for Before gauges (ATS independent of later drafts)
+      if (!originalText.trim()) setOriginalText(working);
+      const baseline = originalText.trim() || working;
+      setAnalyzeBaselineText(baseline);
+
       const { res, data } = await fetchJson<{
         error?: string;
         analysis?: AtsAnalysis;
       }>("/api/ats/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ resumeText, jdText }),
+        body: JSON.stringify({
+          resumeText: working,
+          jdText: usableJd,
+        }),
         signal: ac.signal,
       });
       if (!res.ok) throw new Error(data.error || "Analyze failed");
-      setAnalysis(data.analysis || null);
+      const nextAnalysis = data.analysis || null;
+      const local = scoreTriple(working, usableJd);
+      if (nextAnalysis) {
+        nextAnalysis.matchedKeywords = usableJd
+          ? local.matchedKeywords
+          : [];
+        nextAnalysis.missingKeywords = usableJd
+          ? local.missingKeywords
+          : [];
+        nextAnalysis.keywordMatchPct = usableJd ? local.keywordMatchPct : 0;
+        nextAnalysis.heuristic = {
+          keywordMatchPct: nextAnalysis.keywordMatchPct,
+          matchedKeywords: nextAnalysis.matchedKeywords,
+          missingKeywords: nextAnalysis.missingKeywords,
+        };
+        // Drop meta "remove address/phone" noise from edit plan
+        nextAnalysis.rewriteSuggestions = (
+          nextAnalysis.rewriteSuggestions || []
+        ).filter((s) => !isDestructiveSuggestion(s));
+      }
+      setAnalysis(nextAnalysis);
+      setAppliedSuggestionKeys(new Set());
+      const baselineScores = scoreTriple(baseline, usableJd);
+      setMasterScores(baselineScores);
+
+      let nextRows = defaultTailorRows();
+      if (preserveTailor) {
+        nextRows = { ...tailorRows };
+        for (const key of Object.keys(nextRows) as ImproveFocus[]) {
+          if (nextRows[key].improveCount > 0) {
+            nextRows[key] = {
+              ...nextRows[key],
+              afterScores: local,
+              feedActive: false,
+            };
+          }
+        }
+        setTailorRows(nextRows);
+      } else {
+        nextRows = {
+          ats: {
+            ...emptyTailorRow(),
+            history: [{ label: "Original", scores: baselineScores }],
+          },
+          jd: {
+            ...emptyTailorRow(),
+            history: [{ label: "Original", scores: baselineScores }],
+          },
+          balanced: {
+            ...emptyTailorRow(),
+            history: [{ label: "Original", scores: baselineScores }],
+          },
+        };
+        setTailorRows(nextRows);
+      }
+
+      if (nextAnalysis) {
+        const label = `v${Math.min(4, analyzeVersions.length + 1)}`;
+        const snap: AnalyzeVersionSnap = {
+          id: `${Date.now()}-${label}`,
+          label,
+          resumeText: working,
+          jdText: usableJd,
+          analysis: nextAnalysis,
+          masterScores: baselineScores,
+          tailorRows: nextRows,
+          createdAt: new Date().toISOString(),
+        };
+        setAnalyzeVersions((prev) => [...prev, snap].slice(-4));
+        setActiveAnalyzeVersion(snap.id);
+      }
       markDirty();
     } catch (e) {
       if (e instanceof Error && e.name === "AbortError") return;
@@ -534,33 +853,31 @@ export function AtsStudio() {
     }
   }
 
-  async function runAskIncludeAll() {
-    if (!analysis || askIncludeAll?.busy) return;
-    const question =
-      "Include all improvements: decide which suggestions to add or replace, and summarize what you would change.";
-    setAskIncludeAll({
-      busy: true,
-      messages: [{ role: "user", text: question }],
-    });
-    try {
-      const reply = await askAts({
-        question,
-        context: JSON.stringify(
-          (analysis.rewriteSuggestions || []).slice(0, 12),
-        ).slice(0, 4000),
-      });
-      applyAllImprovements();
-      setAskIncludeAll({
-        busy: false,
-        messages: [
-          { role: "user", text: question },
-          { role: "assistant", text: reply },
-        ],
-      });
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
-      setAskIncludeAll(null);
-    }
+  function loadAnalyzeVersion(id: string) {
+    const snap = analyzeVersions.find((v) => v.id === id);
+    if (!snap) return;
+    setActiveAnalyzeVersion(id);
+    setResumeText(snap.resumeText);
+    setImprovedText(snap.resumeText);
+    setJdText(snap.jdText);
+    setAnalysis(snap.analysis);
+    setMasterScores(snap.masterScores);
+    setTailorRows(snap.tailorRows);
+    setAppliedSuggestionKeys(new Set());
+    markDirty();
+  }
+
+  function markAllSuggestionsApplied() {
+    if (!analysis) return;
+    setAppliedSuggestionKeys(
+      new Set(
+        (analysis.rewriteSuggestions || []).map((s, i) => suggestionKey(s, i)),
+      ),
+    );
+  }
+
+  function accommodateMissing(keyword: string) {
+    queueMissingKeyword(keyword);
   }
 
   function freezeOriginalIfNeeded() {
@@ -576,39 +893,100 @@ export function AtsStudio() {
     markDirty();
   }
 
-  const nextBrainVersion = useMemo((): ResumeVersion | null => {
-    if (versionEntries.length >= 4 || brainSaturated) return null;
-    return (versionEntries.length + 1) as ResumeVersion;
-  }, [versionEntries.length, brainSaturated]);
+  const jdPresent = isUsableJdText(jdText);
+  const showJdPrompt = !jdPresent && !jdPromptDismissed;
+
+  useEffect(() => {
+    if (tab !== "analyze" || !pendingAutoAnalyze.current) return;
+    pendingAutoAnalyze.current = false;
+    if (resumeText.trim() && busy !== "analyze") {
+      void runAnalyze({ silentTab: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- run when landing on analyse from prepare
+  }, [tab]);
 
   async function runBrainImprove(focus: ImproveFocus = "balanced") {
-    if (!resumeText.trim()) return;
+    if (!resumeText.trim() || !masterScores) return;
+    const row = tailorRows[focus];
+    if (row.improveCount >= 4) return;
+    // Stop when After already high for this row
+    if (row.afterScores) {
+      const afterVal =
+        focus === "ats"
+          ? row.afterScores.ats
+          : focus === "jd"
+            ? row.afterScores.jd
+            : row.afterScores.overall;
+      if (afterVal >= 92) {
+        setError("This row is already at a high score — re-analyse if inputs changed.");
+        return;
+      }
+    }
+
+    const nextVer = row.improveCount + 1;
+    const baseline = originalText.trim() || resumeText.trim();
+    let inputResume = resumeText.trim();
+    freezeOriginalIfNeeded();
+
+    // Apply queued missing keywords into experience before tailor
+    if (queuedMissingKeywords.length) {
+      let draft = inputResume;
+      for (const kw of queuedMissingKeywords) {
+        draft = accommodateKeywordInExperience(draft, kw);
+      }
+      if (draft !== inputResume) {
+        commitWorkingDraft(draft);
+        inputResume = draft.trim();
+      }
+    }
+
+    setBusyFocus(focus);
     setBusy("improve");
     setError(null);
-    setImproveStarted(true);
-    const baseline = (originalText.trim() || resumeText.trim());
-    freezeOriginalIfNeeded();
-    if (!masterScores) {
-      setMasterScores(scoreTriple(baseline, jdText));
-    }
+
+    let tickIdx = 0;
+    setTailorRows((prev) => ({
+      ...prev,
+      [focus]: {
+        ...prev[focus],
+        feedActive: true,
+        changeLines: [{ kind: "info", text: "Reading your working draft…" }],
+      },
+    }));
+
+    const feedTimer = window.setInterval(() => {
+      const idx = Math.min(TAILOR_FEED_TICKS.length - 1, tickIdx);
+      tickIdx += 1;
+      const msg = TAILOR_FEED_TICKS[idx];
+      setTailorRows((prev) => ({
+        ...prev,
+        [focus]: {
+          ...prev[focus],
+          changeLines: [
+            ...prev[focus].changeLines.filter((l) => l.kind === "info").slice(-2),
+            { kind: "info" as const, text: msg },
+          ],
+        },
+      }));
+    }, 2200);
+
     try {
-      const isFirst = versionEntries.length === 0;
+      const resolvedJd = await resolveJdText();
+      const focusHints =
+        queuedMissingKeywords.length > 0
+          ? `\n\nWEAVE THESE MISSING TERMS truthfully into existing experience bullets (no invented tools/metrics): ${queuedMissingKeywords.join(", ")}`
+          : "";
+      const jdForPass = `${resolvedJd}${focusHints}`;
+      const isFirstOnRow = row.improveCount === 0;
       const body: Record<string, unknown> = {
-        action: isFirst ? "pass" : "more",
+        action: isFirstOnRow ? "pass" : "more",
         masterResume: baseline,
-        currentResume: resumeText.trim(),
-        jdText,
+        currentResume: inputResume,
+        jdText: jdForPass,
         focus,
-        matchScore:
-          currentScores?.overall ??
-          masterScores?.overall ??
-          scoreTriple(baseline, jdText).overall,
+        matchScore: masterScores.overall,
+        currentVersion: isFirstOnRow ? 1 : row.improveCount,
       };
-      if (isFirst) {
-        body.currentVersion = 1;
-      } else {
-        body.currentVersion = versionEntries[versionEntries.length - 1].version;
-      }
 
       const { res, data } = await fetchJson<{
         error?: string;
@@ -626,110 +1004,56 @@ export function AtsStudio() {
         body: JSON.stringify(body),
       });
       if (!res.ok || !data.pass) {
-        throw new Error(data.error || "Brain improve failed");
+        throw new Error(data.error || "Tailor pass failed");
       }
       const pass = data.pass;
+      if (!pass.resumeMd?.trim() || pass.resumeMd.trim() === inputResume) {
+        throw new Error(
+          "Tailor returned no usable draft changes. Try again or edit the working draft.",
+        );
+      }
+      const lines = diffResumeLines(inputResume, pass.resumeMd, pass.notes);
       commitWorkingDraft(pass.resumeMd);
-      setVersionEntries((prev) => [
-        ...prev,
-        {
-          version: pass.version,
-          scores: pass.scores,
-          resumeMd: pass.resumeMd,
-        },
-      ]);
-      setCurrentScores(pass.scores);
-      setScoresBefore(quickScores(baseline, jdText));
-      setScoresAfter(quickScores(pass.resumeMd, jdText));
-      setBrainSaturated(Boolean(pass.saturated) || pass.version >= 4);
-      setBenchmarkScore(data.benchmark?.benchmark?.score ?? null);
-      setChat((c) => [
-        ...c,
-        {
-          role: "assistant",
-          text: `v${pass.version} ready (${focus} focus). ${
-            pass.notes?.[0] || "Refinements applied."
-          }`,
-        },
-      ]);
-      markDirty();
-      await runAnalyze({ silentTab: true });
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
-    } finally {
-      setBusy(null);
-    }
-  }
-
-  function downloadBrainVersion(v: ResumeVersion) {
-    const entry = versionEntries.find((x) => x.version === v);
-    if (!entry) return;
-    const blob = new Blob([entry.resumeMd], { type: "text/markdown" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `resume_v${v}.md`;
-    a.click();
-    URL.revokeObjectURL(url);
-  }
-
-  async function runImprove(custom?: string) {
-    const tip = (custom ?? instruction).trim();
-    if (!tip) {
-      setError("Describe the refinement you want (e.g. tighten bullets for a platform role).");
-      return;
-    }
-    if (!resumeText.trim()) return;
-    setBusy("improve");
-    setError(null);
-    setImproveStarted(true);
-    setChat((c) => [...c, { role: "user", text: tip }]);
-    try {
-      // Always refine the current working draft (includes Analyze edits)
-      const baseline = resumeText.trim();
-      freezeOriginalIfNeeded();
-      const before = quickScores(originalText.trim() || baseline, jdText);
-      setScoresBefore(before);
-
-      const body: Record<string, unknown> = {
-        action: "improve",
-        instruction: tip,
-        jdText,
-        saveAsResume: true,
-        resumeText: baseline,
-      };
-      if (jsonResume) body.jsonResume = jsonResume;
-
-      const { res, data } = await fetchJson<{
-        error?: string;
-        jsonResume?: JsonResume;
-        markdown?: string;
-      }>("/api/ats/structure", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+      // Local scores — never trust inflated remote 100% on short JDs
+      const afterLocal = scoreTriple(
+        pass.resumeMd,
+        isUsableJdText(resolvedJd) ? resolvedJd : "",
+      );
+      setTailorRows((prev) => {
+        const prevRow = prev[focus];
+        const baseHistory =
+          prevRow.history.length > 0
+            ? prevRow.history
+            : [{ label: "Original", scores: masterScores }];
+        return {
+          ...prev,
+          [focus]: {
+            improveCount: nextVer,
+            afterScores: afterLocal,
+            changeLines: lines,
+            feedActive: true,
+            history: [
+              ...baseHistory.filter((h) => h.label !== `v${nextVer}`),
+              { label: `v${nextVer}`, scores: afterLocal },
+            ].slice(0, 5),
+          },
+        };
       });
-      if (!res.ok) throw new Error(data.error || "Improve failed");
-      setJsonResume(data.jsonResume || null);
-      const next = data.markdown || resumeText;
-      commitWorkingDraft(next);
-      setScoresAfter(quickScores(next, jdText));
-      setChat((c) => [
-        ...c,
-        {
-          role: "assistant",
-          text: "Refinements applied below. Ask for more changes, or continue to Builder when ready.",
-        },
-      ]);
-      setInstruction("");
+      setScoresBefore(quickScores(baseline, resolvedJd));
+      setScoresAfter(quickScores(pass.resumeMd, resolvedJd));
+      setBenchmarkScore(data.benchmark?.benchmark?.score ?? null);
+      syncKeywordChipsFromDraft(pass.resumeMd, resolvedJd);
+      setQueuedMissingKeywords([]);
       markDirty();
-      setBusy(null);
-      // Readiness-style re-score on the refined draft (Analyze panel metrics)
-      await runAnalyze({ silentTab: true });
-      return;
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
+      setTailorRows((prev) => ({
+        ...prev,
+        [focus]: { ...prev[focus], feedActive: false },
+      }));
     } finally {
+      window.clearInterval(feedTimer);
+      setBusyFocus(null);
       setBusy(null);
     }
   }
@@ -752,12 +1076,39 @@ export function AtsStudio() {
   }
 
   function applyAllImprovements() {
-    if (!analysis) return;
-    const next = applyAllSuggestions(
-      resumeText,
-      analysis.rewriteSuggestions || [],
-    );
-    commitWorkingDraft(next);
+    if (!analysis || applyingAll) return;
+    setApplyingAll(true);
+    try {
+      const safe = (analysis.rewriteSuggestions || []).filter(
+        (s) => !isDestructiveSuggestion(s),
+      );
+      const next = applyAllSuggestions(resumeText, safe);
+      commitWorkingDraft(next);
+      markAllSuggestionsApplied();
+      const jd = isUsableJdText(jdText) ? jdText.trim() : "";
+      syncKeywordChipsFromDraft(next, jd);
+      setAnalysis((prev) =>
+        prev ? { ...prev, rewriteSuggestions: [] } : prev,
+      );
+      if (masterScores) {
+        const afterLocal = scoreTriple(next, jd);
+        setTailorRows((prev) => {
+          const out = { ...prev };
+          for (const key of Object.keys(out) as ImproveFocus[]) {
+            if (out[key].improveCount > 0 || key === "balanced") {
+              out[key] = {
+                ...out[key],
+                afterScores: afterLocal,
+                improveCount: Math.max(out[key].improveCount, 1),
+              };
+            }
+          }
+          return out;
+        });
+      }
+    } finally {
+      window.setTimeout(() => setApplyingAll(false), 400);
+    }
   }
 
   async function ensureJsonResume(opts?: { force?: boolean }): Promise<JsonResume | null> {
@@ -846,8 +1197,7 @@ export function AtsStudio() {
 
   const tabs: [Tab, string][] = [
     ["prepare", "Prepare"],
-    ["analyze", "Analyze"],
-    ["improve", "Improve"],
+    ["analyze", "Analyse & improve"],
     ["builder", "Builder"],
   ];
 
@@ -887,6 +1237,14 @@ export function AtsStudio() {
               markDirty();
             }}
           />
+          <button
+            type="button"
+            className="mt-2 w-full rounded-xl border border-[var(--line)] bg-white px-3 py-2 text-sm font-semibold disabled:opacity-40"
+            disabled={Boolean(busy)}
+            onClick={() => startNewAnalysis()}
+          >
+            New analysis
+          </button>
         </div>
         <div className="flex-1 overflow-y-auto px-2 py-3">
           <p className="mb-2 px-2 text-[11px] tracking-wide text-[var(--muted)] uppercase">
@@ -921,7 +1279,7 @@ export function AtsStudio() {
             ))}
             {!sessions.length && (
               <li className="px-2 text-xs text-[var(--muted)]">
-                Save a flow to keep Prepare → Analyze → Improve → Templates here.
+                Save a flow to keep Prepare → Analyse & improve → Builder here.
               </li>
             )}
           </ul>
@@ -1052,6 +1410,7 @@ export function AtsStudio() {
                   value={resumeText}
                   onChange={(e) => {
                     setResumeText(e.target.value);
+                    invalidatePipelineOnInputChange();
                     markDirty();
                   }}
                 />
@@ -1067,16 +1426,49 @@ export function AtsStudio() {
               )}
               <div className="border-t border-[var(--line)] px-4 py-2">
                 <label className="text-xs font-semibold tracking-wide text-[var(--muted)] uppercase">
-                  Job description (optional)
+                  Job description or URL (optional)
                 </label>
                 <textarea
                   className="mt-1 h-28 w-full resize-y rounded-xl border border-[var(--line)] bg-white/80 px-3 py-2 text-sm outline-none"
+                  placeholder="Paste the job description, or paste a public job posting URL (careers page, Greenhouse, Lever, etc.)"
                   value={jdText}
                   onChange={(e) => {
                     setJdText(e.target.value);
+                    if (!isStandaloneJobUrl(e.target.value)) {
+                      setJdSourceUrl(null);
+                    }
+                    invalidatePipelineOnInputChange();
                     markDirty();
                   }}
                 />
+                {isStandaloneJobUrl(jdText) ? (
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      className="rounded-lg border border-[var(--line)] bg-white px-3 py-1.5 text-xs font-semibold disabled:opacity-40"
+                      disabled={jdFetching || Boolean(busy)}
+                      onClick={() => void resolveJdText()}
+                    >
+                      {jdFetching ? "Fetching job description…" : "Fetch job description"}
+                    </button>
+                    <span className="text-xs text-[var(--muted)]">
+                      URL detected — fetch now or we&apos;ll fetch automatically when you analyse.
+                    </span>
+                  </div>
+                ) : null}
+                {jdSourceUrl ? (
+                  <p className="mt-2 text-xs text-[var(--muted)]">
+                    Loaded from{" "}
+                    <a
+                      href={jdSourceUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="font-semibold text-[var(--accent)] underline"
+                    >
+                      job posting
+                    </a>
+                  </p>
+                ) : null}
               </div>
             </section>
             <section className="flex min-h-0 flex-col overflow-y-auto px-4 py-4">
@@ -1092,18 +1484,14 @@ export function AtsStudio() {
                 <button
                   type="button"
                   disabled={Boolean(busy) || !resumeText.trim()}
-                  onClick={() => void runAnalyze()}
+                  onClick={() => {
+                    invalidatePipelineOnInputChange();
+                    pendingAutoAnalyze.current = true;
+                    void requestTabChange("analyze");
+                  }}
                   className="btn-primary px-3 py-2 text-sm disabled:opacity-40"
                 >
-                  {busy === "analyze" ? "Analyzing…" : "Analyze"}
-                </button>
-                <button
-                  type="button"
-                  disabled={Boolean(busy) || !resumeText.trim()}
-                  onClick={() => void requestTabChange("improve")}
-                  className="rounded-xl border border-[var(--line)] bg-white px-3 py-2 text-sm font-semibold disabled:opacity-40"
-                >
-                  Improve…
+                  {busy === "analyze" ? "Analysing…" : "Analyse"}
                 </button>
               </div>
               <p className="mt-4 text-sm text-[var(--muted)]">
@@ -1118,334 +1506,278 @@ export function AtsStudio() {
           <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6">
             {busy === "analyze" ? (
               <AnalyzeLoadingPanel
-                stage={analyzeStage}
-                onStop={stopAnalyze}
-                label={
-                  analysis
-                    ? "Re-analyzing your resume"
-                    : "Analyzing your resume"
+                stageLabel={ANALYZE_STAGES[analyzeStage]}
+                progress={
+                  (analyzeStage + 0.35) / Math.max(1, ANALYZE_STAGES.length - 1)
                 }
+                onStop={stopAnalyze}
+                label="Analysing your resume"
               />
-            ) : !analysis ? (
-              <div className="flex min-h-[320px] flex-col items-center justify-center rounded-xl border border-dashed border-[var(--line-strong)] bg-white/60 p-6 text-center text-sm text-[var(--muted)]">
-                <p className="font-[family-name:var(--font-display)] text-lg text-[var(--ink)]">
-                  Ready to score this resume
-                </p>
-                <p className="mt-1 max-w-md">
-                  Analyze compares your working resume to the JD and builds a dual view with an edit plan.
-                </p>
-                <button
-                  type="button"
-                  className="btn-primary mt-4 px-4 py-2 text-sm"
-                  disabled={Boolean(busy) || !resumeText.trim()}
-                  onClick={() => void runAnalyze()}
-                >
-                  Analyze now
-                </button>
-              </div>
-            ) : analysis ? (
+            ) : (
               <div className="mx-auto max-w-6xl space-y-4">
-                <div className="flex flex-wrap items-center gap-2">
-                  <button
-                    type="button"
-                    className="btn-primary px-3 py-2 text-sm disabled:opacity-40"
-                    disabled={Boolean(busy)}
-                    onClick={() => applyAllImprovements()}
-                  >
-                    Apply all improvements
-                  </button>
-                  <button
-                    type="button"
-                    className="rounded-xl border border-[var(--line)] bg-white px-3 py-2 text-sm font-semibold disabled:opacity-40"
-                    disabled={Boolean(busy)}
-                    onClick={() => void runAnalyze({ silentTab: true })}
-                  >
-                    {busy === "analyze"
-                      ? "Analyzing…"
-                      : "Re-analyze improved resume"}
-                  </button>
-                  <button
-                    type="button"
-                    className="rounded-xl border border-[var(--line)] bg-white px-3 py-2 text-sm font-semibold disabled:opacity-40"
-                    disabled={Boolean(busy) || Boolean(askIncludeAll?.busy)}
-                    onClick={() => void runAskIncludeAll()}
-                  >
-                    {askIncludeAll?.busy ? "Asking…" : "Ask · include all"}
-                  </button>
-                </div>
-                <div className="grid gap-3 sm:grid-cols-[140px_1fr]">
-                  <div className="glass-panel flex flex-col items-center justify-center px-3 py-4 text-center">
-                    <p className="text-[11px] font-semibold tracking-[0.14em] text-[var(--muted)] uppercase">
-                      Readiness
+                {!analysis ? (
+                  <div className="flex min-h-[200px] flex-col items-center justify-center rounded-xl border border-dashed border-[var(--line-strong)] bg-white/60 p-6 text-center text-sm text-[var(--muted)]">
+                    <p className="font-[family-name:var(--font-display)] text-lg text-[var(--ink)]">
+                      Ready to analyse this resume
                     </p>
-                    <p className="font-[family-name:var(--font-display)] text-4xl tracking-tight text-[var(--accent)]">
-                      {analysis.overallScore}
+                    <p className="mt-1 max-w-md">
+                      Score against your job description, review gaps, then tailor
+                      with per-row passes.
                     </p>
-                    <p className="text-xs text-[var(--muted)]">/ 100</p>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                    {(analysis.dimensions || []).slice(0, 9).map((d) => (
-                      <div
-                        key={d.id}
-                        className="rounded-xl border border-[var(--line)] bg-[rgba(255,255,255,0.7)] px-3 py-2"
-                        title={d.rationale}
-                      >
-                        <div className="mb-1 flex items-baseline justify-between gap-2">
-                          <p className="text-[11px] font-semibold text-[var(--muted)]">
-                            {d.label}
-                          </p>
-                          <p className="text-sm font-bold tabular-nums">
-                            {d.score}
-                          </p>
-                        </div>
-                        <div className="h-1.5 overflow-hidden rounded-full bg-[var(--accent-soft)]">
-                          <div
-                            className="h-full rounded-full bg-[var(--accent)]"
-                            style={{ width: `${Math.min(100, d.score)}%` }}
-                          />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                {(analysis.hiringSkim || []).length > 0 && (
-                  <div className="glass-panel p-4">
-                    <h3 className="mb-2 font-[family-name:var(--font-display)] text-base font-semibold">
-                      Hiring skim
-                    </h3>
-                    <ul className="list-disc space-y-1 pl-5 text-sm">
-                      {analysis.hiringSkim.map((b, i) => (
-                        <li key={i}>{b}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-                <p className="text-sm leading-relaxed">{analysis.summary}</p>
-                <ChipBlock title="Matched" items={analysis.matchedKeywords} tone="ok" />
-                <ChipBlock title="Missing" items={analysis.missingKeywords} tone="warn" />
-                <AnalyzeWorkbench
-                  resumeText={resumeText}
-                  analysis={analysis}
-                  onAdd={applySuggestionAdd}
-                  onReplace={applySuggestionReplace}
-                  onAsk={askAts}
-                  onResumeChange={(text) => {
-                    commitWorkingDraft(text);
-                  }}
-                />
-                <div className="flex flex-wrap gap-2">
-                  <button type="button" className="btn-primary px-3 py-2 text-sm" onClick={() => void requestTabChange("improve")}>
-                    Continue to Improve
-                  </button>
-                  <button type="button" className="rounded-xl border border-[var(--line)] bg-white px-3 py-2 text-sm font-semibold" onClick={() => void requestTabChange("builder")}>
-                    Skip to Builder
-                  </button>
-                </div>
-              </div>
-            ) : null}
-          </div>
-        )}
-
-        {tab === "improve" && (
-          <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4 py-4 sm:px-6">
-            <div className="mx-auto flex w-full max-w-6xl flex-col gap-4">
-              <p className="text-sm text-[var(--muted)]">
-                Working draft from Analyze (adds/replaces) shows here first.
-                Start improving only when you want further AI refinements — then
-                open Builder for layout and PDF export.
-              </p>
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  className={`rounded-full border px-3 py-1 text-xs font-semibold ${
-                    improveView === "modified"
-                      ? "border-[var(--accent)] bg-[var(--accent-soft)]"
-                      : "border-[var(--line)] bg-white"
-                  }`}
-                  onClick={() => setImproveView("modified")}
-                >
-                  Modified
-                </button>
-                <button
-                  type="button"
-                  className={`rounded-full border px-3 py-1 text-xs font-semibold ${
-                    improveView === "original"
-                      ? "border-[var(--accent)] bg-[var(--accent-soft)]"
-                      : "border-[var(--line)] bg-white"
-                  }`}
-                  onClick={() => setImproveView("original")}
-                >
-                  Original
-                </button>
-                {improveView === "modified" ? (
-                  <label className="ml-auto flex items-center gap-2 text-xs text-[var(--muted)]">
-                    Template
-                    <select
-                      className="rounded-lg border border-[var(--line)] bg-white px-2 py-1 text-xs font-semibold text-[var(--ink)]"
-                      value={selectedTemplate}
-                      onChange={(e) => {
-                        setSelectedTemplate(e.target.value as TemplateId);
-                        markDirty();
-                      }}
-                    >
-                      {TEMPLATE_META.map((t) => (
-                        <option key={t.id} value={t.id}>
-                          {t.category} · {t.name}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                ) : null}
-              </div>
-
-              {analysis ? (
-                <div className="grid gap-3 sm:grid-cols-[120px_1fr]">
-                  <div className="glass-panel flex flex-col items-center justify-center px-3 py-3 text-center">
-                    <p className="text-[10px] font-semibold tracking-[0.14em] text-[var(--muted)] uppercase">
-                      Readiness
-                    </p>
-                    <p className="font-[family-name:var(--font-display)] text-3xl text-[var(--accent)]">
-                      {analysis.overallScore}
-                    </p>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                    {(analysis.dimensions || []).slice(0, 6).map((d) => (
-                      <div
-                        key={d.id}
-                        className="rounded-xl border border-[var(--line)] bg-white/70 px-2.5 py-2"
-                      >
-                        <div className="flex justify-between text-[11px]">
-                          <span className="text-[var(--muted)]">{d.label}</span>
-                          <span className="font-bold">{d.score}</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
-
-              <section className="ats-pane flex min-h-[520px] flex-col">
-                <header className="border-b border-[var(--line)] px-3 py-2 font-[family-name:var(--font-display)] text-sm font-semibold">
-                  {improveView === "modified"
-                    ? `Working draft · ${selectedTemplate} template`
-                    : "Original · as uploaded / frozen"}
-                </header>
-                <div className="min-h-[480px] flex-1 p-3">
-                  <ImproveResumeViewer
-                    mode={improveView}
-                    text={
-                      improveView === "modified"
-                        ? improvedText || resumeText
-                        : originalText || resumeText
-                    }
-                    originalPreviewUrl={previewUrl}
-                    originalPreviewMime={previewMime}
-                    originalFilename={previewName}
-                    jsonResume={jsonResume}
-                    templateId={selectedTemplate}
-                  />
-                </div>
-              </section>
-
-              {!improveStarted ? (
-                <div className="rounded-xl border border-[var(--line)] bg-white/70 p-4">
-                  <p className="text-sm text-[var(--muted)]">
-                    One-click auto-tailor uses the shared resume brain (v1–v4).
-                    Manual chat refinements are still available below.
-                  </p>
-                  <button
-                    type="button"
-                    className="btn-primary mt-3 px-4 py-2 text-sm disabled:opacity-40"
-                    disabled={!resumeText.trim() || Boolean(busy)}
-                    onClick={() => {
-                      setImproveStarted(true);
-                      const baseline = resumeText.trim();
-                      setMasterScores(scoreTriple(baseline, jdText));
-                      setCurrentScores(scoreTriple(baseline, jdText));
-                    }}
-                  >
-                    Start improving
-                  </button>
-                </div>
-              ) : (
-                <div className="rounded-xl border border-[var(--line)] bg-white/70">
-                  <div className="space-y-3 p-4">
-                    {chat.map((m, i) => (
-                      <div
-                        key={i}
-                        className={`rounded-lg px-3 py-2 text-sm ${
-                          m.role === "user"
-                            ? "ml-8 bg-[var(--ink)] text-white"
-                            : "mr-8 bg-[#f1f5f9]"
-                        }`}
-                      >
-                        {m.text}
-                      </div>
-                    ))}
-                  </div>
-                  <div className="flex gap-2 border-t border-[var(--line)] p-3">
-                    <input
-                      className="min-w-0 flex-1 rounded-xl border border-[var(--line)] bg-white px-3 py-2 text-sm outline-none"
-                      placeholder="Ask for further refinements…"
-                      value={instruction}
-                      onChange={(e) => setInstruction(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" && !e.shiftKey) {
-                          e.preventDefault();
-                          void runImprove();
-                        }
-                      }}
-                    />
                     <button
                       type="button"
-                      className="btn-primary px-3 py-2 text-sm disabled:opacity-40"
+                      className="btn-primary mt-4 px-4 py-2 text-sm"
                       disabled={Boolean(busy) || !resumeText.trim()}
-                      onClick={() => void runImprove()}
+                      onClick={() => void runAnalyze()}
                     >
-                      {busy === "improve" ? "Improving…" : "Send"}
+                      Analyse
                     </button>
                   </div>
-                </div>
-              )}
+                ) : (
+                  <>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        className="btn-primary px-3 py-2 text-sm disabled:opacity-40"
+                        disabled={Boolean(busy) || applyingAll}
+                        onClick={() => applyAllImprovements()}
+                      >
+                        {applyingAll
+                          ? "Applying all improvements…"
+                          : "Apply all improvements"}
+                      </button>
+                      <button
+                        type="button"
+                        className="rounded-xl border border-[var(--line)] bg-white px-3 py-2 text-sm font-semibold disabled:opacity-40"
+                        disabled={Boolean(busy)}
+                        onClick={() =>
+                          void runAnalyze({
+                            silentTab: true,
+                            preserveTailor: true,
+                          })
+                        }
+                      >
+                        {busy === "analyze"
+                          ? "Analysing…"
+                          : "Re-analyse resume"}
+                      </button>
+                      {analyzeVersions.map((v) => (
+                        <button
+                          key={v.id}
+                          type="button"
+                          className={`rounded-lg border px-2.5 py-1.5 text-xs font-bold uppercase ${
+                            activeAnalyzeVersion === v.id
+                              ? "border-[var(--accent)] bg-[var(--accent-soft)]"
+                              : "border-[var(--line)] bg-white"
+                          }`}
+                          title={`Load ${v.label} from ${new Date(v.createdAt).toLocaleString()}`}
+                          onClick={() => loadAnalyzeVersion(v.id)}
+                        >
+                          {v.label}
+                        </button>
+                      ))}
+                      <button
+                        type="button"
+                        className="rounded-xl border border-[var(--danger)]/40 bg-white px-2.5 py-2 text-sm text-[var(--danger)] disabled:opacity-40"
+                        disabled={Boolean(busy)}
+                        title="Restart — clear analyse progress"
+                        aria-label="Restart analysis"
+                        onClick={() => restartWithDoubleConfirm()}
+                      >
+                        ↻
+                      </button>
+                    </div>
+                    {showJdPrompt ? (
+                      <div className="rounded-xl border border-amber-200 bg-amber-50/70 px-3 py-2 text-sm">
+                        <button
+                          type="button"
+                          className="text-left font-semibold text-amber-950 underline decoration-amber-400 underline-offset-2"
+                          onClick={() => setShowInlineJd(true)}
+                        >
+                          Please add a JD or role you are targeting to improve
+                          your resume selection chances
+                        </button>
+                        {showInlineJd ? (
+                          <div className="mt-2 space-y-2">
+                            <textarea
+                              className="h-24 w-full resize-y rounded-xl border border-[var(--line)] bg-white px-3 py-2 text-sm outline-none"
+                              placeholder="Paste job description or target role…"
+                              value={jdText}
+                              onChange={(e) => {
+                                setJdText(e.target.value);
+                                markDirty();
+                              }}
+                            />
+                            <button
+                              type="button"
+                              className="btn-primary px-3 py-1.5 text-sm"
+                              disabled={Boolean(busy) || !resumeText.trim()}
+                              onClick={() =>
+                                void runAnalyze({ silentTab: true })
+                              }
+                            >
+                              Analyse with this target
+                            </button>
+                          </div>
+                        ) : null}
+                      </div>
+                    ) : null}
+                    <div className="grid gap-3 sm:grid-cols-[140px_1fr]">
+                      <button
+                        type="button"
+                        className="glass-panel flex flex-col items-center justify-center px-3 py-4 text-center transition hover:ring-2 hover:ring-[var(--accent)]/30"
+                        onClick={() => setScoreExplain({ type: "readiness" })}
+                      >
+                        <p className="text-[11px] font-semibold tracking-[0.14em] text-[var(--muted)] uppercase">
+                          Readiness
+                        </p>
+                        <p className="font-[family-name:var(--font-display)] text-4xl tracking-tight text-[var(--accent)]">
+                          {analysis.overallScore}
+                        </p>
+                        <p className="text-xs text-[var(--muted)]">/ 100 · tap</p>
+                      </button>
+                      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                        {(analysis.dimensions || []).slice(0, 9).map((d) => (
+                          <button
+                            key={d.id}
+                            type="button"
+                            className="rounded-xl border border-[var(--line)] bg-[rgba(255,255,255,0.7)] px-3 py-2 text-left transition hover:ring-2 hover:ring-[var(--accent)]/25"
+                            title="Tap for score breakdown"
+                            onClick={() =>
+                              setScoreExplain({ type: "dimension", id: d.id })
+                            }
+                          >
+                            <div className="mb-1 flex items-baseline justify-between gap-2">
+                              <p className="text-[11px] font-semibold text-[var(--muted)]">
+                                {d.label}
+                              </p>
+                              <p className="text-sm font-bold tabular-nums">
+                                {d.score}
+                              </p>
+                            </div>
+                            <div className="h-1.5 overflow-hidden rounded-full bg-[var(--accent-soft)]">
+                              <div
+                                className="h-full rounded-full bg-[var(--accent)]"
+                                style={{ width: `${Math.min(100, d.score)}%` }}
+                              />
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
 
-              {improveStarted && masterScores && currentScores ? (
-                <>
-                  <ImproveSpeedometers
-                    masterScores={masterScores}
-                    currentScores={currentScores}
-                    versions={versionEntries}
-                    nextVersion={nextBrainVersion}
-                    busy={busy === "improve"}
-                    saturated={brainSaturated}
-                    onImprove={(focus) => void runBrainImprove(focus)}
-                    onDownloadVersion={downloadBrainVersion}
-                  />
-                  {benchmarkScore != null ? (
-                    <p className="text-center text-xs text-[var(--muted)]">
-                      OSS benchmark ({`resume-matcher-style`}): {benchmarkScore}/100
-                    </p>
-                  ) : null}
-                </>
-              ) : null}
+                    {masterScores ? (
+                      <section className="rounded-xl border border-[var(--line)] bg-white/80 p-4">
+                        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                          <h3 className="font-[family-name:var(--font-display)] text-base font-semibold">
+                            Tailor scores
+                          </h3>
+                          {benchmarkScore != null ? (
+                            <p className="text-xs text-[var(--muted)]">
+                              Benchmark: {benchmarkScore}/100
+                            </p>
+                          ) : null}
+                        </div>
+                        <p className="mb-3 text-xs text-[var(--muted)]">
+                          Each row tailors your current working draft. After ATS
+                          passes, Overall uses the updated resume.
+                        </p>
+                        <ImproveSpeedometers
+                          masterScores={masterScores}
+                          jdPresent={jdPresent}
+                          rows={tailorRows}
+                          busyFocus={busyFocus}
+                          onImprove={(focus) => void runBrainImprove(focus)}
+                          onExplainTailor={(metric) =>
+                            setScoreExplain({ type: "tailor", metric })
+                          }
+                          onShowChanges={(focus) => {
+                            const row = tailorRows[focus];
+                            if (row.changeLines.length) {
+                              setTailorRows((prev) => ({
+                                ...prev,
+                                [focus]: { ...prev[focus], feedActive: true },
+                              }));
+                            }
+                          }}
+                        />
+                      </section>
+                    ) : null}
 
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  className="btn-primary w-fit px-3 py-2 text-sm"
-                  onClick={() => void requestTabChange("builder")}
-                >
-                  Continue to Builder
-                </button>
-                <button
-                  type="button"
-                  className="rounded-xl border border-[var(--line)] bg-white px-3 py-2 text-sm font-semibold disabled:opacity-40"
-                  disabled={Boolean(busy) || !resumeText.trim()}
-                  onClick={() => void runAnalyze({ silentTab: true })}
-                >
-                  {busy === "analyze" ? "Analyzing…" : "Re-score working draft"}
-                </button>
+                    {(analysis.hiringSkim || []).length > 0 && (
+                      <div className="glass-panel p-4">
+                        <h3 className="mb-2 font-[family-name:var(--font-display)] text-base font-semibold">
+                          Hiring skim
+                        </h3>
+                        <ul className="list-disc space-y-1 pl-5 text-sm">
+                          {analysis.hiringSkim.map((b, i) => (
+                            <li key={i}>{b}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    <p className="text-sm leading-relaxed">{analysis.summary}</p>
+                    <ChipBlock
+                      title="Matched"
+                      items={analysis.matchedKeywords}
+                      tone="ok"
+                    />
+                    {queuedMissingKeywords.length > 0 ? (
+                      <ChipBlock
+                        title="Queued — weave on next Tailor"
+                        items={queuedMissingKeywords}
+                        tone="queued"
+                        onItemClick={(k) =>
+                          setQueuedMissingKeywords((prev) =>
+                            prev.filter((x) => x !== k),
+                          )
+                        }
+                      />
+                    ) : null}
+                    <ChipBlock
+                      title="Missing — tap to queue for Tailor"
+                      items={analysis.missingKeywords.filter(
+                        (k) =>
+                          !queuedMissingKeywords.some(
+                            (q) => q.toLowerCase() === k.toLowerCase(),
+                          ),
+                      )}
+                      tone="warn"
+                      onItemClick={queueMissingKeyword}
+                    />
+                    <AnalyzeWorkbench
+                      originalText={originalText.trim() || resumeText}
+                      resumeText={resumeText}
+                      analysis={analysis}
+                      appliedKeys={appliedSuggestionKeys}
+                      onAdd={applySuggestionAdd}
+                      onReplace={applySuggestionReplace}
+                      onAsk={askAts}
+                      onAccommodateMissing={accommodateMissing}
+                      missingKeywords={analysis.missingKeywords}
+                      onMarkApplied={(key) =>
+                        setAppliedSuggestionKeys((prev) => new Set(prev).add(key))
+                      }
+                      onResumeChange={(text) => {
+                        commitWorkingDraft(text);
+                      }}
+                    />
+                  </>
+                )}
+
+                {analysis ? (
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      className="btn-primary px-3 py-2 text-sm"
+                      onClick={() => void requestTabChange("builder")}
+                    >
+                      Continue to Builder
+                    </button>
+                  </div>
+                ) : null}
               </div>
-            </div>
+            )}
           </div>
         )}
 
@@ -1473,6 +1805,48 @@ export function AtsStudio() {
           />
         )}
       </div>
+
+      {scoreExplain && (
+        <div className="drive-modal">
+          <button
+            type="button"
+            className="drive-modal__backdrop"
+            aria-label="Close score explanation"
+            onClick={() => setScoreExplain(null)}
+          />
+          <div className="drive-modal__panel max-w-lg">
+            <div className="drive-modal__head">
+              <p className="drive-modal__title">
+                {
+                  buildScoreExplanation(
+                    scoreExplain,
+                    analysis,
+                    masterScores,
+                    jdPresent,
+                  ).title
+                }
+              </p>
+              <button
+                type="button"
+                className="rounded-lg border border-[var(--line)] px-2 py-1 text-xs"
+                onClick={() => setScoreExplain(null)}
+              >
+                Close
+              </button>
+            </div>
+            <div className="drive-modal__body whitespace-pre-wrap text-sm leading-relaxed text-[var(--ink)]">
+              {
+                buildScoreExplanation(
+                  scoreExplain,
+                  analysis,
+                  masterScores,
+                  jdPresent,
+                ).body
+              }
+            </div>
+          </div>
+        </div>
+      )}
 
       {showPdfPreview && pdfPreviewPages.length > 0 && (
         <div className="drive-modal">
@@ -1515,49 +1889,6 @@ export function AtsStudio() {
         </div>
       )}
 
-      {askIncludeAll && (
-        <div
-          className="fixed inset-x-3 bottom-3 z-40 mx-auto max-w-lg rounded-2xl border border-[var(--line)] bg-[var(--panel-solid)] p-3 shadow-[var(--shadow)] sm:inset-x-auto sm:right-6 sm:bottom-6"
-          role="dialog"
-          aria-label="Ask include all improvements"
-        >
-          <div className="mb-2 flex items-start justify-between gap-2">
-            <div className="min-w-0">
-              <p className="text-[11px] font-semibold tracking-[0.12em] text-[var(--accent)] uppercase">
-                Ask · include all
-              </p>
-              <p className="text-xs text-[var(--muted)]">
-                Applied all suggestions to your working draft.
-              </p>
-            </div>
-            <button
-              type="button"
-              className="text-xs font-semibold text-[var(--muted)]"
-              onClick={() => setAskIncludeAll(null)}
-            >
-              Close
-            </button>
-          </div>
-          <div className="mb-2 max-h-48 space-y-2 overflow-y-auto text-sm">
-            {askIncludeAll.messages.map((m, i) => (
-              <div
-                key={i}
-                className={`rounded-lg px-2 py-1.5 ${
-                  m.role === "user"
-                    ? "bg-[var(--accent-soft)]"
-                    : "bg-white/80 border border-[var(--line)]"
-                }`}
-              >
-                {m.text}
-              </div>
-            ))}
-            {askIncludeAll.busy ? (
-              <p className="text-xs text-[var(--muted)]">Thinking…</p>
-            ) : null}
-          </div>
-        </div>
-      )}
-
       <DriveBrowserModal
         open={driveOpen}
         googleEmail={driveEmail}
@@ -1581,6 +1912,7 @@ export function AtsStudio() {
           try {
             setLocalPreview(file);
             const text = await parseUpload(file);
+            invalidatePipelineOnInputChange();
             setResumeText(text);
             setOriginalText(text);
             setImprovedText("");
@@ -1622,21 +1954,45 @@ function ChipBlock({
   title,
   items,
   tone,
+  onItemClick,
 }: {
   title: string;
   items: string[];
-  tone: "ok" | "warn";
+  tone: "ok" | "warn" | "queued";
+  onItemClick?: (item: string) => void;
 }) {
   if (!items.length) return null;
+  const chipClass =
+    tone === "ok"
+      ? "ats-chip ats-chip--ok"
+      : tone === "queued"
+        ? "ats-chip ats-chip--ok ring-1 ring-[var(--accent)]"
+        : "ats-chip ats-chip--warn";
   return (
     <div>
       <h3 className="text-xs font-semibold tracking-wide text-[var(--muted)] uppercase">{title}</h3>
       <div className="mt-2 flex flex-wrap gap-1.5">
-        {items.map((k) => (
-          <span key={k} className={tone === "ok" ? "ats-chip ats-chip--ok" : "ats-chip ats-chip--warn"}>
-            {k}
-          </span>
-        ))}
+        {items.map((k) =>
+          onItemClick ? (
+            <button
+              key={k}
+              type="button"
+              className={`${chipClass} cursor-pointer hover:ring-2 hover:ring-[var(--accent)]/40`}
+              title={
+                tone === "queued"
+                  ? "Remove from queue"
+                  : "Queue for next Tailor pass"
+              }
+              onClick={() => onItemClick(k)}
+            >
+              {k}
+            </button>
+          ) : (
+            <span key={k} className={chipClass}>
+              {k}
+            </span>
+          ),
+        )}
       </div>
     </div>
   );

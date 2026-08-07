@@ -1,5 +1,8 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import { PdfPreview } from "@/components/PdfPreview";
+
 type Props = {
   url: string | null;
   mimeType: string | null;
@@ -14,6 +17,67 @@ function isPdfFile(mimeType: string | null, filename: string | null) {
 }
 
 export function ResumeAsIsPreview({ url, mimeType, filename, className }: Props) {
+  const [pages, setPages] = useState<string[]>([]);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!url || !isPdfFile(mimeType, filename)) {
+      setPages([]);
+      setBusy(false);
+      setErr(null);
+      return;
+    }
+
+    let cancelled = false;
+    setBusy(true);
+    setErr(null);
+    setPages([]);
+
+    void (async () => {
+      try {
+        const blobRes = await fetch(url);
+        if (!blobRes.ok) {
+          throw new Error(`Could not read uploaded file (${blobRes.status})`);
+        }
+        const blob = await blobRes.blob();
+        const fd = new FormData();
+        fd.append(
+          "file",
+          new File([blob], filename || "resume.pdf", {
+            type: mimeType || blob.type || "application/pdf",
+          }),
+        );
+        const res = await fetch("/api/resumes/preview", {
+          method: "POST",
+          body: fd,
+        });
+        const data = (await res.json().catch(() => ({}))) as {
+          error?: string;
+          pages?: string[];
+        };
+        if (!res.ok) {
+          throw new Error(data.error || "Preview render failed");
+        }
+        if (!data.pages?.length) {
+          throw new Error("Preview returned no pages");
+        }
+        if (!cancelled) setPages(data.pages);
+      } catch (e) {
+        if (!cancelled) {
+          setErr(e instanceof Error ? e.message : String(e));
+          setPages([]);
+        }
+      } finally {
+        if (!cancelled) setBusy(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [url, mimeType, filename]);
+
   if (!url) {
     return (
       <div
@@ -25,24 +89,50 @@ export function ResumeAsIsPreview({ url, mimeType, filename, className }: Props)
   }
 
   const pdf = isPdfFile(mimeType, filename);
-  // Prefer object+embed for blob PDFs — more reliable than iframe in some browsers.
   if (pdf) {
+    if (pages.length) {
+      return (
+        <PdfPreview
+          pages={pages}
+          title={filename || "Uploaded resume"}
+          pdfUrl={url}
+          className={className}
+        />
+      );
+    }
+
+    if (busy) {
+      return (
+        <div
+          className={`flex min-h-[480px] flex-col items-center justify-center gap-2 rounded-xl border border-[var(--line)] bg-white/80 text-sm text-[var(--muted)] ${className || ""}`}
+        >
+          <span className="stream-status__spinner" />
+          Rendering original PDF…
+        </div>
+      );
+    }
+
     return (
       <div
-        className={`overflow-hidden rounded-xl border border-[var(--line)] bg-white ${className || ""}`}
+        className={`flex min-h-[320px] flex-col items-start justify-center gap-2 rounded-xl border border-[var(--line)] bg-white/80 p-4 text-sm ${className || ""}`}
       >
-        <object
-          data={url}
-          type="application/pdf"
-          className="h-full min-h-[480px] w-full"
-          aria-label={filename || "Resume preview"}
+        <p className="font-semibold">{filename || "Uploaded PDF"}</p>
+        {err ? (
+          <p className="text-[var(--danger)]">{err}</p>
+        ) : (
+          <p className="text-[var(--muted)]">
+            Could not render a page preview. Download the original file instead.
+          </p>
+        )}
+        <a
+          href={url}
+          download={filename || "resume.pdf"}
+          target="_blank"
+          rel="noreferrer"
+          className="rounded-lg border border-[var(--line)] bg-white px-3 py-1.5 text-xs font-semibold"
         >
-          <iframe
-            title={filename || "Resume preview"}
-            src={url}
-            className="h-full min-h-[480px] w-full border-0"
-          />
-        </object>
+          Download / open original PDF
+        </a>
       </div>
     );
   }

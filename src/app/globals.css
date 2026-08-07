@@ -1113,10 +1113,37 @@ body {
 }
 .brain-speed-main {
   display: flex;
-  align-items: center;
+  align-items: stretch;
   justify-content: center;
-  gap: 10px;
+  gap: 12px;
+}
+.brain-speed-gauges {
+  display: flex;
+  flex-direction: row;
   flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+}
+@media (max-width: 640px) {
+  .brain-speed-gauges {
+    flex-direction: row;
+    gap: 4px;
+  }
+  .brain-ring-gauge {
+    width: min(72px, 28vw) !important;
+    height: min(72px, 28vw) !important;
+  }
+  .brain-ring-value {
+    font-size: 11px !important;
+  }
+  .brain-improve-btn {
+    min-width: 56px !important;
+    min-height: 88px !important;
+    padding: 6px !important;
+  }
+  .brain-gauge {
+    min-width: 0 !important;
+  }
 }
 .brain-gauge {
   display: flex;
@@ -1124,17 +1151,47 @@ body {
   align-items: center;
   min-width: 88px;
 }
-.brain-gauge-svg {
-  width: 100px;
-  height: 56px;
+.brain-ring-gauge {
+  width: clamp(72px, 22vw, 100px);
+  height: clamp(72px, 22vw, 100px);
+  display: block;
 }
-.brain-gauge strong {
-  font-size: 1.25rem;
-  line-height: 1.1;
+.brain-ring-value {
+  font-size: 14px;
+  font-weight: 800;
+  fill: var(--ink);
+  font-family: ui-sans-serif, system-ui, sans-serif;
 }
-.brain-gauge span {
-  font-size: 0.7rem;
+.brain-ring-progress {
+  transition: stroke-dasharray 0.45s cubic-bezier(0.34, 1.2, 0.64, 1);
+}
+.brain-ring-gauge--sm {
+  width: clamp(48px, 14vw, 62px) !important;
+  height: clamp(48px, 14vw, 62px) !important;
+}
+.brain-ring-value--sm {
+  font-size: 10px !important;
+}
+.brain-version-gauges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  justify-content: flex-start;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--line);
+}
+.brain-version-gauges .brain-gauge {
+  min-width: 0;
+}
+.brain-version-gauges .brain-gauge-caption {
+  font-size: 0.58rem;
+}
+.brain-gauge-caption {
+  font-size: 0.68rem;
+  font-weight: 600;
   color: var(--muted);
+  margin-top: 2px;
 }
 .brain-improve-btn {
   position: relative;
@@ -1142,57 +1199,72 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  width: 56px;
-  height: 56px;
-  border-radius: 999px;
+  gap: 4px;
+  min-width: 72px;
+  align-self: center;
+  min-height: 120px;
+  padding: 8px 10px;
+  border-radius: 16px;
   border: 2px solid var(--accent);
   background: var(--accent-soft);
   color: var(--accent);
-  font-weight: 800;
+  font-weight: 700;
   cursor: pointer;
+}
+.brain-improve-label {
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.brain-tailor-icon {
+  width: 22px;
+  height: 22px;
+}
+.brain-gauge-btn {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  border-radius: 12px;
+  padding: 4px;
+}
+.brain-gauge-btn:hover {
+  background: color-mix(in srgb, var(--accent-soft) 60%, transparent);
+}
+.tailor-feed {
+  margin-top: 10px;
+  max-height: 120px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: #f8fafc;
+  padding: 8px 10px;
+  font-family: ui-monospace, monospace;
+  font-size: 0.72rem;
+  line-height: 1.45;
+}
+.tailor-feed-line {
+  margin: 0 0 4px;
+  color: var(--muted);
+}
+.tailor-feed-remove {
+  color: #b45309;
+}
+.tailor-feed-add {
+  color: #047857;
 }
 .brain-improve-btn:disabled {
   opacity: 0.45;
   cursor: not-allowed;
 }
-.brain-improve-arrow {
-  font-size: 1.35rem;
-  line-height: 1;
-}
 .brain-improve-badge {
-  position: absolute;
-  bottom: -4px;
-  right: -4px;
   font-size: 0.62rem;
   background: var(--ink);
   color: #fff;
   border-radius: 6px;
-  padding: 1px 5px;
-}
-.brain-version-pills {
-  display: flex;
-  gap: 6px;
-  justify-content: center;
-  flex-wrap: wrap;
-  margin-top: 10px;
-}
-.brain-v-pill {
-  font-size: 0.72rem;
-  font-weight: 700;
-  padding: 4px 10px;
-  border-radius: 999px;
-  border: 1px solid var(--line);
-  background: #fff;
-  color: var(--muted);
-}
-.brain-v-pill.unlocked {
-  color: var(--ink);
-  border-color: color-mix(in srgb, var(--accent) 40%, var(--line));
-  cursor: pointer;
-}
-.brain-v-pill:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
+  padding: 1px 6px;
+  line-height: 1.3;
 }
 .sr-only {
   position: absolute;

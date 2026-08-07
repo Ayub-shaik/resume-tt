@@ -4,6 +4,7 @@ export declare function keywordHeuristic(resumeText: string, jdOrRoleText: strin
     missing: string[];
     pct: number;
 };
+/** ATS format score — resume structure only. Independent of JD. */
 export declare function atsFormatHeuristic(resumeText: string): number;
 /** Unified triple score used by resume-tt and job-search. */
 export declare function scoreTriple(resumeText: string, jdText?: string, targetRole?: string): TripleScores;

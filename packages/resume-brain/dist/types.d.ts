@@ -3,6 +3,7 @@ export type ModelTier = "premium" | "standard";
 export type TripleScores = {
     ats: number;
     jd: number;
+    jdAvailable?: boolean;
     overall: number;
     keywordMatchPct: number;
     atsReadability: number;

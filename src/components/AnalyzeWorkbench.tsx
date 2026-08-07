@@ -4,8 +4,9 @@ import { useMemo, useState } from "react";
 import type { AtsAnalysis } from "@/lib/ats/analyze";
 import {
   annotateResumeLines,
-  buildImprovedText,
+  splitResumeLines,
   type LineTag,
+  type RewriteSuggestion,
 } from "@/lib/ats/dualPage";
 import { isNovelSuggestion } from "@/lib/ats/dedupe";
 
@@ -30,23 +31,52 @@ type AskThread = {
   busy: boolean;
 };
 
+export function suggestionKey(s: RewriteSuggestion, index: number): string {
+  return `${index}:${s.area}:${s.current.slice(0, 48)}`;
+}
+
+function isSuggestionPending(
+  s: RewriteSuggestion,
+  index: number,
+  resumeText: string,
+  appliedKeys: Set<string>,
+): boolean {
+  if (appliedKeys.has(suggestionKey(s, index))) return false;
+  const to = s.suggested.trim();
+  if (!to) return false;
+  if (s.current.trim() && s.current.trim() !== to && resumeText.includes(to)) {
+    return false;
+  }
+  return isNovelSuggestion(to, resumeText) || Boolean(s.current.trim());
+}
+
 export function AnalyzeWorkbench({
+  originalText,
   resumeText,
   analysis,
+  appliedKeys,
   onAdd,
   onReplace,
   onAsk,
+  onAccommodateMissing,
+  missingKeywords = [],
   onResumeChange,
+  onMarkApplied,
 }: {
+  originalText: string;
   resumeText: string;
   analysis: AtsAnalysis;
+  appliedKeys: Set<string>;
   onAdd: (text: string) => void;
   onReplace: (current: string, suggested: string) => void;
   onAsk: (input: {
     question: string;
     context: string;
   }) => Promise<string>;
+  onAccommodateMissing: (keyword: string) => void;
+  missingKeywords?: string[];
   onResumeChange?: (text: string) => void;
+  onMarkApplied: (key: string) => void;
 }) {
   const [ask, setAsk] = useState<AskThread | null>(null);
   const [mobilePane, setMobilePane] = useState<"original" | "improved">(
@@ -55,17 +85,14 @@ export function AnalyzeWorkbench({
   const [editAsIs, setEditAsIs] = useState(false);
 
   const suggestions = analysis.rewriteSuggestions || [];
-  const novelSuggestions = useMemo(
+
+  const pendingSuggestions = useMemo(
     () =>
       suggestions
-        .filter((r) => {
-          const same =
-            r.current.trim() &&
-            r.suggested.trim() &&
-            r.current.trim() !== r.suggested.trim();
-          if (!same) return isNovelSuggestion(r.suggested, resumeText);
-          return true;
-        })
+        .map((r, i) => ({ ...r, index: i }))
+        .filter((r) =>
+          isSuggestionPending(r, r.index, resumeText, appliedKeys),
+        )
         .map((r) => {
           const isReorderOnly =
             !isNovelSuggestion(r.suggested, resumeText) &&
@@ -75,17 +102,22 @@ export function AnalyzeWorkbench({
             kind: isReorderOnly ? ("reorder" as const) : ("edit" as const),
           };
         }),
-    [suggestions, resumeText],
+    [suggestions, resumeText, appliedKeys],
   );
 
   const leftLines = useMemo(
-    () => annotateResumeLines(resumeText, suggestions, analysis.gaps || []),
-    [resumeText, suggestions, analysis.gaps],
+    () =>
+      annotateResumeLines(
+        originalText,
+        suggestions,
+        analysis.gaps || [],
+      ),
+    [originalText, suggestions, analysis.gaps],
   );
 
-  const improved = useMemo(
-    () => buildImprovedText(resumeText, suggestions),
-    [resumeText, suggestions],
+  const workingLines = useMemo(
+    () => splitResumeLines(resumeText),
+    [resumeText],
   );
 
   function openAsk(anchor: string, seed?: string) {
@@ -143,6 +175,15 @@ export function AnalyzeWorkbench({
     }
   }
 
+  function applyOne(s: RewriteSuggestion, index: number) {
+    if (s.current.trim() && s.suggested.trim()) {
+      onReplace(s.current, s.suggested);
+    } else {
+      onAdd(s.suggested);
+    }
+    onMarkApplied(suggestionKey(s, index));
+  }
+
   const paneToggle = (
     <div className="mb-2 flex gap-1 md:hidden">
       <button
@@ -165,7 +206,7 @@ export function AnalyzeWorkbench({
         }`}
         onClick={() => setMobilePane("improved")}
       >
-        Improved
+        Working draft
       </button>
     </div>
   );
@@ -212,12 +253,34 @@ export function AnalyzeWorkbench({
                 >
                   <div className="w-16 shrink-0 pt-0.5">
                     {row.tag !== "ok" ? (
-                      <span
-                        className={`inline-block rounded border px-1 py-0.5 text-[9px] font-bold tracking-wide uppercase ${TAG_STYLE[row.tag]}`}
-                        title={row.note}
+                      <button
+                        type="button"
+                        className={`inline-block rounded border px-1 py-0.5 text-[9px] font-bold tracking-wide uppercase ${TAG_STYLE[row.tag]} ${
+                          row.tag === "missing"
+                            ? "cursor-pointer hover:ring-2 hover:ring-rose-300"
+                            : ""
+                        }`}
+                        title={
+                          row.tag === "missing"
+                            ? "Add to working draft"
+                            : row.note
+                        }
+                        onClick={
+                          row.tag === "missing"
+                            ? () => {
+                                const kw = missingKeywords.find(
+                                  (k) =>
+                                    !resumeText
+                                      .toLowerCase()
+                                      .includes(k.toLowerCase()),
+                                );
+                                if (kw) onAccommodateMissing(kw);
+                              }
+                            : undefined
+                        }
                       >
                         {row.tag}
-                      </span>
+                      </button>
                     ) : null}
                   </div>
                   <p className="min-w-0 flex-1 whitespace-pre-wrap break-words text-[var(--ink)]">
@@ -235,42 +298,16 @@ export function AnalyzeWorkbench({
           }`}
         >
           <header className="border-b border-emerald-200 px-3 py-2 font-[family-name:var(--font-display)] text-sm font-semibold tracking-tight text-emerald-950">
-            Proposed · Ask inline
+            Working draft
           </header>
           <div className="min-h-0 flex-1 overflow-y-auto p-3 font-mono text-[13px] leading-relaxed">
-            {improved.lines.map((row, i) => (
-              <div
+            {workingLines.map((text, i) => (
+              <p
                 key={i}
-                className={`flex gap-2 rounded px-1 py-0.5 ${
-                  row.modified ? "bg-white/90" : ""
-                }`}
+                className="min-w-0 whitespace-pre-wrap break-words text-[var(--ink)]"
               >
-                <p className="min-w-0 flex-1 whitespace-pre-wrap break-words">
-                  {row.text || "\u00a0"}
-                </p>
-                {row.modified && row.text.trim() ? (
-                  <div className="flex shrink-0 items-start gap-1">
-                    {isNovelSuggestion(row.text, resumeText) ? (
-                      <button
-                        type="button"
-                        className="rounded border border-[var(--line)] bg-white px-1.5 py-0.5 text-[10px] font-bold"
-                        title="Add to working resume"
-                        onClick={() => onAdd(row.text)}
-                      >
-                        +
-                      </button>
-                    ) : null}
-                    <button
-                      type="button"
-                      className="rounded border border-[var(--line)] bg-white px-1.5 py-0.5 text-[10px] font-bold"
-                      title="Ask about this line"
-                      onClick={() => openAsk(row.text)}
-                    >
-                      Ask
-                    </button>
-                  </div>
-                ) : null}
-              </div>
+                {text || "\u00a0"}
+              </p>
             ))}
           </div>
         </section>
@@ -289,71 +326,62 @@ export function AnalyzeWorkbench({
         </div>
       )}
 
-      <div className="space-y-2">
-        <h3 className="font-[family-name:var(--font-display)] text-sm font-semibold tracking-tight">
-          Edit plan
-        </h3>
-        {novelSuggestions.map((r, i) => (
-          <div
-            key={i}
-            className="relative rounded-lg border border-[var(--line)] bg-[rgba(255,255,255,0.72)] px-3 py-2 text-sm"
-          >
-            <div className="flex flex-wrap items-start justify-between gap-2">
-              <p className="font-semibold">
-                {r.area}
-                {r.kind === "reorder" ? (
-                  <span className="ml-2 text-[10px] font-bold tracking-wide text-[var(--muted)] uppercase">
-                    Reorder
-                  </span>
-                ) : null}
-              </p>
-              <div className="flex gap-1">
-                {r.kind !== "reorder" &&
-                isNovelSuggestion(r.suggested, resumeText) ? (
+      {pendingSuggestions.length > 0 ? (
+        <div className="space-y-2">
+          <h3 className="font-[family-name:var(--font-display)] text-sm font-semibold tracking-tight">
+            Pending improvements
+          </h3>
+          {pendingSuggestions.map((r) => (
+            <div
+              key={r.index}
+              className="relative rounded-lg border border-[var(--line)] bg-[rgba(255,255,255,0.72)] px-3 py-2 text-sm"
+            >
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <p className="font-semibold">
+                  {r.area}
+                  {r.kind === "reorder" ? (
+                    <span className="ml-2 text-[10px] font-bold tracking-wide text-[var(--muted)] uppercase">
+                      Reorder
+                    </span>
+                  ) : null}
+                </p>
+                <div className="flex gap-1">
                   <button
                     type="button"
                     className="rounded-lg border border-[var(--line)] bg-white px-2 py-1 text-xs font-bold"
-                    title="Add suggested text"
-                    onClick={() => onAdd(r.suggested)}
+                    title="Apply to working draft"
+                    onClick={() => applyOne(r, r.index)}
                   >
-                    +
+                    Apply
                   </button>
-                ) : null}
-                <button
-                  type="button"
-                  className="rounded-lg border border-[var(--line)] bg-white px-2 py-1 text-xs font-bold"
-                  title="Replace original line"
-                  onClick={() => onReplace(r.current, r.suggested)}
-                >
-                  /
-                </button>
-                <button
-                  type="button"
-                  className="rounded-lg border border-[var(--line)] bg-white px-2 py-1 text-xs font-bold"
-                  onClick={() =>
-                    openAsk(
-                      `Area: ${r.area}\nNow: ${r.current}\nTry: ${r.suggested}\nWhy: ${r.why}`,
-                    )
-                  }
-                >
-                  Ask
-                </button>
+                  <button
+                    type="button"
+                    className="rounded-lg border border-[var(--line)] bg-white px-2 py-1 text-xs font-bold"
+                    onClick={() =>
+                      openAsk(
+                        `Area: ${r.area}\nNow: ${r.current}\nTry: ${r.suggested}\nWhy: ${r.why}`,
+                      )
+                    }
+                  >
+                    Ask
+                  </button>
+                </div>
               </div>
+              {r.current ? (
+                <p className="mt-1 text-[var(--muted)]">Now: {r.current}</p>
+              ) : null}
+              <p className="mt-1">Try: {r.suggested}</p>
+              {r.why ? (
+                <p className="mt-1 text-xs text-[var(--muted)]">{r.why}</p>
+              ) : null}
             </div>
-            <p className="mt-1 text-[var(--muted)]">Now: {r.current}</p>
-            <p className="mt-1">Try: {r.suggested}</p>
-            {r.why ? (
-              <p className="mt-1 text-xs text-[var(--muted)]">{r.why}</p>
-            ) : null}
-          </div>
-        ))}
-        {!novelSuggestions.length && (
-          <p className="text-sm text-[var(--muted)]">
-            No novel edit suggestions — section order and wording already look
-            aligned.
-          </p>
-        )}
-      </div>
+          ))}
+        </div>
+      ) : (
+        <p className="text-sm text-[var(--muted)]">
+          All suggested improvements are in your working draft.
+        </p>
+      )}
 
       {ask && (
         <div

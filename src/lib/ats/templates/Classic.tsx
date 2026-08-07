@@ -1,29 +1,36 @@
 import React from "react";
 import { Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
 import type { NormalizedResume } from "./shared";
-import { contactLine, eduRange, skillLine, workRange } from "./shared";
+import { certificateLine, contactLine, eduRange, skillLine, workRange } from "./shared";
 
 const s = StyleSheet.create({
-  page: { paddingTop: 36, paddingBottom: 36, paddingHorizontal: 40, fontSize: 10, fontFamily: "Helvetica", color: "#111" },
-  name: { fontSize: 18, fontFamily: "Helvetica-Bold", marginBottom: 4 },
-  contact: { fontSize: 9, color: "#333", marginBottom: 12 },
-  section: { marginTop: 10 },
+  page: {
+    paddingTop: 24,
+    paddingBottom: 24,
+    paddingHorizontal: 28,
+    fontSize: 9,
+    fontFamily: "Helvetica",
+    color: "#111",
+  },
+  name: { fontSize: 14, fontFamily: "Helvetica-Bold", marginBottom: 2 },
+  contact: { fontSize: 8, color: "#333", marginBottom: 8 },
+  section: { marginTop: 6 },
   heading: {
-    fontSize: 11,
+    fontSize: 9,
     fontFamily: "Helvetica-Bold",
     textTransform: "uppercase",
-    borderBottomWidth: 1,
+    borderBottomWidth: 0.75,
     borderBottomColor: "#222",
-    paddingBottom: 2,
-    marginBottom: 6,
+    paddingBottom: 1.5,
+    marginBottom: 3,
   },
-  summary: { lineHeight: 1.35, marginBottom: 2 },
-  item: { marginBottom: 8 },
+  summary: { lineHeight: 1.28, marginBottom: 2, fontSize: 8.5 },
+  item: { marginBottom: 5 },
   row: { flexDirection: "row", justifyContent: "space-between", gap: 8 },
-  title: { fontFamily: "Helvetica-Bold", fontSize: 10 },
-  meta: { fontSize: 9, color: "#444" },
-  bullet: { marginLeft: 10, marginTop: 2, lineHeight: 1.3 },
-  skill: { marginBottom: 3, lineHeight: 1.3 },
+  title: { fontFamily: "Helvetica-Bold", fontSize: 9 },
+  meta: { fontSize: 8, color: "#444" },
+  bullet: { marginLeft: 8, marginTop: 1, lineHeight: 1.25, fontSize: 8.5 },
+  skill: { marginBottom: 2, lineHeight: 1.25, fontSize: 8.5 },
 });
 
 export function ClassicDocument({ data }: { data: NormalizedResume }) {
@@ -39,16 +46,20 @@ export function ClassicDocument({ data }: { data: NormalizedResume }) {
 
         {b.summary ? (
           <View style={s.section}>
-            <Text style={s.heading}>Summary</Text>
+            <Text style={s.heading} minPresenceAhead={32}>
+              Summary
+            </Text>
             <Text style={s.summary}>{b.summary}</Text>
           </View>
         ) : null}
 
         {(r.work?.length || 0) > 0 ? (
           <View style={s.section}>
-            <Text style={s.heading}>Experience</Text>
+            <Text style={s.heading} minPresenceAhead={40}>
+              Experience
+            </Text>
             {(r.work || []).map((w, i) => (
-              <View key={i} style={s.item} wrap={false}>
+              <View key={i} style={s.item} wrap>
                 <View style={s.row}>
                   <Text style={s.title}>{[w.position, w.name].filter(Boolean).join(" — ")}</Text>
                   <Text style={s.meta}>{workRange(w)}</Text>
@@ -66,11 +77,15 @@ export function ClassicDocument({ data }: { data: NormalizedResume }) {
 
         {(r.education?.length || 0) > 0 ? (
           <View style={s.section}>
-            <Text style={s.heading}>Education</Text>
+            <Text style={s.heading} minPresenceAhead={28}>
+              Education
+            </Text>
             {(r.education || []).map((e, i) => (
-              <View key={i} style={s.item} wrap={false}>
+              <View key={i} style={s.item} wrap>
                 <View style={s.row}>
-                  <Text style={s.title}>{[e.studyType, e.area].filter(Boolean).join(" in ") || e.institution}</Text>
+                  <Text style={s.title}>
+                    {[e.studyType, e.area].filter(Boolean).join(" in ") || e.institution}
+                  </Text>
                   <Text style={s.meta}>{eduRange(e)}</Text>
                 </View>
                 <Text style={s.meta}>{e.institution}</Text>
@@ -81,7 +96,9 @@ export function ClassicDocument({ data }: { data: NormalizedResume }) {
 
         {(r.skills?.length || 0) > 0 ? (
           <View style={s.section}>
-            <Text style={s.heading}>Skills</Text>
+            <Text style={s.heading} minPresenceAhead={24}>
+              Skills
+            </Text>
             {(r.skills || []).map((sk, i) => (
               <Text key={i} style={s.skill}>
                 {skillLine(sk)}
@@ -92,9 +109,11 @@ export function ClassicDocument({ data }: { data: NormalizedResume }) {
 
         {(r.projects?.length || 0) > 0 ? (
           <View style={s.section}>
-            <Text style={s.heading}>Projects</Text>
+            <Text style={s.heading} minPresenceAhead={32}>
+              Projects
+            </Text>
             {(r.projects || []).map((p, i) => (
-              <View key={i} style={s.item} wrap={false}>
+              <View key={i} style={s.item} wrap>
                 <Text style={s.title}>{p.name}</Text>
                 {p.description ? <Text style={s.summary}>{p.description}</Text> : null}
                 {(p.highlights || []).map((h, j) => (
@@ -103,6 +122,19 @@ export function ClassicDocument({ data }: { data: NormalizedResume }) {
                   </Text>
                 ))}
               </View>
+            ))}
+          </View>
+        ) : null}
+
+        {(r.certificates?.length || 0) > 0 ? (
+          <View style={s.section}>
+            <Text style={s.heading} minPresenceAhead={24}>
+              Certifications
+            </Text>
+            {(r.certificates || []).map((c, i) => (
+              <Text key={i} style={s.bullet}>
+                • {certificateLine(c)}
+              </Text>
             ))}
           </View>
         ) : null}

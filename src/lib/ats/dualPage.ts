@@ -127,6 +127,56 @@ export function annotateResumeLines(
  * Build improved resume text by applying suggested replacements in order.
  * Unmatched suggestions are appended under an "Improvements" section.
  */
+export function accommodateKeywordInExperience(
+  resumeText: string,
+  keyword: string,
+): string {
+  const kw = keyword.trim();
+  if (!kw) return resumeText;
+  const lines = splitResumeLines(resumeText);
+  const lowerKw = kw.toLowerCase();
+  if (resumeText.toLowerCase().includes(lowerKw)) return resumeText;
+
+  let inExperience = false;
+  const experienceHeading = /^#{0,3}\s*(experience|work history|employment)/i;
+  const anyHeading = /^#{1,3}\s+\S/;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i] || "";
+    if (experienceHeading.test(line)) {
+      inExperience = true;
+      continue;
+    }
+    if (inExperience && anyHeading.test(line) && !experienceHeading.test(line)) {
+      inExperience = false;
+    }
+    const isBullet = /^[-*•]\s+/.test(line.trim()) || /^\s{2,}[-*•]/.test(line);
+    if (inExperience && isBullet && line.trim().length > 12) {
+      if (!line.toLowerCase().includes(lowerKw)) {
+        lines[i] = `${line.replace(/\s+$/, "")} — ${kw}`;
+        return lines.join("\n");
+      }
+    }
+  }
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i] || "";
+    const isBullet = /^[-*•]\s+/.test(line.trim());
+    if (isBullet && line.trim().length > 12 && !line.toLowerCase().includes(lowerKw)) {
+      lines[i] = `${line.replace(/\s+$/, "")} — ${kw}`;
+      return lines.join("\n");
+    }
+  }
+
+  const skillsIdx = lines.findIndex((l) => /^#{0,3}\s*skills/i.test(l));
+  if (skillsIdx >= 0) {
+    lines.splice(skillsIdx + 1, 0, `- ${kw}`);
+    return lines.join("\n");
+  }
+
+  return `${resumeText.trimEnd()}\n\n## Skills\n- ${kw}\n`;
+}
+
 export function buildImprovedText(
   resumeText: string,
   suggestions: RewriteSuggestion[],

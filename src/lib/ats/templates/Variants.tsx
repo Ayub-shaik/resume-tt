@@ -1,7 +1,13 @@
 import React from "react";
 import { Document, Page, Text, View } from "@react-pdf/renderer";
 import type { NormalizedResume } from "./shared";
-import { contactLine, eduRange, skillLine, workRange } from "./shared";
+import {
+  certificateLine,
+  contactLine,
+  eduRange,
+  skillLine,
+  workRange,
+} from "./shared";
 
 /** Layout families — structurally distinct shells (not accent-only clones). */
 export type VariantLayout =
@@ -64,15 +70,15 @@ function WorkBlock({
   return (
     <>
       {(r.work || []).map((w, i) => (
-        <View key={i} style={{ marginBottom: dense ? 5 : 8 }} wrap={false}>
+        <View key={i} style={{ marginBottom: dense ? 4 : 6 }} wrap>
           <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 6 }}>
-            <Text style={{ fontFamily: fontBold, fontSize: dense ? 9 : 10 }}>
+            <Text style={{ fontFamily: fontBold, fontSize: dense ? 8.5 : 9.5 }}>
               {[w.position, w.name].filter(Boolean).join(" — ")}
             </Text>
-            <Text style={{ fontSize: 8, color: "#64748b" }}>{workRange(w)}</Text>
+            <Text style={{ fontSize: 7.5, color: "#64748b" }}>{workRange(w)}</Text>
           </View>
           {w.location ? (
-            <Text style={{ fontSize: 8, color: "#64748b", marginTop: 1 }}>{w.location}</Text>
+            <Text style={{ fontSize: 7.5, color: "#64748b", marginTop: 1 }}>{w.location}</Text>
           ) : null}
           {(w.highlights || []).map((h, j) => (
             <Text
@@ -80,8 +86,8 @@ function WorkBlock({
               style={{
                 marginLeft: 8,
                 marginTop: 1,
-                fontSize: dense ? 8 : 9,
-                lineHeight: 1.3,
+                fontSize: dense ? 7.5 : 8.5,
+                lineHeight: 1.25,
                 fontFamily: font,
               }}
             >
@@ -138,17 +144,38 @@ function ProjectsBlock({
   return (
     <>
       {(r.projects || []).map((p, i) => (
-        <View key={i} style={{ marginBottom: dense ? 4 : 6 }} wrap={false}>
-          <Text style={{ fontFamily: fontBold, fontSize: dense ? 8.5 : 9.5 }}>{p.name}</Text>
+        <View key={i} style={{ marginBottom: dense ? 3 : 5 }} wrap>
+          <Text style={{ fontFamily: fontBold, fontSize: dense ? 8 : 9 }}>{p.name}</Text>
           {p.description ? (
-            <Text style={{ fontSize: dense ? 8 : 9, lineHeight: 1.3 }}>{p.description}</Text>
+            <Text style={{ fontSize: dense ? 7.5 : 8.5, lineHeight: 1.25 }}>{p.description}</Text>
           ) : null}
           {(p.highlights || []).map((h, j) => (
-            <Text key={j} style={{ marginLeft: 8, fontSize: dense ? 8 : 9, marginTop: 1 }}>
+            <Text key={j} style={{ marginLeft: 8, fontSize: dense ? 7.5 : 8.5, marginTop: 1 }}>
               • {h}
             </Text>
           ))}
         </View>
+      ))}
+    </>
+  );
+}
+
+function CertificatesBlock({
+  r,
+  dense,
+}: {
+  r: NormalizedResume;
+  dense?: boolean;
+}) {
+  return (
+    <>
+      {(r.certificates || []).map((c, i) => (
+        <Text
+          key={i}
+          style={{ marginBottom: 2, fontSize: dense ? 7.5 : 8.5, lineHeight: 1.25 }}
+        >
+          • {certificateLine(c)}
+        </Text>
       ))}
     </>
   );
@@ -176,8 +203,8 @@ function SectionHeading({
           backgroundColor: accent,
           paddingVertical: 3,
           paddingHorizontal: 6,
-          marginBottom: 6,
-          marginTop: 10,
+          marginBottom: 4,
+          marginTop: 6,
         }}
       >
         {label}
@@ -220,14 +247,14 @@ function SectionHeading({
     <Text
       style={{
         fontFamily: fontBold,
-        fontSize: 9,
+        fontSize: 8.5,
         textTransform: "uppercase",
         color: accent,
-        borderBottomWidth: 1.5,
+        borderBottomWidth: 1.25,
         borderBottomColor: accent,
-        paddingBottom: 2,
-        marginBottom: 6,
-        marginTop: 10,
+        paddingBottom: 1.5,
+        marginBottom: 4,
+        marginTop: 6,
       }}
     >
       {label}
@@ -269,6 +296,17 @@ function MainSections({
         <View>
           <SectionHeading label="Education" accent={opts.accent} fontBold={fontBold} style={hs} />
           <EduBlock r={r} fontBold={fontBold} dense={dense} />
+        </View>
+      ) : null}
+      {(r.certificates?.length || 0) > 0 ? (
+        <View>
+          <SectionHeading
+            label="Certifications"
+            accent={opts.accent}
+            fontBold={fontBold}
+            style={hs}
+          />
+          <CertificatesBlock r={r} dense={dense} />
         </View>
       ) : null}
       {(r.skills?.length || 0) > 0 &&
@@ -1002,6 +1040,9 @@ export function VariantDocument({
             : null}
           {(r.projects?.length || 0) > 0
             ? block("Projects", <ProjectsBlock r={r} fontBold={fontBold} />)
+            : null}
+          {(r.certificates?.length || 0) > 0
+            ? block("Certifications", <CertificatesBlock r={r} />)
             : null}
         </Page>
       </Document>

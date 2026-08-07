@@ -285,7 +285,14 @@ export function ensureResume(data: JsonResume | null | undefined): NormalizedRes
     education: data?.education || [],
     skills: data?.skills || [],
     projects: data?.projects || [],
+    certificates: data?.certificates || [],
   };
+}
+
+export function certificateLine(
+  c: NonNullable<JsonResume["certificates"]>[number],
+): string {
+  return [c.name, c.issuer, c.date].filter(Boolean).join(" · ");
 }
 
 // Re-export for consumers that only import shared
