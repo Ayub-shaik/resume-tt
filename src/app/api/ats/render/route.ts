@@ -1,5 +1,6 @@
 import { requireSession } from "@/lib/auth/session";
 import type { JsonResume } from "@/lib/ats/jsonresume";
+import { pdfBufferToPngPages } from "@/lib/ats/pdfToPng";
 import { isTemplateId, renderResumePdf } from "@/lib/ats/templates";
 import { jsonError } from "@/lib/api";
 import { clientKey, rateLimit } from "@/lib/security/rateLimit";
@@ -24,7 +25,12 @@ export async function POST(req: Request) {
     });
   }
 
-  let body: { template?: string; resume?: JsonResume };
+  let body: {
+    template?: string;
+    resume?: JsonResume;
+    /** `images` → PNG page stack for on-screen preview (avoids blank blob PDF embeds). */
+    format?: "pdf" | "images";
+  };
   try {
     body = await req.json();
   } catch {
@@ -39,11 +45,29 @@ export async function POST(req: Request) {
     return jsonError("resume (JSON Resume) required", 400);
   }
 
+  const format = body.format === "images" ? "images" : "pdf";
+
   try {
     const pdf = await renderResumePdf(template, body.resume);
     const name = (body.resume.basics?.name || "resume")
       .replace(/[^\w.-]+/g, "_")
       .slice(0, 64);
+
+    if (format === "images") {
+      const pages = await pdfBufferToPngPages(pdf, { dpi: 130, maxPages: 6 });
+      return NextResponse.json(
+        {
+          pages: pages.map(
+            (buf) => `data:image/png;base64,${buf.toString("base64")}`,
+          ),
+        },
+        {
+          status: 200,
+          headers: { "Cache-Control": "no-store" },
+        },
+      );
+    }
+
     return new NextResponse(new Uint8Array(pdf), {
       status: 200,
       headers: {

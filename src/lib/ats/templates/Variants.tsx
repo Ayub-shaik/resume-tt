@@ -1,9 +1,9 @@
 import React from "react";
-import { Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
+import { Document, Page, Text, View } from "@react-pdf/renderer";
 import type { NormalizedResume } from "./shared";
 import { contactLine, eduRange, skillLine, workRange } from "./shared";
 
-/** Layout families inspired by Reactive Resume open templates + distinct MPI variants. */
+/** Layout families — structurally distinct shells (not accent-only clones). */
 export type VariantLayout =
   | "single"
   | "masthead"
@@ -16,7 +16,13 @@ export type VariantLayout =
   | "serif"
   | "mono"
   | "centered"
-  | "banner";
+  | "banner"
+  | "ats-lines"
+  | "header-strip"
+  | "cards"
+  | "blocks"
+  | "grid-projects"
+  | "pull-quote";
 
 export type VariantOpts = {
   title: string;
@@ -657,6 +663,501 @@ export function VariantDocument({
             />
           </View>
           <MainSections r={r} opts={opts} headingStyle="plain" />
+        </Page>
+      </Document>
+    );
+  }
+
+  if (layout === "ats-lines") {
+    return (
+      <Document title={`${b.name || "Resume"} — ${opts.title}`} author={b.name}>
+        <Page
+          size="A4"
+          style={{
+            paddingTop: 32,
+            paddingBottom: 32,
+            paddingHorizontal: 40,
+            fontSize: 9.5,
+            fontFamily: font,
+            color: "#111",
+          }}
+        >
+          <Text
+            style={{
+              fontFamily: fontBold,
+              fontSize: 16,
+              textTransform: "uppercase",
+              letterSpacing: 1.5,
+              textAlign: "center",
+            }}
+          >
+            {b.name || "Candidate"}
+          </Text>
+          {b.label ? (
+            <Text style={{ fontSize: 9, textAlign: "center", marginTop: 2, color: "#334155" }}>
+              {b.label}
+            </Text>
+          ) : null}
+          <Text style={{ fontSize: 8, textAlign: "center", color: "#475569", marginTop: 4, marginBottom: 8 }}>
+            {contactLine(b)}
+          </Text>
+          <View style={{ borderBottomWidth: 2, borderBottomColor: "#111", marginBottom: 8 }} />
+          {b.summary ? (
+            <View style={{ marginBottom: 8 }}>
+              <Text
+                style={{
+                  fontFamily: fontBold,
+                  fontSize: 9,
+                  textTransform: "uppercase",
+                  letterSpacing: 1,
+                  borderBottomWidth: 1,
+                  borderBottomColor: "#111",
+                  paddingBottom: 2,
+                  marginBottom: 4,
+                }}
+              >
+                Professional summary
+              </Text>
+              <Text style={{ lineHeight: 1.35 }}>{b.summary}</Text>
+            </View>
+          ) : null}
+          {(r.work?.length || 0) > 0 ? (
+            <View>
+              <Text
+                style={{
+                  fontFamily: fontBold,
+                  fontSize: 9,
+                  textTransform: "uppercase",
+                  letterSpacing: 1,
+                  borderBottomWidth: 1,
+                  borderBottomColor: "#111",
+                  paddingBottom: 2,
+                  marginBottom: 6,
+                  marginTop: 4,
+                }}
+              >
+                Experience
+              </Text>
+              {(r.work || []).map((w, i) => (
+                <View
+                  key={i}
+                  style={{
+                    marginBottom: 8,
+                    borderBottomWidth: 0.5,
+                    borderBottomColor: "#cbd5e1",
+                    paddingBottom: 6,
+                  }}
+                  wrap={false}
+                >
+                  <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+                    <Text style={{ fontFamily: fontBold, fontSize: 10 }}>
+                      {[w.position, w.name].filter(Boolean).join(" | ")}
+                    </Text>
+                    <Text style={{ fontSize: 8 }}>{workRange(w)}</Text>
+                  </View>
+                  {w.location ? (
+                    <Text style={{ fontSize: 8, color: "#64748b" }}>{w.location}</Text>
+                  ) : null}
+                  {(w.highlights || []).map((h, j) => (
+                    <Text key={j} style={{ marginLeft: 8, marginTop: 1, fontSize: 9 }}>
+                      • {h}
+                    </Text>
+                  ))}
+                </View>
+              ))}
+            </View>
+          ) : null}
+          {(r.education?.length || 0) > 0 ? (
+            <View>
+              <Text
+                style={{
+                  fontFamily: fontBold,
+                  fontSize: 9,
+                  textTransform: "uppercase",
+                  letterSpacing: 1,
+                  borderBottomWidth: 1,
+                  borderBottomColor: "#111",
+                  paddingBottom: 2,
+                  marginBottom: 6,
+                  marginTop: 4,
+                }}
+              >
+                Education
+              </Text>
+              <EduBlock r={r} fontBold={fontBold} />
+            </View>
+          ) : null}
+          {(r.skills?.length || 0) > 0 ? (
+            <View>
+              <Text
+                style={{
+                  fontFamily: fontBold,
+                  fontSize: 9,
+                  textTransform: "uppercase",
+                  letterSpacing: 1,
+                  borderBottomWidth: 1,
+                  borderBottomColor: "#111",
+                  paddingBottom: 2,
+                  marginBottom: 6,
+                  marginTop: 4,
+                }}
+              >
+                Skills
+              </Text>
+              <SkillsBlock r={r} dense />
+            </View>
+          ) : null}
+        </Page>
+      </Document>
+    );
+  }
+
+  if (layout === "header-strip") {
+    return (
+      <Document title={`${b.name || "Resume"} — ${opts.title}`} author={b.name}>
+        <Page size="A4" style={{ padding: 0, fontSize: 10, fontFamily: font, color: "#111" }}>
+          <View
+            style={{
+              backgroundColor: "#f1f5f9",
+              borderBottomWidth: 2,
+              borderBottomColor: opts.accent,
+              paddingVertical: 10,
+              paddingHorizontal: 36,
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "center",
+              gap: 12,
+            }}
+          >
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontFamily: fontBold, fontSize: 16 }}>{b.name || "Candidate"}</Text>
+              {b.label ? (
+                <Text style={{ fontSize: 9, color: opts.accent }}>{b.label}</Text>
+              ) : null}
+            </View>
+            <Text style={{ fontSize: 8, color: "#475569", maxWidth: "48%", textAlign: "right" }}>
+              {contactLine(b)}
+            </Text>
+          </View>
+          <View style={{ paddingTop: 18, paddingBottom: 32, paddingHorizontal: 36 }}>
+            <MainSections r={r} opts={opts} headingStyle="rule" />
+          </View>
+        </Page>
+      </Document>
+    );
+  }
+
+  if (layout === "cards") {
+    return (
+      <Document title={`${b.name || "Resume"} — ${opts.title}`} author={b.name}>
+        <Page
+          size="A4"
+          style={{
+            paddingTop: 32,
+            paddingBottom: 32,
+            paddingHorizontal: 32,
+            fontSize: 9.5,
+            fontFamily: font,
+            color: "#111",
+          }}
+        >
+          <Text style={{ fontFamily: fontBold, fontSize: 20 }}>{b.name || "Candidate"}</Text>
+          {b.label ? (
+            <Text style={{ fontSize: 10, color: opts.accent, marginBottom: 2 }}>{b.label}</Text>
+          ) : null}
+          <Text style={{ fontSize: 9, color: "#475569", marginBottom: 12 }}>{contactLine(b)}</Text>
+          {b.summary ? (
+            <View
+              style={{
+                borderWidth: 1,
+                borderColor: opts.accent,
+                borderRadius: 4,
+                padding: 10,
+                marginBottom: 10,
+                backgroundColor: "#fff7ed",
+              }}
+            >
+              <Text style={{ fontFamily: fontBold, fontSize: 9, color: opts.accent, marginBottom: 4 }}>
+                SUMMARY
+              </Text>
+              <Text style={{ lineHeight: 1.35 }}>{b.summary}</Text>
+            </View>
+          ) : null}
+          {(r.work?.length || 0) > 0 ? (
+            <View>
+              <SectionHeading label="Experience" accent={opts.accent} fontBold={fontBold} style="plain" />
+              {(r.work || []).map((w, i) => (
+                <View
+                  key={i}
+                  style={{
+                    borderWidth: 1,
+                    borderColor: "#e2e8f0",
+                    borderRadius: 4,
+                    padding: 10,
+                    marginBottom: 8,
+                  }}
+                  wrap={false}
+                >
+                  <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 6 }}>
+                    <Text style={{ fontFamily: fontBold, fontSize: 10 }}>
+                      {[w.position, w.name].filter(Boolean).join(" — ")}
+                    </Text>
+                    <Text style={{ fontSize: 8, color: "#64748b" }}>{workRange(w)}</Text>
+                  </View>
+                  {(w.highlights || []).map((h, j) => (
+                    <Text key={j} style={{ marginLeft: 6, marginTop: 2, fontSize: 9 }}>
+                      • {h}
+                    </Text>
+                  ))}
+                </View>
+              ))}
+            </View>
+          ) : null}
+          {(r.skills?.length || 0) > 0 ? (
+            <View>
+              <SectionHeading label="Skills" accent={opts.accent} fontBold={fontBold} style="plain" />
+              <SkillsBlock r={r} />
+            </View>
+          ) : null}
+          {(r.education?.length || 0) > 0 ? (
+            <View>
+              <SectionHeading label="Education" accent={opts.accent} fontBold={fontBold} style="plain" />
+              <EduBlock r={r} fontBold={fontBold} />
+            </View>
+          ) : null}
+        </Page>
+      </Document>
+    );
+  }
+
+  if (layout === "blocks") {
+    const block = (label: string, children: React.ReactNode) => (
+      <View
+        style={{
+          backgroundColor: "#f8fafc",
+          borderLeftWidth: 4,
+          borderLeftColor: opts.accent,
+          paddingVertical: 8,
+          paddingHorizontal: 12,
+          marginBottom: 10,
+        }}
+      >
+        <Text
+          style={{
+            fontFamily: fontBold,
+            fontSize: 9,
+            textTransform: "uppercase",
+            color: opts.accent,
+            marginBottom: 4,
+          }}
+        >
+          {label}
+        </Text>
+        {children}
+      </View>
+    );
+    return (
+      <Document title={`${b.name || "Resume"} — ${opts.title}`} author={b.name}>
+        <Page
+          size="A4"
+          style={{
+            paddingTop: 28,
+            paddingBottom: 28,
+            paddingHorizontal: 28,
+            fontSize: 9.5,
+            fontFamily: font,
+            color: "#111",
+          }}
+        >
+          <View
+            style={{
+              backgroundColor: opts.accent,
+              paddingVertical: 14,
+              paddingHorizontal: 14,
+              marginBottom: 12,
+            }}
+          >
+            <Text style={{ fontFamily: fontBold, fontSize: 18, color: "#fff" }}>
+              {b.name || "Candidate"}
+            </Text>
+            {b.label ? (
+              <Text style={{ fontSize: 10, color: "#fff", opacity: 0.9 }}>{b.label}</Text>
+            ) : null}
+            <Text style={{ fontSize: 8, color: "#fff", opacity: 0.85, marginTop: 4 }}>
+              {contactLine(b)}
+            </Text>
+          </View>
+          {b.summary
+            ? block("Summary", <Text style={{ lineHeight: 1.35 }}>{b.summary}</Text>)
+            : null}
+          {(r.work?.length || 0) > 0
+            ? block(
+                "Experience",
+                <WorkBlock r={r} accent={opts.accent} font={font} fontBold={fontBold} />,
+              )
+            : null}
+          {(r.skills?.length || 0) > 0 ? block("Skills", <SkillsBlock r={r} />) : null}
+          {(r.education?.length || 0) > 0
+            ? block("Education", <EduBlock r={r} fontBold={fontBold} />)
+            : null}
+          {(r.projects?.length || 0) > 0
+            ? block("Projects", <ProjectsBlock r={r} fontBold={fontBold} />)
+            : null}
+        </Page>
+      </Document>
+    );
+  }
+
+  if (layout === "grid-projects") {
+    const projects = r.projects || [];
+    return (
+      <Document title={`${b.name || "Resume"} — ${opts.title}`} author={b.name}>
+        <Page
+          size="A4"
+          style={{
+            paddingTop: 32,
+            paddingBottom: 32,
+            paddingHorizontal: 32,
+            fontSize: 9.5,
+            fontFamily: font,
+            color: "#111",
+          }}
+        >
+          <Text style={{ fontFamily: fontBold, fontSize: 18 }}>{b.name || "Candidate"}</Text>
+          {b.label ? (
+            <Text style={{ fontSize: 10, color: opts.accent }}>{b.label}</Text>
+          ) : null}
+          <Text style={{ fontSize: 9, color: "#475569", marginBottom: 10 }}>{contactLine(b)}</Text>
+          {b.summary ? (
+            <View style={{ marginBottom: 8 }}>
+              <SectionHeading label="Summary" accent={opts.accent} fontBold={fontBold} />
+              <Text style={{ lineHeight: 1.35 }}>{b.summary}</Text>
+            </View>
+          ) : null}
+          {(r.work?.length || 0) > 0 ? (
+            <View>
+              <SectionHeading label="Experience" accent={opts.accent} fontBold={fontBold} />
+              <WorkBlock r={r} accent={opts.accent} font={font} fontBold={fontBold} />
+            </View>
+          ) : null}
+          {projects.length > 0 ? (
+            <View>
+              <SectionHeading label="Projects" accent={opts.accent} fontBold={fontBold} />
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+                {projects.map((p, i) => (
+                  <View
+                    key={i}
+                    style={{
+                      width: "48%",
+                      borderWidth: 1,
+                      borderColor: opts.accent,
+                      borderRadius: 3,
+                      padding: 8,
+                      marginBottom: 4,
+                    }}
+                    wrap={false}
+                  >
+                    <Text style={{ fontFamily: fontBold, fontSize: 9 }}>{p.name}</Text>
+                    {p.description ? (
+                      <Text style={{ fontSize: 8, marginTop: 2, lineHeight: 1.3 }}>
+                        {p.description}
+                      </Text>
+                    ) : null}
+                  </View>
+                ))}
+              </View>
+            </View>
+          ) : null}
+          {(r.skills?.length || 0) > 0 ? (
+            <View>
+              <SectionHeading label="Skills" accent={opts.accent} fontBold={fontBold} />
+              <SkillsBlock r={r} />
+            </View>
+          ) : null}
+          {(r.education?.length || 0) > 0 ? (
+            <View>
+              <SectionHeading label="Education" accent={opts.accent} fontBold={fontBold} />
+              <EduBlock r={r} fontBold={fontBold} />
+            </View>
+          ) : null}
+        </Page>
+      </Document>
+    );
+  }
+
+  if (layout === "pull-quote") {
+    return (
+      <Document title={`${b.name || "Resume"} — ${opts.title}`} author={b.name}>
+        <Page
+          size="A4"
+          style={{
+            paddingTop: 36,
+            paddingBottom: 36,
+            paddingHorizontal: 40,
+            fontSize: 10,
+            fontFamily: font,
+            color: "#111",
+          }}
+        >
+          <Text style={{ fontFamily: fontBold, fontSize: 22, marginBottom: 2 }}>
+            {b.name || "Candidate"}
+          </Text>
+          {b.label ? (
+            <Text style={{ fontSize: 11, color: opts.accent, marginBottom: 4 }}>{b.label}</Text>
+          ) : null}
+          <Text style={{ fontSize: 9, color: "#57534e", marginBottom: 14 }}>{contactLine(b)}</Text>
+          {b.summary ? (
+            <View
+              style={{
+                borderLeftWidth: 3,
+                borderLeftColor: opts.accent,
+                paddingLeft: 12,
+                marginBottom: 16,
+              }}
+            >
+              <Text
+                style={{
+                  fontFamily: font,
+                  fontSize: 12,
+                  lineHeight: 1.45,
+                  fontStyle: "italic",
+                  color: "#292524",
+                }}
+              >
+                {b.summary}
+              </Text>
+            </View>
+          ) : null}
+          <View style={{ flexDirection: "row", gap: 16 }}>
+            <View style={{ width: "62%" }}>
+              {(r.work?.length || 0) > 0 ? (
+                <View>
+                  <SectionHeading label="Experience" accent={opts.accent} fontBold={fontBold} />
+                  <WorkBlock r={r} accent={opts.accent} font={font} fontBold={fontBold} />
+                </View>
+              ) : null}
+            </View>
+            <View style={{ width: "38%" }}>
+              {(r.skills?.length || 0) > 0 ? (
+                <View>
+                  <SectionHeading label="Skills" accent={opts.accent} fontBold={fontBold} />
+                  <SkillsBlock r={r} />
+                </View>
+              ) : null}
+              {(r.education?.length || 0) > 0 ? (
+                <View>
+                  <SectionHeading label="Education" accent={opts.accent} fontBold={fontBold} />
+                  <EduBlock r={r} fontBold={fontBold} />
+                </View>
+              ) : null}
+              {(r.projects?.length || 0) > 0 ? (
+                <View>
+                  <SectionHeading label="Projects" accent={opts.accent} fontBold={fontBold} />
+                  <ProjectsBlock r={r} fontBold={fontBold} dense />
+                </View>
+              ) : null}
+            </View>
+          </View>
         </Page>
       </Document>
     );

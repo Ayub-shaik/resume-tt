@@ -7,6 +7,7 @@ import { AnalyzeLoadingPanel } from "@/components/AnalyzeLoadingPanel";
 import { AnalyzeWorkbench } from "@/components/AnalyzeWorkbench";
 import { ResumeBuilder } from "@/components/ResumeBuilder";
 import { ImproveResumeViewer } from "@/components/ImproveResumeViewer";
+import { PdfPreview } from "@/components/PdfPreview";
 import {
   fetchPreviewBlob,
   ResumeAsIsPreview,
@@ -19,7 +20,7 @@ import type { JsonResume } from "@/lib/ats/jsonresume";
 import { jsonResumeToMarkdown } from "@/lib/ats/jsonresume";
 import { quickScores, type QuickScores } from "@/lib/ats/keywords";
 import type { TemplateId } from "@/lib/ats/templates";
-import { TEMPLATE_META } from "@/lib/ats/templates";
+import { TEMPLATE_META, isTemplateId } from "@/lib/ats/templates";
 import { loadAtsDraft, saveAtsDraft } from "@/lib/ats/draftStore";
 import type { Resume } from "@/lib/types";
 
@@ -81,7 +82,7 @@ export function AtsStudio() {
   const [improveView, setImproveView] = useState<"modified" | "original">(
     "modified",
   );
-  const [pdfPreviewUrl, setPdfPreviewUrl] = useState<string | null>(null);
+  const [pdfPreviewPages, setPdfPreviewPages] = useState<string[]>([]);
   const [showPdfPreview, setShowPdfPreview] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -124,7 +125,9 @@ export function AtsStudio() {
     setImprovedText(draft.improvedText);
     setAnalysis(draft.analysis);
     setJsonResume(draft.jsonResume);
-    setSelectedTemplate(draft.selectedTemplate);
+    setSelectedTemplate(
+      isTemplateId(draft.selectedTemplate) ? draft.selectedTemplate : "classic",
+    );
     setSessionId(draft.sessionId);
     setSessionName(draft.sessionName);
     setInstruction(draft.instruction);
@@ -683,6 +686,31 @@ export function AtsStudio() {
         return;
       }
       setBusy(mode === "preview" ? "preview" : "download");
+      if (mode === "preview") {
+        // Raster pages — blob PDF iframe embeds often show blank.
+        const res = await fetch("/api/ats/render", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            template: selectedTemplate,
+            resume: jr,
+            format: "images",
+          }),
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(
+            (data as { error?: string }).error || "PDF preview failed",
+          );
+        }
+        const data = (await res.json()) as { pages?: string[] };
+        if (!data.pages?.length) {
+          throw new Error("Preview returned no pages");
+        }
+        setPdfPreviewPages(data.pages);
+        setShowPdfPreview(true);
+        return;
+      }
       const res = await fetch("/api/ats/render", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -698,15 +726,10 @@ export function AtsStudio() {
       if (pdfBlobRef.current) URL.revokeObjectURL(pdfBlobRef.current);
       const url = URL.createObjectURL(blob);
       pdfBlobRef.current = url;
-      if (mode === "preview") {
-        setPdfPreviewUrl(url);
-        setShowPdfPreview(true);
-      } else {
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `${(jr.basics?.name || "resume").replace(/\s+/g, "_")}-${selectedTemplate}.pdf`;
-        a.click();
-      }
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${(jr.basics?.name || "resume").replace(/\s+/g, "_")}-${selectedTemplate}.pdf`;
+      a.click();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -1326,13 +1349,16 @@ export function AtsStudio() {
         )}
       </div>
 
-      {showPdfPreview && pdfPreviewUrl && (
+      {showPdfPreview && pdfPreviewPages.length > 0 && (
         <div className="drive-modal">
           <button
             type="button"
             className="drive-modal__backdrop"
             aria-label="Close preview"
-            onClick={() => setShowPdfPreview(false)}
+            onClick={() => {
+              setShowPdfPreview(false);
+              setPdfPreviewPages([]);
+            }}
           />
           <div className="drive-modal__panel max-h-[92vh] w-[min(920px,100%)]">
             <div className="drive-modal__head">
@@ -1345,16 +1371,21 @@ export function AtsStudio() {
               <button
                 type="button"
                 className="drive-modal__close"
-                onClick={() => setShowPdfPreview(false)}
+                onClick={() => {
+                  setShowPdfPreview(false);
+                  setPdfPreviewPages([]);
+                }}
               >
                 Close
               </button>
             </div>
-            <iframe
-              title="Resume PDF preview"
-              src={pdfPreviewUrl}
-              className="min-h-[70vh] w-full flex-1 border-0"
-            />
+            <div className="min-h-0 flex-1 overflow-y-auto p-3">
+              <PdfPreview
+                pages={pdfPreviewPages}
+                title={`PDF preview · ${selectedTemplate}`}
+                className="min-h-[70vh]"
+              />
+            </div>
           </div>
         </div>
       )}

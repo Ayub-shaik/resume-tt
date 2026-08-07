@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { JsonResumeEditor } from "@/components/JsonResumeEditor";
 import { ImproveResumeViewer } from "@/components/ImproveResumeViewer";
+import { TemplateGalleryModal } from "@/components/TemplateGalleryModal";
 import { TemplateThumb } from "@/components/TemplateThumb";
 import type { JsonResume } from "@/lib/ats/jsonresume";
 import {
@@ -37,6 +38,8 @@ export function ResumeBuilder({
   const [category, setCategory] = useState("All");
   const [layoutsOpen, setLayoutsOpen] = useState(true);
   const [mobilePane, setMobilePane] = useState<"edit" | "preview">("edit");
+  const [galleryOpen, setGalleryOpen] = useState(false);
+  const [galleryStart, setGalleryStart] = useState<TemplateId>(selectedTemplate);
 
   useEffect(() => {
     if (!jsonResume && resumeText.trim()) {
@@ -55,6 +58,11 @@ export function ResumeBuilder({
     (t) => category === "All" || t.category === category,
   );
 
+  function openGallery(id: TemplateId) {
+    setGalleryStart(id);
+    setGalleryOpen(true);
+  }
+
   return (
     // Mobile: allow the whole builder to scroll (avoid overflow-hidden + h-screen trap).
     // Desktop: keep split panes with internal scroll.
@@ -66,8 +74,7 @@ export function ResumeBuilder({
               Resume builder
             </p>
             <p className="text-sm text-[var(--muted)]">
-              Edit sections, pick a layout group, preview and download PDF — all
-              inside MPI. No external sign-in.
+              Edit sections, preview full layouts, pick a template, download PDF.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -98,9 +105,19 @@ export function ResumeBuilder({
             <button
               type="button"
               className="rounded-xl border border-[var(--line)] bg-white px-3 py-2 text-sm font-semibold md:hidden"
-              onClick={() =>
-                setMobilePane((p) => (p === "edit" ? "preview" : "edit"))
-              }
+              onClick={() => {
+                setMobilePane((p) => {
+                  const next = p === "edit" ? "preview" : "edit";
+                  if (next === "preview") {
+                    window.setTimeout(() => {
+                      document
+                        .getElementById("builder-live-preview")
+                        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+                    }, 50);
+                  }
+                  return next;
+                });
+              }}
             >
               {mobilePane === "edit" ? "Show preview" : "Show editor"}
             </button>
@@ -137,7 +154,7 @@ export function ResumeBuilder({
                 <button
                   key={t.id}
                   type="button"
-                  onClick={() => onTemplateChange(t.id)}
+                  onClick={() => openGallery(t.id)}
                   className={`overflow-hidden rounded-xl border text-left transition ${
                     selectedTemplate === t.id
                       ? "border-[var(--accent)] ring-2 ring-[var(--accent)]/20"
@@ -152,7 +169,7 @@ export function ResumeBuilder({
                   <div className="px-2 py-1.5">
                     <p className="truncate text-xs font-semibold">{t.name}</p>
                     <p className="truncate text-[10px] text-[var(--muted)]">
-                      {t.category}
+                      {t.category} · tap to preview
                     </p>
                   </div>
                 </button>
@@ -178,6 +195,7 @@ export function ResumeBuilder({
           )}
         </section>
         <section
+          id="builder-live-preview"
           className={`flex min-h-[520px] flex-col bg-[#ebe7dc] p-4 lg:min-h-0 ${
             mobilePane === "edit" ? "hidden lg:flex" : "flex"
           }`}
@@ -198,6 +216,16 @@ export function ResumeBuilder({
           </div>
         </section>
       </div>
+
+      <TemplateGalleryModal
+        open={galleryOpen}
+        initialId={galleryStart}
+        onClose={() => setGalleryOpen(false)}
+        onSelect={(id) => {
+          onTemplateChange(id);
+          setGalleryOpen(false);
+        }}
+      />
     </div>
   );
 }
