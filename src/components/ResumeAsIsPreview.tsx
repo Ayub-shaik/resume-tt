@@ -34,13 +34,13 @@ export function ResumeAsIsPreview({ url, mimeType, filename, className }: Props)
         <object
           data={url}
           type="application/pdf"
-          className="h-full min-h-[320px] w-full"
+          className="h-full min-h-[480px] w-full"
           aria-label={filename || "Resume preview"}
         >
           <iframe
             title={filename || "Resume preview"}
             src={url}
-            className="h-full min-h-[320px] w-full border-0"
+            className="h-full min-h-[480px] w-full border-0"
           />
         </object>
       </div>

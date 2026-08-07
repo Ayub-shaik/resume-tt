@@ -5,7 +5,11 @@ import { JsonResumeEditor } from "@/components/JsonResumeEditor";
 import { ImproveResumeViewer } from "@/components/ImproveResumeViewer";
 import { TemplateThumb } from "@/components/TemplateThumb";
 import type { JsonResume } from "@/lib/ats/jsonresume";
-import { TEMPLATE_META, type TemplateId } from "@/lib/ats/templates";
+import {
+  TEMPLATE_CATEGORY_ORDER,
+  TEMPLATE_META,
+  type TemplateId,
+} from "@/lib/ats/templates";
 
 export function ResumeBuilder({
   jsonResume,
@@ -43,14 +47,18 @@ export function ResumeBuilder({
 
   const categories = [
     "All",
-    ...Array.from(new Set(TEMPLATE_META.map((t) => t.category))),
+    ...TEMPLATE_CATEGORY_ORDER.filter((c) =>
+      TEMPLATE_META.some((t) => t.category === c),
+    ),
   ];
   const visible = TEMPLATE_META.filter(
     (t) => category === "All" || t.category === category,
   );
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+    // Mobile: allow the whole builder to scroll (avoid overflow-hidden + h-screen trap).
+    // Desktop: keep split panes with internal scroll.
+    <div className="flex min-h-0 flex-1 flex-col overflow-y-auto md:overflow-hidden">
       <div className="shrink-0 border-b border-[var(--line)] bg-white/70 px-4 py-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
@@ -58,8 +66,8 @@ export function ResumeBuilder({
               Resume builder
             </p>
             <p className="text-sm text-[var(--muted)]">
-              Edit sections, pick a layout, preview and download PDF — all inside
-              MPI. No external sign-in.
+              Edit sections, pick a layout group, preview and download PDF — all
+              inside MPI. No external sign-in.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -124,7 +132,7 @@ export function ResumeBuilder({
                 </button>
               ))}
             </div>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
+            <div className="grid max-h-[40vh] grid-cols-2 gap-3 overflow-y-auto sm:grid-cols-3 xl:grid-cols-5">
               {visible.map((t) => (
                 <button
                   key={t.id}
@@ -143,6 +151,9 @@ export function ResumeBuilder({
                   </div>
                   <div className="px-2 py-1.5">
                     <p className="truncate text-xs font-semibold">{t.name}</p>
+                    <p className="truncate text-[10px] text-[var(--muted)]">
+                      {t.category}
+                    </p>
                   </div>
                 </button>
               ))}
@@ -167,14 +178,14 @@ export function ResumeBuilder({
           )}
         </section>
         <section
-          className={`flex min-h-0 flex-col bg-[#ebe7dc] p-4 ${
+          className={`flex min-h-[520px] flex-col bg-[#ebe7dc] p-4 lg:min-h-0 ${
             mobilePane === "edit" ? "hidden lg:flex" : "flex"
           }`}
         >
           <header className="mb-2 shrink-0 text-xs font-semibold tracking-wide text-[var(--muted)] uppercase">
             Live PDF preview · {selectedTemplate}
           </header>
-          <div className="min-h-0 flex-1 overflow-hidden rounded-xl border border-[var(--line)] bg-white shadow-sm">
+          <div className="min-h-[480px] flex-1 overflow-y-auto rounded-xl border border-[var(--line)] bg-white shadow-sm lg:min-h-0 lg:overflow-hidden">
             <ImproveResumeViewer
               mode="modified"
               text={resumeText}

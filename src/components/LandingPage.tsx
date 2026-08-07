@@ -20,7 +20,7 @@ const FEATURES = [
   },
   {
     title: "Builder",
-    body: "15 clean PDF templates, JSON Resume editor, preview and download.",
+    body: "30+ PDF layout templates in groups, JSON Resume editor, preview and download.",
   },
   {
     title: "Sessions",
