@@ -1,31 +1,32 @@
 # Cursor session handoff
 
 ## Updated
-2026-08-05T19:05:00Z
+2026-08-07T08:50:00Z
 
 ## Goal
-Fix Studio preview bugs + redesign Analyze → Improve → Folio per user QA.
+Fix blank Show preview / Preview PDF (user QA); full-page swipeable template gallery; cull color clones; add structurally distinct layouts.
 
 ## Status
 ready for user QA
 
 ## Done
-- Studio: Save context no longer remounts banner (preview blob kept); Show original gated without file
-- Analyze: button = Analyzing…; stages in center empty panel; Apply all / Re-analyze / Ask·include all
-- Improve: shows working draft from Analyze first; Start improving → further refinements; readiness scores; Modified/Original toggle; no OpenClaw copy
-- Folio rename (was Reactive Resume); collapsible layouts ribbon; iframe fills height; cache-bust Load; Preview pulls Folio DB via `/api/ats/rr-pull`
-- Embed strip: `inject-folio-chrome.mjs` hides AI Assistant / Analyze / Picture heuristics
-- Removed OpenClaw `/api/rr-ai` explainer line
+- Root cause of blank Show/Preview PDF: Chromium/Firefox often render blank native PDF plugins for `blob:` URLs in iframe/object (prior min-height/object fix insufficient)
+- Fix: `/api/ats/render` `format: "images"` → pdftoppm PNG pages; `PdfPreview` img stack in Improve live pane + Preview PDF modal; “Open PDF in new tab” on demand
+- TemplateGalleryModal: full-page swipe (touch/arrows/keys) through all templates; Select template CTA
+- Culled color-clone shells; 19 structurally distinct templates (Classic/Modern/Sidebar/Compact/Creative/Executive/Tech) including ats_lines, header_strip, cards, blocks, grid_projects, pull_quote
+- Rebuild + resume-tt-web.service restart; smoke 19/19 PDF + PNG OK
+- Branch: `cursor/fix-preview-gallery-templates-06f7`
 
 ## Next steps
-1. User QA Studio save + show original
-2. User QA Analyze → Improve draft sync → Folio Load template switch
-3. Acceptance-review Pass/Fail on REQUIREMENTS REQ-101…110
+1. User QA: Preview PDF modal shows page images; Show preview shows live stack on mobile
+2. User QA: tap template → full-page gallery → swipe → Select template
+3. Optional: fix browser MCP httpcore for authenticated visual QA
 
 ## Gotchas
-- Folio = RR MIT image with MPI patches; recreate container after entrypoint/inject changes
-- Re-Load into Folio after template pick so DB+iframe refresh
-- Do not commit `.cursor/artifacts/` or `deploy/reactive-resume/.env`
+- Do not commit `.env*` or `deploy/reactive-resume/.env`
+- Preview images need `pdftoppm` (poppler) on the host
+- Invalid old draft template IDs fall back to classic via `isTemplateId`
+- Render rate limit 20/min — image previews count toward it
 
 ## Open decisions
-- Further content-panel stripping in Folio if AI/Analyze buttons still visible (DOM probe)
+- Whether to cache PNG previews client-side across template switches

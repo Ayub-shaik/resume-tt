@@ -2,36 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { ResumeAsIsPreview } from "@/components/ResumeAsIsPreview";
+import { PdfPreview } from "@/components/PdfPreview";
 import type { TemplateId } from "@/lib/ats/templates";
 import type { JsonResume } from "@/lib/ats/jsonresume";
-
-function PdfFrame({
-  url,
-  title,
-  className,
-}: {
-  url: string;
-  title: string;
-  className?: string;
-}) {
-  // Prefer <object> for blob PDFs (more reliable than iframe alone).
-  // Explicit min-height avoids flex collapse (h-full of a 0-height parent).
-  return (
-    <div
-      className={`relative w-full overflow-hidden rounded-lg border border-[var(--line)] bg-white ${className || ""}`}
-      style={{ minHeight: 480 }}
-    >
-      <object
-        data={url}
-        type="application/pdf"
-        className="absolute inset-0 h-full w-full"
-        aria-label={title}
-      >
-        <iframe title={title} src={url} className="h-full min-h-[480px] w-full border-0" />
-      </object>
-    </div>
-  );
-}
 
 export function ImproveResumeViewer({
   mode,
@@ -50,53 +23,53 @@ export function ImproveResumeViewer({
   jsonResume: JsonResume | null;
   templateId: TemplateId;
 }) {
-  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [pages, setPages] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [openingPdf, setOpeningPdf] = useState(false);
 
   useEffect(() => {
     if (mode !== "modified") {
-      setPdfUrl(null);
+      setPages([]);
       setBusy(false);
       setErr(null);
       return;
     }
-    // Render from structured resume when available — text alone is fallback UI.
     if (!jsonResume) {
-      setPdfUrl(null);
+      setPages([]);
       return;
     }
     let cancelled = false;
-    let createdUrl: string | null = null;
     setBusy(true);
     setErr(null);
     void (async () => {
       try {
-        const res = await fetch("/api/ats/render", {
+        // Image stack — blob PDF iframe/object embeds often render blank.
+        const imgRes = await fetch("/api/ats/render", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ template: templateId, resume: jsonResume }),
+          body: JSON.stringify({
+            template: templateId,
+            resume: jsonResume,
+            format: "images",
+          }),
         });
-        if (!res.ok) {
-          const data = await res.json().catch(() => ({}));
+        if (!imgRes.ok) {
+          const data = await imgRes.json().catch(() => ({}));
           throw new Error(
             (data as { error?: string }).error || "Preview render failed",
           );
         }
-        const blob = await res.blob();
+        const data = (await imgRes.json()) as { pages?: string[] };
         if (cancelled) return;
-        if (!blob.size || !blob.type.includes("pdf")) {
-          throw new Error("Render returned an empty or non-PDF response");
+        if (!data.pages?.length) {
+          throw new Error("Render returned no preview pages");
         }
-        createdUrl = URL.createObjectURL(blob);
-        setPdfUrl((prev) => {
-          if (prev) URL.revokeObjectURL(prev);
-          return createdUrl;
-        });
+        setPages(data.pages);
       } catch (e) {
         if (!cancelled) {
           setErr(e instanceof Error ? e.message : String(e));
-          setPdfUrl(null);
+          setPages([]);
         }
       } finally {
         if (!cancelled) setBusy(false);
@@ -104,17 +77,34 @@ export function ImproveResumeViewer({
     })();
     return () => {
       cancelled = true;
-      // Do not revoke here — React Strict Mode remounts; revoke only when
-      // replaced via setPdfUrl or on unmount of the url holder below.
     };
   }, [mode, jsonResume, templateId]);
 
-  useEffect(
-    () => () => {
-      if (pdfUrl) URL.revokeObjectURL(pdfUrl);
-    },
-    [pdfUrl],
-  );
+  async function openPdfTab() {
+    if (!jsonResume || openingPdf) return;
+    setOpeningPdf(true);
+    try {
+      const res = await fetch("/api/ats/render", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ template: templateId, resume: jsonResume }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(
+          (data as { error?: string }).error || "PDF open failed",
+        );
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      window.open(url, "_blank", "noopener,noreferrer");
+      window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : String(e));
+    } finally {
+      setOpeningPdf(false);
+    }
+  }
 
   if (mode === "original") {
     if (originalPreviewUrl) {
@@ -134,13 +124,25 @@ export function ImproveResumeViewer({
     );
   }
 
-  if (pdfUrl) {
+  if (pages.length) {
     return (
-      <PdfFrame
-        url={pdfUrl}
-        title="Formatted resume preview"
-        className="h-full min-h-[480px]"
-      />
+      <div className="flex h-full min-h-[480px] flex-col">
+        <PdfPreview
+          pages={pages}
+          title="Formatted resume preview"
+          className="min-h-0 flex-1"
+        />
+        <div className="mt-2 shrink-0">
+          <button
+            type="button"
+            className="rounded-lg border border-[var(--line)] bg-white px-3 py-1.5 text-xs font-semibold disabled:opacity-40"
+            disabled={openingPdf}
+            onClick={() => void openPdfTab()}
+          >
+            {openingPdf ? "Opening…" : "Open PDF in new tab"}
+          </button>
+        </div>
+      </div>
     );
   }
 

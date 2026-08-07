@@ -16,11 +16,13 @@ import { MonoDocument } from "./Mono";
 import { VariantDocument } from "./Variants";
 import { TEMPLATE_META, type TemplateId, ensureResume } from "./shared";
 
-export { TEMPLATE_META, TEMPLATE_CATEGORY_ORDER, type TemplateId, type TemplateCategory } from "./shared";
-
-export function isTemplateId(v: string): v is TemplateId {
-  return TEMPLATE_META.some((t) => t.id === v);
-}
+export {
+  TEMPLATE_META,
+  TEMPLATE_CATEGORY_ORDER,
+  isTemplateId,
+  type TemplateId,
+  type TemplateCategory,
+} from "./shared";
 
 const CORE: Partial<
   Record<TemplateId, (resume: ReturnType<typeof ensureResume>) => React.ReactElement<DocumentProps>>

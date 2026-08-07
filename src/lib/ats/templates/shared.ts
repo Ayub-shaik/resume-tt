@@ -1,8 +1,21 @@
 import type { JsonResume } from "@/lib/ats/jsonresume";
 import type { VariantLayout, VariantOpts } from "./Variants";
 
+/**
+ * Template registry — one entry per distinct layout structure.
+ * Color-only clones were culled (prior azurill/kakuna/bronzor/gengar/… shells).
+ *
+ * Groups (layout intent):
+ * - Classic: single-column ATS / airy / centered / ATS rule-lines
+ * - Modern: header band / date-spine timeline / contact strip
+ * - Sidebar: left ink rail / right polar rail
+ * - Compact: dense Helvetica / terminal mono
+ * - Creative: two-column split / card sections / stacked blocks / project grid
+ * - Executive: serif leadership / boardroom / pull-quote lead
+ * - Tech: chip/stack engineering
+ */
 export type TemplateId =
-  // Core (kept)
+  // Core hand-tuned
   | "classic"
   | "modern"
   | "compact"
@@ -14,32 +27,15 @@ export type TemplateId =
   | "tech"
   | "professional"
   | "mono"
-  // Reactive Resume–inspired open layouts (distinct structures, not accent aliases)
-  | "azurill"
-  | "bronzor"
-  | "chikorita"
-  | "ditto"
-  | "gengar"
-  | "glalie"
-  | "kakuna"
-  | "leafish"
+  // Distinct structural variants (not recolors)
   | "nosepass"
-  | "onyx"
-  | "pikachu"
-  | "rhyhorn"
-  // Additional MPI layout families
-  | "slate_rail"
-  | "navy_masthead"
-  | "coral_split"
-  | "mint_spine"
-  | "ink_dense"
-  | "parchment"
-  | "skyline"
-  | "graphite"
-  | "orchid"
-  | "amber_folio"
-  | "cedar"
-  | "polar";
+  | "polar"
+  | "ats_lines"
+  | "header_strip"
+  | "cards"
+  | "blocks"
+  | "grid_projects"
+  | "pull_quote";
 
 export type TemplateCategory =
   | "Classic"
@@ -80,43 +76,20 @@ export const TEMPLATE_META: {
     accent: "#64748b",
   },
   {
-    id: "azurill",
-    name: "Azurill",
-    blurb: "RR-inspired calm single column with soft blue rules.",
-    category: "Classic",
-    accent: "#2563eb",
-    variant: { title: "Azurill", accent: "#2563eb", layout: "single" },
-  },
-  {
-    id: "kakuna",
-    name: "Kakuna",
-    blurb: "RR-inspired forest single column — skills-forward.",
-    category: "Classic",
-    accent: "#15803d",
-    variant: { title: "Kakuna", accent: "#15803d", layout: "single" },
-  },
-  {
     id: "nosepass",
-    name: "Nosepass",
-    blurb: "RR-inspired centered header with formal rules.",
+    name: "Centered formal",
+    blurb: "Centered name block with formal rules — academic / research.",
     category: "Classic",
     accent: "#57534e",
-    variant: { title: "Nosepass", accent: "#57534e", layout: "centered" },
+    variant: { title: "Centered formal", accent: "#57534e", layout: "centered" },
   },
   {
-    id: "parchment",
-    name: "Parchment",
-    blurb: "Warm paper tone, classic rules — academic applications.",
+    id: "ats_lines",
+    name: "ATS rule lines",
+    blurb: "ALL-CAPS ruled sections and table-like role rows — max parser safety.",
     category: "Classic",
-    accent: "#92400e",
-    variant: {
-      title: "Parchment",
-      accent: "#92400e",
-      layout: "single",
-      pageBg: "#fffbeb",
-      font: "Times-Roman",
-      fontBold: "Times-Bold",
-    },
+    accent: "#1e293b",
+    variant: { title: "ATS rule lines", accent: "#1e293b", layout: "ats-lines" },
   },
 
   // —— Modern ——
@@ -128,43 +101,19 @@ export const TEMPLATE_META: {
     accent: "#0369a1",
   },
   {
-    id: "glalie",
-    name: "Glalie",
-    blurb: "RR-inspired ice-blue top bar and crisp sections.",
-    category: "Modern",
-    accent: "#0284c7",
-    variant: { title: "Glalie", accent: "#0284c7", layout: "top-bar" },
-  },
-  {
-    id: "navy_masthead",
-    name: "Navy masthead",
-    blurb: "Full-width navy header band with white type.",
-    category: "Modern",
-    accent: "#1e3a5f",
-    variant: { title: "Navy masthead", accent: "#1e3a5f", layout: "masthead" },
-  },
-  {
-    id: "skyline",
-    name: "Skyline",
-    blurb: "Wide cyan banner header for product / growth roles.",
-    category: "Modern",
-    accent: "#0891b2",
-    variant: { title: "Skyline", accent: "#0891b2", layout: "banner" },
-  },
-  {
-    id: "leafish",
-    name: "Leafish",
-    blurb: "RR-inspired date-spine timeline for career scanning.",
-    category: "Modern",
-    accent: "#16a34a",
-    variant: { title: "Leafish", accent: "#16a34a", layout: "timeline" },
-  },
-  {
     id: "timeline",
     name: "Date spine",
     blurb: "Dates lead each role on a left spine for quick scanning.",
     category: "Modern",
     accent: "#1d4ed8",
+  },
+  {
+    id: "header_strip",
+    name: "Contact strip",
+    blurb: "Thin top contact bar, then single-column body — recruiter-friendly.",
+    category: "Modern",
+    accent: "#0e7490",
+    variant: { title: "Contact strip", accent: "#0e7490", layout: "header-strip" },
   },
 
   // —— Sidebar ——
@@ -174,48 +123,6 @@ export const TEMPLATE_META: {
     blurb: "Dark teal rail for contact/skills; cream main column.",
     category: "Sidebar",
     accent: "#115e59",
-  },
-  {
-    id: "bronzor",
-    name: "Bronzor",
-    blurb: "RR-inspired bronze left rail — contact + skills.",
-    category: "Sidebar",
-    accent: "#b45309",
-    variant: {
-      title: "Bronzor",
-      accent: "#b45309",
-      layout: "left-rail",
-      railBg: "#78350f",
-      railColor: "#fff7ed",
-    },
-  },
-  {
-    id: "gengar",
-    name: "Gengar",
-    blurb: "RR-inspired violet rail — creative / design portfolios.",
-    category: "Sidebar",
-    accent: "#6d28d9",
-    variant: {
-      title: "Gengar",
-      accent: "#6d28d9",
-      layout: "left-rail",
-      railBg: "#2e1065",
-      railColor: "#ede9fe",
-    },
-  },
-  {
-    id: "slate_rail",
-    name: "Slate rail",
-    blurb: "Cool slate left column with high-contrast body.",
-    category: "Sidebar",
-    accent: "#334155",
-    variant: {
-      title: "Slate rail",
-      accent: "#334155",
-      layout: "left-rail",
-      railBg: "#1e293b",
-      railColor: "#f8fafc",
-    },
   },
   {
     id: "polar",
@@ -247,30 +154,6 @@ export const TEMPLATE_META: {
     category: "Compact",
     accent: "#111827",
   },
-  {
-    id: "ditto",
-    name: "Ditto",
-    blurb: "RR-inspired ultra-dense single column for veterans.",
-    category: "Compact",
-    accent: "#4b5563",
-    variant: { title: "Ditto", accent: "#4b5563", layout: "dense" },
-  },
-  {
-    id: "ink_dense",
-    name: "Ink dense",
-    blurb: "Near-black dense bars — maximize content per page.",
-    category: "Compact",
-    accent: "#18181b",
-    variant: { title: "Ink dense", accent: "#18181b", layout: "dense" },
-  },
-  {
-    id: "graphite",
-    name: "Graphite",
-    blurb: "Compact charcoal rules — ops and SRE profiles.",
-    category: "Compact",
-    accent: "#3f3f46",
-    variant: { title: "Graphite", accent: "#3f3f46", layout: "dense" },
-  },
 
   // —— Creative ——
   {
@@ -281,44 +164,28 @@ export const TEMPLATE_META: {
     accent: "#7c3aed",
   },
   {
-    id: "chikorita",
-    name: "Chikorita",
-    blurb: "RR-inspired green split — experience left, meta right.",
+    id: "cards",
+    name: "Card sections",
+    blurb: "Each role in a bordered card — portfolio / product storytelling.",
     category: "Creative",
-    accent: "#16a34a",
-    variant: { title: "Chikorita", accent: "#16a34a", layout: "split" },
+    accent: "#c2410c",
+    variant: { title: "Card sections", accent: "#c2410c", layout: "cards" },
   },
   {
-    id: "pikachu",
-    name: "Pikachu",
-    blurb: "RR-inspired amber banner — energetic creative roles.",
+    id: "blocks",
+    name: "Stacked blocks",
+    blurb: "Tinted section bands stacked full-width — bold creative layouts.",
     category: "Creative",
-    accent: "#ca8a04",
-    variant: { title: "Pikachu", accent: "#ca8a04", layout: "banner" },
+    accent: "#4338ca",
+    variant: { title: "Stacked blocks", accent: "#4338ca", layout: "blocks" },
   },
   {
-    id: "coral_split",
-    name: "Coral split",
-    blurb: "Warm coral two-column for marketing / community.",
+    id: "grid_projects",
+    name: "Project grid",
+    blurb: "Experience column + 2-up project cards — IC / maker resumes.",
     category: "Creative",
-    accent: "#e11d48",
-    variant: { title: "Coral split", accent: "#e11d48", layout: "split" },
-  },
-  {
-    id: "orchid",
-    name: "Orchid",
-    blurb: "Centered orchid accent — design and brand roles.",
-    category: "Creative",
-    accent: "#a21caf",
-    variant: { title: "Orchid", accent: "#a21caf", layout: "centered" },
-  },
-  {
-    id: "mint_spine",
-    name: "Mint spine",
-    blurb: "Mint timeline spine for career storytelling.",
-    category: "Creative",
-    accent: "#0d9488",
-    variant: { title: "Mint spine", accent: "#0d9488", layout: "timeline" },
+    accent: "#0f766e",
+    variant: { title: "Project grid", accent: "#0f766e", layout: "grid-projects" },
   },
 
   // —— Executive ——
@@ -337,43 +204,15 @@ export const TEMPLATE_META: {
     accent: "#44403c",
   },
   {
-    id: "rhyhorn",
-    name: "Rhyhorn",
-    blurb: "RR-inspired heavy serif executive — board-ready.",
+    id: "pull_quote",
+    name: "Pull-quote lead",
+    blurb: "Large summary quote then two-column body — exec narrative.",
     category: "Executive",
     accent: "#7c2d12",
     variant: {
-      title: "Rhyhorn",
+      title: "Pull-quote lead",
       accent: "#7c2d12",
-      layout: "serif",
-      font: "Times-Roman",
-      fontBold: "Times-Bold",
-    },
-  },
-  {
-    id: "amber_folio",
-    name: "Amber folio",
-    blurb: "Amber masthead for senior IC / director packages.",
-    category: "Executive",
-    accent: "#b45309",
-    variant: {
-      title: "Amber folio",
-      accent: "#b45309",
-      layout: "masthead",
-      font: "Times-Roman",
-      fontBold: "Times-Bold",
-    },
-  },
-  {
-    id: "cedar",
-    name: "Cedar",
-    blurb: "Deep cedar single column — quiet senior leadership.",
-    category: "Executive",
-    accent: "#5c4033",
-    variant: {
-      title: "Cedar",
-      accent: "#5c4033",
-      layout: "serif",
+      layout: "pull-quote",
       font: "Times-Roman",
       fontBold: "Times-Bold",
     },
@@ -387,20 +226,6 @@ export const TEMPLATE_META: {
     category: "Tech",
     accent: "#0e7490",
   },
-  {
-    id: "onyx",
-    name: "Onyx",
-    blurb: "RR-inspired mono tech column — platform / SRE.",
-    category: "Tech",
-    accent: "#0ea5e9",
-    variant: {
-      title: "Onyx",
-      accent: "#0ea5e9",
-      layout: "mono",
-      font: "Courier",
-      fontBold: "Courier-Bold",
-    },
-  },
 ];
 
 /** Category display order in the builder gallery. */
@@ -413,6 +238,10 @@ export const TEMPLATE_CATEGORY_ORDER: TemplateCategory[] = [
   "Executive",
   "Tech",
 ];
+
+export function isTemplateId(v: string): v is TemplateId {
+  return TEMPLATE_META.some((t) => t.id === v);
+}
 
 export function contactLine(basics: Basics): string {
   return [basics.email, basics.phone, basics.location?.city, basics.url]
