@@ -19,6 +19,7 @@ import type { JsonResume } from "@/lib/ats/jsonresume";
 import { jsonResumeToMarkdown } from "@/lib/ats/jsonresume";
 import { quickScores, type QuickScores } from "@/lib/ats/keywords";
 import type { TemplateId } from "@/lib/ats/templates";
+import { TEMPLATE_META } from "@/lib/ats/templates";
 import { loadAtsDraft, saveAtsDraft } from "@/lib/ats/draftStore";
 import type { Resume } from "@/lib/types";
 
@@ -721,7 +722,9 @@ export function AtsStudio() {
   ];
 
   return (
-    <div className="flex h-dvh overflow-hidden">
+    // Desktop: fixed viewport with pane scroll. Mobile: allow page scroll
+    // (overflow-hidden + h-dvh traps Builder like the MPI bug).
+    <div className="flex min-h-dvh flex-col md:h-dvh md:flex-row md:overflow-hidden">
       {navOpen && (
         <button
           type="button"
@@ -795,7 +798,7 @@ export function AtsStudio() {
         </div>
       </aside>
 
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-x-hidden">
         <header className="studio-topbar flex flex-wrap items-center justify-between gap-2 px-3 py-3 sm:px-5">
           <div className="flex min-w-0 items-center gap-3">
             <button
@@ -1144,6 +1147,25 @@ export function AtsStudio() {
                 >
                   Original
                 </button>
+                {improveView === "modified" ? (
+                  <label className="ml-auto flex items-center gap-2 text-xs text-[var(--muted)]">
+                    Template
+                    <select
+                      className="rounded-lg border border-[var(--line)] bg-white px-2 py-1 text-xs font-semibold text-[var(--ink)]"
+                      value={selectedTemplate}
+                      onChange={(e) => {
+                        setSelectedTemplate(e.target.value as TemplateId);
+                        markDirty();
+                      }}
+                    >
+                      {TEMPLATE_META.map((t) => (
+                        <option key={t.id} value={t.id}>
+                          {t.category} · {t.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                ) : null}
               </div>
 
               {analysis ? (
@@ -1172,13 +1194,13 @@ export function AtsStudio() {
                 </div>
               ) : null}
 
-              <section className="ats-pane flex min-h-[360px] flex-col">
+              <section className="ats-pane flex min-h-[520px] flex-col">
                 <header className="border-b border-[var(--line)] px-3 py-2 font-[family-name:var(--font-display)] text-sm font-semibold">
                   {improveView === "modified"
-                    ? "Working draft · formatted preview"
+                    ? `Working draft · ${selectedTemplate} template`
                     : "Original · as uploaded / frozen"}
                 </header>
-                <div className="min-h-0 flex-1 p-3">
+                <div className="min-h-[480px] flex-1 p-3">
                   <ImproveResumeViewer
                     mode={improveView}
                     text={

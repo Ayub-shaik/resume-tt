@@ -26,6 +26,8 @@ function looksLikeBinaryGarbage(text: string): boolean {
 }
 
 async function extractPdfUnpdf(buf: Buffer): Promise<string> {
+  const { ensureMathSumPrecise } = await import("@/lib/polyfills/mathSumPrecise");
+  ensureMathSumPrecise();
   const { extractText, getDocumentProxy } = await import("unpdf");
   const pdf = await getDocumentProxy(new Uint8Array(buf));
   const { text } = await extractText(pdf, { mergePages: true });

@@ -1,67 +1,69 @@
 # Requirements checklist
 
 ## Updated
-2026-08-05T21:00:00Z
+2026-08-07T08:25:00Z
 
 ## Task set
-Round 3: Remove Reactive Resume entirely; ship native MPI resume builder (fully functional).
+Fix blank improved/builder resume previews, original+selected template rendering modes, expand/group ~20 templates (dedupe), fix mobile builder scroll.
 
 ## Discarded (not must-pass)
-- Reactive Resume / Folio Docker embed (user explicitly rejected)
-- RR-style WYSIWYG paginated web preview (PDF preview is must-pass)
-- Per-pixel DOCX upload fidelity in builder
+- Folio / Reactive Resume Docker embed restoration (prior round removed RR; builder is native)
+- Per-pixel DOCX layout fidelity for “original template” mode (preview original upload when available; otherwise honest PDF of content)
+- MPI product changes (do not break MPI; resume-tt only)
+- Push/PR unless needed for non-secret persistence (prefer local deploy)
 
-## Naming
-User-facing tab: **Builder** (not Folio / Reactive Resume).
+## Requirements
 
----
-
-## Round 3 — native builder
-
-### REQ-301
-- Description: Remove all Reactive Resume integration from repo (Docker deploy, API routes, rr-* libs, env vars, iframe embed)
-- Scope: application-wide
+### REQ-401
+- Description: Improved resume preview must visibly render (not blank) when Modified mode has content / JsonResume
+- Scope: bug fix (`ImproveResumeViewer`, Improve tab in `AtsStudio`)
 - Dependencies: none
-- Status: Done
-- Verification: Pending
-
-### REQ-302
-- Description: Builder tab must provide full section editor (basics, experience, education, skills, projects, certifications) bound to JsonResume
-- Scope: page-wide (`JsonResumeEditor`, Builder tab)
-- Dependencies: REQ-301
-- Status: Done
-- Verification: Pending
-
-### REQ-303
-- Description: Builder must show live PDF preview and support preview/download using MPI templates (proper margins, no edge bleed)
-- Scope: feature-wide (`ResumeBuilder`, `/api/ats/render`)
-- Dependencies: REQ-302
-- Status: Done
-- Verification: Pending
-
-### REQ-304
-- Description: Improve → Continue to Builder must load improved resume without external errors (no iframe, no “something went wrong”)
-- Scope: bug fix (ATS flow)
-- Dependencies: REQ-301, REQ-302
-- Status: Done
-- Verification: Pending
-
-### REQ-305
-- Description: 15 layout families available in builder gallery with category filter
-- Scope: feature-wide (`TEMPLATE_META`, `ResumeBuilder`)
-- Dependencies: REQ-303
-- Status: Done
-- Verification: Pending
-
-### REQ-306
-- Description: Browser smoke on `/ats` Builder path after RR removal
-- Scope: application-wide
-- Dependencies: REQ-301…305
 - Status: Pending
 - Verification: Pending
 
----
+### REQ-402
+- Description: Builder live PDF preview must visibly render (not blank) when JsonResume + template are set
+- Scope: bug fix (`ResumeBuilder`, `ImproveResumeViewer`, `/api/ats/render`)
+- Dependencies: none
+- Status: Pending
+- Verification: Pending
 
-## Round 2 (REQ-201…213)
+### REQ-403
+- Description: When original-layout mode applies (Original toggle / uploaded file preview available), preview shows the user-uploaded resume layout (AS-IS), not a forced template
+- Scope: feature-wide (Improve Original mode + `ResumeAsIsPreview`)
+- Dependencies: REQ-401
+- Status: Pending
+- Verification: Pending
 
-Superseded by REQ-301…306 for builder/Folio items. Prepare/Analyze/Improve fixes from round 2 remain in codebase.
+### REQ-404
+- Description: When user selects a template, resume renders in that template’s layout in Improve Modified and Builder preview/download
+- Scope: feature-wide (`renderResumePdf`, template gallery, Improve/Builder)
+- Dependencies: REQ-402
+- Status: Pending
+- Verification: Pending
+
+### REQ-405
+- Description: Add ~20 additional real usable templates from external Reactive Resume / open template packs or equivalent; club into named groups (e.g. Classic, Modern, Sidebar, Compact, Creative); remove near-duplicate / similar shells
+- Scope: feature-wide (`TEMPLATE_META`, template components, gallery UI)
+- Dependencies: REQ-404
+- Status: Pending
+- Verification: Pending
+
+### REQ-406
+- Description: Builder mobile view scrolls (edit + preview panes); no overflow-hidden + h-screen/h-dvh trap that freezes scroll (same class as MPI fix)
+- Scope: bug fix (`AtsStudio` shell, `ResumeBuilder` layout CSS)
+- Dependencies: none
+- Status: Pending
+- Verification: Pending
+
+### REQ-407
+- Description: Desktop and mobile both show working previews and scrollable builder after deploy restart of `resume-tt-web.service` (and Folio container only if still used)
+- Scope: application-wide
+- Dependencies: REQ-401…406
+- Status: Pending
+- Verification: Pending
+
+## Notes
+- Honest templates only — real layouts with content sections, not empty shells
+- Preserve existing design system
+- Do not commit secrets / `.env*`

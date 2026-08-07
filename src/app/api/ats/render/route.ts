@@ -48,7 +48,8 @@ export async function POST(req: Request) {
       status: 200,
       headers: {
         "Content-Type": "application/pdf",
-        "Content-Disposition": `attachment; filename="${name}-${template}.pdf"`,
+        // inline so browser PDF viewers (and object/iframe) display the preview
+        "Content-Disposition": `inline; filename="${name}-${template}.pdf"`,
         "Cache-Control": "no-store",
       },
     });

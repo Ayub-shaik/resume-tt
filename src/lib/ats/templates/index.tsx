@@ -13,36 +13,44 @@ import { DualDocument } from "./Dual";
 import { TechDocument } from "./Tech";
 import { ProfessionalDocument } from "./Professional";
 import { MonoDocument } from "./Mono";
+import { VariantDocument } from "./Variants";
 import { TEMPLATE_META, type TemplateId, ensureResume } from "./shared";
 
-export { TEMPLATE_META, type TemplateId };
+export { TEMPLATE_META, TEMPLATE_CATEGORY_ORDER, type TemplateId, type TemplateCategory } from "./shared";
 
 export function isTemplateId(v: string): v is TemplateId {
   return TEMPLATE_META.some((t) => t.id === v);
 }
+
+const CORE: Partial<
+  Record<TemplateId, (resume: ReturnType<typeof ensureResume>) => React.ReactElement<DocumentProps>>
+> = {
+  classic: (resume) => <ClassicDocument data={resume} />,
+  modern: (resume) => <ModernDocument data={resume} />,
+  compact: (resume) => <CompactDocument data={resume} />,
+  sidebar: (resume) => <SidebarDocument data={resume} />,
+  executive: (resume) => <ExecutiveDocument data={resume} />,
+  clean: (resume) => <CleanDocument data={resume} />,
+  timeline: (resume) => <TimelineDocument data={resume} />,
+  dual: (resume) => <DualDocument data={resume} />,
+  tech: (resume) => <TechDocument data={resume} />,
+  professional: (resume) => <ProfessionalDocument data={resume} />,
+  mono: (resume) => <MonoDocument data={resume} />,
+};
 
 export async function renderResumePdf(
   template: TemplateId,
   data: JsonResume,
 ): Promise<Buffer> {
   const resume = ensureResume(data);
-  const map: Record<TemplateId, React.ReactElement<DocumentProps>> = {
-    classic: <ClassicDocument data={resume} />,
-    modern: <ModernDocument data={resume} />,
-    compact: <CompactDocument data={resume} />,
-    sidebar: <SidebarDocument data={resume} />,
-    executive: <ExecutiveDocument data={resume} />,
-    clean: <CleanDocument data={resume} />,
-    timeline: <TimelineDocument data={resume} />,
-    dual: <DualDocument data={resume} />,
-    tech: <TechDocument data={resume} />,
-    professional: <ProfessionalDocument data={resume} />,
-    mono: <MonoDocument data={resume} />,
-    kakuna: <ClassicDocument data={resume} />,
-    charmander: <ModernDocument data={resume} />,
-    meowth: <SidebarDocument data={resume} />,
-    scizor: <TechDocument data={resume} />,
-  };
-  const buf = await renderToBuffer(map[template] || map.classic);
+  const meta = TEMPLATE_META.find((t) => t.id === template);
+  let doc: React.ReactElement<DocumentProps>;
+  if (meta?.variant) {
+    doc = <VariantDocument data={resume} opts={meta.variant} />;
+  } else {
+    const factory = CORE[template] || CORE.classic!;
+    doc = factory(resume);
+  }
+  const buf = await renderToBuffer(doc);
   return Buffer.from(buf);
 }

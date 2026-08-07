@@ -5,6 +5,34 @@ import { ResumeAsIsPreview } from "@/components/ResumeAsIsPreview";
 import type { TemplateId } from "@/lib/ats/templates";
 import type { JsonResume } from "@/lib/ats/jsonresume";
 
+function PdfFrame({
+  url,
+  title,
+  className,
+}: {
+  url: string;
+  title: string;
+  className?: string;
+}) {
+  // Prefer <object> for blob PDFs (more reliable than iframe alone).
+  // Explicit min-height avoids flex collapse (h-full of a 0-height parent).
+  return (
+    <div
+      className={`relative w-full overflow-hidden rounded-lg border border-[var(--line)] bg-white ${className || ""}`}
+      style={{ minHeight: 480 }}
+    >
+      <object
+        data={url}
+        type="application/pdf"
+        className="absolute inset-0 h-full w-full"
+        aria-label={title}
+      >
+        <iframe title={title} src={url} className="h-full min-h-[480px] w-full border-0" />
+      </object>
+    </div>
+  );
+}
+
 export function ImproveResumeViewer({
   mode,
   text,
@@ -29,13 +57,17 @@ export function ImproveResumeViewer({
   useEffect(() => {
     if (mode !== "modified") {
       setPdfUrl(null);
+      setBusy(false);
+      setErr(null);
       return;
     }
-    if (!jsonResume || !text.trim()) {
+    // Render from structured resume when available — text alone is fallback UI.
+    if (!jsonResume) {
       setPdfUrl(null);
       return;
     }
     let cancelled = false;
+    let createdUrl: string | null = null;
     setBusy(true);
     setErr(null);
     void (async () => {
@@ -53,10 +85,13 @@ export function ImproveResumeViewer({
         }
         const blob = await res.blob();
         if (cancelled) return;
-        const url = URL.createObjectURL(blob);
+        if (!blob.size || !blob.type.includes("pdf")) {
+          throw new Error("Render returned an empty or non-PDF response");
+        }
+        createdUrl = URL.createObjectURL(blob);
         setPdfUrl((prev) => {
           if (prev) URL.revokeObjectURL(prev);
-          return url;
+          return createdUrl;
         });
       } catch (e) {
         if (!cancelled) {
@@ -69,8 +104,10 @@ export function ImproveResumeViewer({
     })();
     return () => {
       cancelled = true;
+      // Do not revoke here — React Strict Mode remounts; revoke only when
+      // replaced via setPdfUrl or on unmount of the url holder below.
     };
-  }, [mode, jsonResume, templateId, text]);
+  }, [mode, jsonResume, templateId]);
 
   useEffect(
     () => () => {
@@ -79,37 +116,46 @@ export function ImproveResumeViewer({
     [pdfUrl],
   );
 
-  if (mode === "original" && originalPreviewUrl) {
+  if (mode === "original") {
+    if (originalPreviewUrl) {
+      return (
+        <ResumeAsIsPreview
+          url={originalPreviewUrl}
+          mimeType={originalPreviewMime}
+          filename={originalFilename}
+          className="h-full min-h-[480px]"
+        />
+      );
+    }
     return (
-      <ResumeAsIsPreview
-        url={originalPreviewUrl}
-        mimeType={originalPreviewMime}
-        filename={originalFilename}
-        className="h-full min-h-[360px]"
-      />
+      <pre className="max-h-[50vh] min-h-[320px] overflow-y-auto whitespace-pre-wrap break-words rounded-lg border border-[var(--line)] bg-white/80 p-3 font-sans text-sm leading-relaxed">
+        {text || "No original content yet. Upload a resume in Prepare."}
+      </pre>
     );
   }
 
-  if (mode === "modified" && pdfUrl) {
+  if (pdfUrl) {
     return (
-      <iframe
+      <PdfFrame
+        url={pdfUrl}
         title="Formatted resume preview"
-        src={pdfUrl}
-        className="h-full min-h-[360px] w-full rounded-lg border-0 bg-white"
+        className="h-full min-h-[480px]"
       />
     );
   }
 
-  if (mode === "modified" && busy) {
+  if (busy || (!jsonResume && text.trim())) {
     return (
-      <div className="flex h-full min-h-[360px] flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-[var(--line)] bg-white/60 text-sm text-[var(--muted)]">
+      <div className="flex min-h-[480px] flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-[var(--line)] bg-white/60 text-sm text-[var(--muted)]">
         <span className="stream-status__spinner" />
-        Rendering formatted preview…
+        {jsonResume
+          ? "Rendering formatted preview…"
+          : "Structuring resume for preview…"}
       </div>
     );
   }
 
-  if (mode === "modified" && err) {
+  if (err) {
     return (
       <div className="space-y-2">
         <p className="text-xs text-[var(--danger)]">{err}</p>
@@ -121,8 +167,8 @@ export function ImproveResumeViewer({
   }
 
   return (
-    <pre className="max-h-[50vh] overflow-y-auto whitespace-pre-wrap break-words rounded-lg border border-[var(--line)] bg-white/80 p-3 font-sans text-sm leading-relaxed">
-      {text || "No content yet."}
+    <pre className="max-h-[50vh] min-h-[320px] overflow-y-auto whitespace-pre-wrap break-words rounded-lg border border-[var(--line)] bg-white/80 p-3 font-sans text-sm leading-relaxed">
+      {text || "No content yet. Paste or upload a resume, then open Improve or Builder."}
     </pre>
   );
 }
