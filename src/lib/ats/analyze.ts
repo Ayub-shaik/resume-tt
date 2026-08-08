@@ -5,6 +5,7 @@ import { extractJsonObject } from "@/lib/ats/json";
 import {
   atsFormatHeuristic,
   keywordHeuristic,
+  isSkillSignalToken,
 } from "@/lib/ats/keywords";
 
 export type AtsDimension = {
@@ -168,7 +169,10 @@ Rules:
     const softMissing = (parsed.missingKeywords?.length
       ? parsed.missingKeywords
       : heuristic.missing
-    ).filter((k) => keywordHeuristic(input.resumeText, String(k)).pct < 100);
+    )
+      .map(String)
+      .filter(isSkillSignalToken)
+      .filter((k) => keywordHeuristic(input.resumeText, String(k)).pct < 100);
 
     const keywordMatchPct = clamp(
       Number(parsed.keywordMatchPct) || heuristic.pct,
