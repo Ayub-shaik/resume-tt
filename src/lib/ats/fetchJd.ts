@@ -151,16 +151,95 @@ function extractFromMeta(html: string): string | null {
   const parts = [title, og, desc]
     .map((p) => (p ? stripHtml(p) : ""))
     .filter((p) => p.length > 20);
-  const joined = parts.join("\n\n").trim();
+  const joined = dedupeParagraphs(parts.join("\n\n").trim());
   return joined.length >= 120 ? joined : null;
 }
 
-function extractPageText(html: string): string {
+/** LinkedIn public job pages put the full JD in collapsed rich HTML (Show more). */
+function extractLinkedInRichDescription(html: string): string | null {
+  const patterns = [
+    /class="[^"]*show-more-less-html__markup[^"]*"[\s\S]*?>([\s\S]*?)<\/div>/i,
+    /class="[^"]*description__text--rich[^"]*"[\s\S]*?>([\s\S]*?)<\/div>/i,
+    /class="[^"]*description__text[^"]*"[\s\S]*?>([\s\S]*?)<\/div>/i,
+  ];
+  let best = "";
+  for (const re of patterns) {
+    for (const match of html.matchAll(new RegExp(re.source, "gi"))) {
+      const text = stripHtml(match[1] || "");
+      if (text.length > best.length) best = text;
+    }
+  }
+  best = dedupeParagraphs(best);
+  // Real JDs are much longer than the og: teaser (~150–250 chars)
+  return best.length >= 400 ? best : null;
+}
+
+function isLinkedInJobHost(hostname: string): boolean {
+  const h = hostname.toLowerCase();
+  return h === "linkedin.com" || h.endsWith(".linkedin.com");
+}
+
+/** Meta teaser LinkedIn serves bots / collapsed previews. */
+function looksLikeLinkedInTeaser(text: string): boolean {
+  const t = text.replace(/\s+/g, " ").trim();
+  if (t.length < 80) return true;
+  if (/see this and similar jobs on linkedin/i.test(t)) return true;
+  if (/^posted\s+\d/i.test(t) && t.length < 500) return true;
+  // Duplicated short blurb pasted twice
+  const half = Math.floor(t.length / 2);
+  if (half > 80 && t.slice(0, half).trim() === t.slice(half).trim()) return true;
+  return false;
+}
+
+function dedupeParagraphs(text: string): string {
+  const parts = text
+    .split(/\n{2,}/)
+    .map((p) => p.trim())
+    .filter(Boolean);
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const p of parts) {
+    const key = p.replace(/\s+/g, " ").toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(p);
+  }
+  return out.join("\n\n").trim();
+}
+
+function pickBestText(candidates: (string | null | undefined)[]): string {
+  let best = "";
+  for (const c of candidates) {
+    const t = dedupeParagraphs((c || "").trim());
+    if (!t) continue;
+    if (looksLikeLinkedInTeaser(t) && t.length < 600) continue;
+    if (t.length > best.length) best = t;
+  }
+  return best;
+}
+
+function extractPageText(html: string, hostname: string): string {
+  const linkedIn = isLinkedInJobHost(hostname);
+  const linkedInRich = linkedIn ? extractLinkedInRichDescription(html) : null;
+  if (linkedInRich) return linkedInRich;
+
   const fromLd = extractFromJsonLd(html);
-  if (fromLd) return fromLd;
+  if (fromLd && !(linkedIn && looksLikeLinkedInTeaser(fromLd))) {
+    return dedupeParagraphs(fromLd);
+  }
+
   const fromMeta = extractFromMeta(html);
-  if (fromMeta) return fromMeta;
-  return stripHtml(html);
+  if (fromMeta && !(linkedIn && looksLikeLinkedInTeaser(fromMeta))) {
+    return dedupeParagraphs(fromMeta);
+  }
+
+  // Avoid full-page stripHtml on LinkedIn — it is mostly chrome + teaser.
+  if (linkedIn) {
+    return dedupeParagraphs(fromLd || fromMeta || "");
+  }
+
+  const fromBody = stripHtml(html);
+  return pickBestText([fromLd, fromMeta, fromBody]);
 }
 
 async function readLimitedBody(res: Response): Promise<string> {
@@ -225,7 +304,8 @@ export async function fetchJobDescriptionFromUrl(
         Accept:
           "text/html,application/xhtml+xml,application/xml;q=0.9,text/plain;q=0.8,*/*;q=0.7",
         "User-Agent":
-          "Mozilla/5.0 (compatible; TomorrowToolsResumeBot/1.0; +https://resume.tomorrowtools.dev)",
+          "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+        "Accept-Language": "en-US,en;q=0.9",
       },
     });
     if (!res.ok) {
@@ -242,7 +322,18 @@ export async function fetchJobDescriptionFromUrl(
     }
 
     const html = await readLimitedBody(res);
-    const text = sanitizeText(extractPageText(html), LIMITS.jd);
+    const extracted = extractPageText(html, parsed.hostname);
+    const text = sanitizeText(extracted, LIMITS.jd);
+
+    if (
+      isLinkedInJobHost(parsed.hostname) &&
+      (text.length < 400 || looksLikeLinkedInTeaser(text))
+    ) {
+      throw new Error(
+        "LinkedIn only returned a short preview (the text under “Show more” is not in that preview). Open the job → Show more → copy the full description into the JD box, or use the company’s careers-page URL.",
+      );
+    }
+
     if (text.length < 120) {
       throw new Error(
         "Could not extract enough job description text from that URL. Paste the JD manually, or try a public careers-page link.",

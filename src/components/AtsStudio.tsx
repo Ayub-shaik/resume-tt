@@ -331,6 +331,10 @@ export function AtsStudio() {
       setJdSourceUrl(data.sourceUrl || trimmed);
       markDirty();
       return data.text;
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      setError(msg);
+      throw e;
     } finally {
       setJdFetching(false);
     }
@@ -1487,7 +1491,9 @@ export function AtsStudio() {
                       {jdFetching ? "Fetching job description…" : "Fetch job description"}
                     </button>
                     <span className="text-xs text-[var(--muted)]">
-                      URL detected — fetch now or we&apos;ll fetch automatically when you analyse.
+                      URL detected — fetch now or we&apos;ll fetch when you
+                      analyse. LinkedIn: if fetch returns a short preview, open
+                      the job → Show more → paste the full JD here.
                     </span>
                   </div>
                 ) : null}
