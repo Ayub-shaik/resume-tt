@@ -42,8 +42,8 @@ const FEATURES = [
     body: "30+ parser-friendly layouts. Looks sharp to humans — and readable to the bots in between.",
   },
   {
-    title: "Job Search, too",
-    body: "TomorrowTools Job Search finds and queues roles while you tailor. Stop spraying the same generic PDF at every listing.",
+    title: "Interview analyser",
+    body: "Once you get the call, MPI scores how you sound — structure, depth, ownership — not just a practice script.",
   },
 ];
 
@@ -88,16 +88,27 @@ export function LandingPage({
     <div className="landing">
       <div className="landing__bar">
         <span className="landing__bar-mark">Private · Invite-only</span>
-        <a className="landing__bar-link" href={JOB_SEARCH_URL}>
-          Job Search →
-        </a>
+        <div className="landing__bar-links">
+          <a className="landing__bar-link" href={MPI_URL}>
+            Personal Interviewer
+          </a>
+          <a className="landing__bar-link" href={JOB_SEARCH_URL}>
+            Job Search
+          </a>
+        </div>
       </div>
 
       <div className="landing__stage">
         <main className="landing__copy">
           <p className="landing__eyebrow">TomorrowTools</p>
           <div className="landing__brand-mark">
-            <Image src="/mpi-logo.svg" alt="" width={48} height={48} priority />
+            <Image
+              src="/resume-mark.svg"
+              alt=""
+              width={48}
+              height={48}
+              priority
+            />
             <div>
               <span>ATS-first</span>
               <strong>Resume Builder</strong>
@@ -268,20 +279,42 @@ export function LandingPage({
           </div>
         </section>
 
-        <section className="landing__jobs" aria-label="Job Search">
+        <section className="landing__jobs" aria-label="Personal Interviewer">
           <p className="landing__section-kicker">Also from TomorrowTools</p>
+          <h2 className="landing__section-title">
+            Clearing ATS is only half the war.
+          </h2>
+          <p className="landing__section-lead">
+            <strong>My Personal Interviewer (MPI)</strong> is not a quiz bank —
+            it&apos;s an <strong>interview analyser</strong>. Rehearse against
+            your JD and resume, then get scored on structure, ownership,
+            trade-offs, and clarity. See where you ramble, where you go shallow,
+            and what to tighten before the real panel.
+          </p>
+          <p className="landing__jobs-stat">
+            Roughly <strong>1 in 5–6</strong> interviewed candidates get an
+            offer in many tech loops. MPI helps you spend practice hours on the
+            gaps that actually cost offers — not generic “tell me about
+            yourself” loops.
+          </p>
+          <a className="landing__text-link" href={MPI_URL}>
+            Open Personal Interviewer →
+          </a>
+        </section>
+
+        <section className="landing__jobs" aria-label="Job Search">
           <h2 className="landing__section-title">
             Finding roles is half the fight.
           </h2>
           <p className="landing__section-lead">
-            <strong>TomorrowTools Job Search</strong> hunts openings while you
-            tailor. Stop losing hours to tabs and stale boards — surface roles,
-            then score each resume against that JD here. One loop: discover →
-            match → apply with a fighting chance.
+            <strong>TomorrowTools Job Search</strong> runs an automation
+            pipeline that discovers openings and delivers matched roles to your{" "}
+            <strong>mobile</strong> — so you can tailor here and apply while the
+            queue is still thin.
           </p>
           <p className="landing__jobs-stat">
-            High-demand posts fill their ATS queues in{" "}
-            <strong>~15–60 minutes</strong>. Being first with a matched resume
+            High-demand posts fill ATS queues in{" "}
+            <strong>~15–60 minutes</strong>. Being early with a matched resume
             beats being 200th with a perfect generic one.
           </p>
           <a className="landing__text-link" href={JOB_SEARCH_URL}>
@@ -300,9 +333,9 @@ export function LandingPage({
 
         <footer className="landing__footer">
           <p>
-            Practice the interview once you clear the filter —{" "}
+            Resume → call → close the loop with{" "}
             <a href={MPI_URL} className="underline underline-offset-2">
-              Mock interviews on MPI →
+              Personal Interviewer →
             </a>
           </p>
         </footer>

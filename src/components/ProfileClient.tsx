@@ -189,7 +189,7 @@ export function ProfileClient() {
     <div className="profile-shell mx-auto max-w-5xl px-4 py-8">
       <header className="mb-8 flex flex-wrap items-center justify-between gap-4 border-b border-[var(--line)] pb-6">
         <div className="flex items-center gap-3">
-          <Image src="/mpi-logo.svg" alt="Resume" width={48} height={48} />
+          <Image src="/resume-mark.svg" alt="Resume" width={48} height={48} />
           <div>
             <p className="text-xs font-semibold tracking-[0.16em] text-[var(--accent)] uppercase">
               TomorrowTools · Profile

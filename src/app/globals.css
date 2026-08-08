@@ -252,6 +252,12 @@ body {
   color: var(--accent);
   font-weight: 700;
 }
+.landing__bar-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 18px;
+}
 .landing__bar-link {
   font-size: 12px;
   font-weight: 700;

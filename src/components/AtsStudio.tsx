@@ -1320,7 +1320,7 @@ export function AtsStudio() {
             >
               Menu
             </button>
-            <img src="/mpi-logo.svg" alt="" className="hidden h-8 w-8 sm:block" />
+            <img src="/resume-mark.svg" alt="" className="hidden h-8 w-8 sm:block" />
             <div className="min-w-0">
               <p className="studio-topbar__brand truncate text-base font-semibold text-[var(--ink)]">
                 ATS Resume Builder

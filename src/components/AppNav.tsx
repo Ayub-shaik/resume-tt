@@ -22,7 +22,7 @@ export function AppNav({
         <div className="flex items-start justify-between gap-2">
           <div>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/mpi-logo.svg" alt="" className="mb-2 h-8 w-8" />
+            <img src="/resume-mark.svg" alt="" className="mb-2 h-8 w-8" />
             <p className="text-[11px] font-semibold tracking-[0.16em] text-[var(--muted)] uppercase">
               TomorrowTools
             </p>
