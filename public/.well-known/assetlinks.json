@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "dev.tomorrowtools.resume",
+      "sha256_cert_fingerprints": [
+        "9B:8C:EA:C6:93:44:37:26:D1:2B:07:ED:6C:42:26:FC:0D:DA:56:76:1B:9B:61:A4:20:8B:5E:4F:86:6F:44:E1"
+      ]
+    }
+  }
+]
