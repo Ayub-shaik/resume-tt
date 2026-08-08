@@ -14,7 +14,13 @@ import { z } from "zod";
 
 export const runtime = "nodejs";
 
-const StepSchema = z.enum(["prepare", "analyze", "improve", "builder"]);
+const StepSchema = z.enum([
+  "prepare",
+  "analyze",
+  "improve",
+  "builder",
+  "brand",
+]);
 
 export async function GET(req: Request) {
   const ctx = await requireSession();

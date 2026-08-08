@@ -6,6 +6,7 @@ import { DriveBrowserModal } from "@/components/DriveBrowserModal";
 import { AnalyzeLoadingPanel } from "@/components/AnalyzeLoadingPanel";
 import { AnalyzeWorkbench, suggestionKey } from "@/components/AnalyzeWorkbench";
 import { ResumeBuilder } from "@/components/ResumeBuilder";
+import { CareerBrandPanel } from "@/components/CareerBrandPanel";
 import { PdfPreview } from "@/components/PdfPreview";
 import {
   fetchPreviewBlob,
@@ -105,7 +106,7 @@ const ANALYZE_STAGES = [
 /** Target analyse UX pacing (~28s to last stage; hold after). */
 const ANALYZE_STAGE_MS = 5600;
 
-type Tab = "prepare" | "analyze" | "builder";
+type Tab = "prepare" | "analyze" | "builder" | "brand";
 type StoredTab = Tab | "improve";
 type ChatMsg = { role: "user" | "assistant"; text: string };
 type AtsSessionRow = {
@@ -356,7 +357,15 @@ export function AtsStudio() {
     if (!draft.resumeText.trim() && !draft.jdText.trim() && !draft.analysis) {
       return;
     }
-    setTab(draft.tab === "improve" ? "analyze" : draft.tab);
+    setTab(
+      draft.tab === "improve"
+        ? "analyze"
+        : draft.tab === "brand"
+          ? "brand"
+          : draft.tab === "builder" || draft.tab === "analyze" || draft.tab === "prepare"
+            ? draft.tab
+            : "prepare",
+    );
     setResumeText(draft.resumeText);
     setJdText(draft.jdText);
     setOriginalText(draft.originalText);
@@ -1222,6 +1231,7 @@ export function AtsStudio() {
   const tabs: [Tab, string][] = [
     ["prepare", "Prepare"],
     ["analyze", "Analyse & improve"],
+    ["brand", "Career Brand"],
     ["builder", "Builder"],
   ];
 
@@ -1303,7 +1313,8 @@ export function AtsStudio() {
             ))}
             {!sessions.length && (
               <li className="px-2 text-xs text-[var(--muted)]">
-                Save a flow to keep Prepare → Analyse & improve → Builder here.
+                Save a flow to keep Prepare → Analyse → Career Brand → Builder
+                here.
               </li>
             )}
           </ul>
@@ -1803,6 +1814,13 @@ export function AtsStudio() {
               </div>
             )}
           </div>
+        )}
+
+        {tab === "brand" && (
+          <CareerBrandPanel
+            resumeText={improvedText.trim() || resumeText}
+            jdText={jdText}
+          />
         )}
 
         {tab === "builder" && (

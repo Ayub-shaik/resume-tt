@@ -2,7 +2,12 @@ import type { AtsAnalysis } from "@/lib/ats/analyze";
 import type { JsonResume } from "@/lib/ats/jsonresume";
 import type { TemplateId } from "@/lib/ats/templates";
 
-export type AtsDraftTab = "prepare" | "analyze" | "improve" | "builder";
+export type AtsDraftTab =
+  | "prepare"
+  | "analyze"
+  | "improve"
+  | "builder"
+  | "brand";
 
 export type AtsDraft = {
   version: 1;

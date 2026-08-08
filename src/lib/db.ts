@@ -748,7 +748,12 @@ export function listCoachAsksForTurn(turnId: string): CoachAsk[] {
     .map((r) => mapCoachAsk(r as Record<string, unknown>));
 }
 
-export type AtsSessionStep = "prepare" | "analyze" | "improve" | "builder";
+export type AtsSessionStep =
+  | "prepare"
+  | "analyze"
+  | "improve"
+  | "builder"
+  | "brand";
 
 export type AtsSession = {
   id: string;
