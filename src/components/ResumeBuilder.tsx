@@ -123,18 +123,25 @@ export function ResumeBuilder({
             >
               {mobilePane === "edit" ? "Show preview" : "Show editor"}
             </button>
-            <button
-              type="button"
-              className="rounded-xl border border-[var(--line)] bg-white px-3 py-2 text-sm font-semibold"
-              onClick={() => setLayoutsOpen((v) => !v)}
-            >
-              {layoutsOpen ? "Hide layouts" : "Show layouts"}
-            </button>
           </div>
         </div>
 
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+          <p className="text-xs font-semibold tracking-wide text-[var(--muted)] uppercase">
+            Templates · {TEMPLATE_META.length} layouts
+          </p>
+          <button
+            type="button"
+            className="rounded-lg border border-[var(--line)] bg-white px-3 py-1.5 text-xs font-bold"
+            onClick={() => setLayoutsOpen((v) => !v)}
+            aria-expanded={layoutsOpen}
+          >
+            {layoutsOpen ? "Collapse templates" : "Expand templates"}
+          </button>
+        </div>
+
         {layoutsOpen ? (
-          <div className="mt-3 space-y-3">
+          <div className="mt-2 space-y-3">
             <div className="flex flex-wrap gap-1.5">
               {categories.map((c) => (
                 <button
@@ -159,7 +166,6 @@ export function ResumeBuilder({
                 const atBottom =
                   el.scrollTop + el.clientHeight >= el.scrollHeight - 8;
                 if (atBottom && atBottomRef.current) {
-                  // Second scroll gesture at bottom collapses templates into a bar
                   setLayoutsOpen(false);
                   atBottomRef.current = false;
                   return;
@@ -192,10 +198,6 @@ export function ResumeBuilder({
                 </button>
               ))}
             </div>
-            <p className="text-[10px] text-[var(--muted)]">
-              Scroll to the end of templates, then scroll again to minimise into
-              a bar.
-            </p>
           </div>
         ) : (
           <button
@@ -204,7 +206,9 @@ export function ResumeBuilder({
             onClick={() => setLayoutsOpen(true)}
           >
             <span>
-              Templates · {TEMPLATE_META.find((t) => t.id === selectedTemplate)?.name || selectedTemplate}
+              Templates ·{" "}
+              {TEMPLATE_META.find((t) => t.id === selectedTemplate)?.name ||
+                selectedTemplate}
             </span>
             <span className="text-[var(--muted)]">Expand</span>
           </button>

@@ -35,7 +35,28 @@ export type TemplateId =
   | "cards"
   | "blocks"
   | "grid_projects"
-  | "pull_quote";
+  | "pull_quote"
+  // Expanded gallery (~20 additional layout shells)
+  | "slate_ats"
+  | "ivory_classic"
+  | "navy_band"
+  | "sky_strip"
+  | "ink_rail"
+  | "mint_rail"
+  | "sand_dense"
+  | "code_dense"
+  | "folio_split"
+  | "amber_cards"
+  | "indigo_blocks"
+  | "teal_projects"
+  | "copper_serif"
+  | "stone_board"
+  | "quote_lead"
+  | "cyan_stack"
+  | "forest_timeline"
+  | "rose_masthead"
+  | "graphite_lines"
+  | "ocean_centered";
 
 export type TemplateCategory =
   | "Classic"
@@ -225,6 +246,225 @@ export const TEMPLATE_META: {
     blurb: "Mono section tags and chip-like skills for engineering.",
     category: "Tech",
     accent: "#0e7490",
+  },
+
+  // —— Expanded gallery (JSON Resume / ATS-inspired shells) ——
+  {
+    id: "slate_ats",
+    name: "Slate ATS",
+    blurb: "Neutral single-column ATS — high parse reliability.",
+    category: "Classic",
+    accent: "#334155",
+    variant: { title: "Slate ATS", accent: "#334155", layout: "single" },
+  },
+  {
+    id: "ivory_classic",
+    name: "Ivory classic",
+    blurb: "Warm off-white page tone with quiet rules.",
+    category: "Classic",
+    accent: "#78716c",
+    variant: {
+      title: "Ivory classic",
+      accent: "#78716c",
+      layout: "single",
+      pageBg: "#fafaf9",
+    },
+  },
+  {
+    id: "graphite_lines",
+    name: "Graphite rules",
+    blurb: "Strict ALL-CAPS ruled sections for corporate ATS.",
+    category: "Classic",
+    accent: "#0f172a",
+    variant: { title: "Graphite rules", accent: "#0f172a", layout: "ats-lines" },
+  },
+  {
+    id: "ocean_centered",
+    name: "Ocean formal",
+    blurb: "Centered name block — research / policy applications.",
+    category: "Classic",
+    accent: "#0369a1",
+    variant: { title: "Ocean formal", accent: "#0369a1", layout: "centered" },
+  },
+  {
+    id: "navy_band",
+    name: "Navy band",
+    blurb: "Deep navy masthead for product and consulting roles.",
+    category: "Modern",
+    accent: "#1e3a8a",
+    variant: { title: "Navy band", accent: "#1e3a8a", layout: "masthead" },
+  },
+  {
+    id: "sky_strip",
+    name: "Sky contact bar",
+    blurb: "Thin sky-blue contact strip, clean body column.",
+    category: "Modern",
+    accent: "#0284c7",
+    variant: { title: "Sky contact bar", accent: "#0284c7", layout: "header-strip" },
+  },
+  {
+    id: "rose_masthead",
+    name: "Rose masthead",
+    blurb: "Soft rose header band — design-adjacent PMs.",
+    category: "Modern",
+    accent: "#be123c",
+    variant: { title: "Rose masthead", accent: "#be123c", layout: "banner" },
+  },
+  {
+    id: "forest_timeline",
+    name: "Forest spine",
+    blurb: "Date-led timeline in forest green for career arcs.",
+    category: "Modern",
+    accent: "#166534",
+    variant: { title: "Forest spine", accent: "#166534", layout: "timeline" },
+  },
+  {
+    id: "ink_rail",
+    name: "Ink left rail",
+    blurb: "Dark ink sidebar for contact and skills.",
+    category: "Sidebar",
+    accent: "#1e293b",
+    variant: {
+      title: "Ink left rail",
+      accent: "#1e293b",
+      layout: "left-rail",
+      railBg: "#0f172a",
+      railColor: "#f8fafc",
+    },
+  },
+  {
+    id: "mint_rail",
+    name: "Mint right rail",
+    blurb: "Mint right column for skills/education balance.",
+    category: "Sidebar",
+    accent: "#0f766e",
+    variant: {
+      title: "Mint right rail",
+      accent: "#0f766e",
+      layout: "right-rail",
+      railBg: "#ecfdf5",
+      railColor: "#064e3b",
+    },
+  },
+  {
+    id: "sand_dense",
+    name: "Sand dense",
+    blurb: "Compact sand-toned layout for long careers.",
+    category: "Compact",
+    accent: "#a16207",
+    variant: {
+      title: "Sand dense",
+      accent: "#a16207",
+      layout: "dense",
+      pageBg: "#fffbeb",
+    },
+  },
+  {
+    id: "code_dense",
+    name: "Code dense",
+    blurb: "Courier dense packing for engineering CVs.",
+    category: "Compact",
+    accent: "#14532d",
+    variant: {
+      title: "Code dense",
+      accent: "#14532d",
+      layout: "mono",
+      font: "Courier",
+      fontBold: "Courier-Bold",
+    },
+  },
+  {
+    id: "folio_split",
+    name: "Folio split",
+    blurb: "Two-column folio — skills rail + narrative.",
+    category: "Creative",
+    accent: "#6d28d9",
+    variant: { title: "Folio split", accent: "#6d28d9", layout: "split" },
+  },
+  {
+    id: "amber_cards",
+    name: "Amber cards",
+    blurb: "Role cards with amber accents — storytelling resumes.",
+    category: "Creative",
+    accent: "#d97706",
+    variant: { title: "Amber cards", accent: "#d97706", layout: "cards" },
+  },
+  {
+    id: "indigo_blocks",
+    name: "Indigo blocks",
+    blurb: "Full-width tinted section bands.",
+    category: "Creative",
+    accent: "#4338ca",
+    variant: { title: "Indigo blocks", accent: "#4338ca", layout: "blocks" },
+  },
+  {
+    id: "teal_projects",
+    name: "Teal project grid",
+    blurb: "Experience + 2-up projects — maker / IC focus.",
+    category: "Creative",
+    accent: "#0f766e",
+    variant: {
+      title: "Teal project grid",
+      accent: "#0f766e",
+      layout: "grid-projects",
+    },
+  },
+  {
+    id: "copper_serif",
+    name: "Copper serif",
+    blurb: "Serif leadership layout with copper rules.",
+    category: "Executive",
+    accent: "#9a3412",
+    variant: {
+      title: "Copper serif",
+      accent: "#9a3412",
+      layout: "serif",
+      font: "Times-Roman",
+      fontBold: "Times-Bold",
+    },
+  },
+  {
+    id: "stone_board",
+    name: "Stone boardroom",
+    blurb: "Formal stone palette for board / finance.",
+    category: "Executive",
+    accent: "#44403c",
+    variant: {
+      title: "Stone boardroom",
+      accent: "#44403c",
+      layout: "serif",
+      font: "Times-Roman",
+      fontBold: "Times-Bold",
+      pageBg: "#fafaf9",
+    },
+  },
+  {
+    id: "quote_lead",
+    name: "Quote narrative",
+    blurb: "Large summary lead then structured body.",
+    category: "Executive",
+    accent: "#7c2d12",
+    variant: {
+      title: "Quote narrative",
+      accent: "#7c2d12",
+      layout: "pull-quote",
+      font: "Times-Roman",
+      fontBold: "Times-Bold",
+    },
+  },
+  {
+    id: "cyan_stack",
+    name: "Cyan stack",
+    blurb: "Engineering stack tags with cyan accents.",
+    category: "Tech",
+    accent: "#0891b2",
+    variant: {
+      title: "Cyan stack",
+      accent: "#0891b2",
+      layout: "mono",
+      font: "Courier",
+      fontBold: "Courier-Bold",
+    },
   },
 ];
 

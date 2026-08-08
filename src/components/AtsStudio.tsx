@@ -23,6 +23,7 @@ import {
   isUsableJdText,
   type TripleScores,
 } from "@/lib/ats/keywords";
+import { assessResumeInput } from "@/lib/ats/resumeGate";
 import type { ImproveFocus, ResumeVersion } from "@tomorrowtools/resume-brain";
 import type { AtsAnalysis } from "@/lib/ats/analyze";
 import { isNovelSuggestion } from "@/lib/ats/dedupe";
@@ -238,7 +239,7 @@ export function AtsStudio() {
     setTab("prepare");
   }
 
-  function invalidatePipelineOnInputChange() {
+  function invalidatePipelineOnInputChange(opts?: { clearOriginal?: boolean }) {
     setAnalysis(null);
     setMasterScores(null);
     setTailorRows(defaultTailorRows());
@@ -251,6 +252,10 @@ export function AtsStudio() {
     setAnalyzeVersions([]);
     setActiveAnalyzeVersion(null);
     setJdPromptDismissed(false);
+    if (opts?.clearOriginal) {
+      setOriginalText("");
+      setImprovedText("");
+    }
   }
 
   function queueMissingKeyword(keyword: string) {
@@ -473,7 +478,7 @@ export function AtsStudio() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Import failed");
       const text = data.resume.content as string;
-      invalidatePipelineOnInputChange();
+      invalidatePipelineOnInputChange({ clearOriginal: true });
       setResumeText(text);
       setOriginalText(text);
       setImprovedText("");
@@ -505,7 +510,7 @@ export function AtsStudio() {
   function loadEarlierResume(id: string) {
     const found = resumes.find((r) => r.id === id);
     if (!found) return;
-    invalidatePipelineOnInputChange();
+    invalidatePipelineOnInputChange({ clearOriginal: true });
     setResumeText(found.content);
     setOriginalText(found.content);
     setImprovedText("");
@@ -729,7 +734,20 @@ export function AtsStudio() {
     /** Preserve tailor version counters (re-score only). */
     preserveTailor?: boolean;
   }) {
-    if (!resumeText.trim()) return;
+    if (!resumeText.trim()) {
+      setError(
+        "Please check your resume — there is less data to start from.",
+      );
+      return;
+    }
+    const gate = assessResumeInput(resumeText);
+    if (gate.block) {
+      setError(
+        [gate.blockMessage, gate.warning].filter(Boolean).join(" "),
+      );
+      return;
+    }
+
     analyzeAbortRef.current?.abort();
     const ac = new AbortController();
     analyzeAbortRef.current = ac;
@@ -743,7 +761,7 @@ export function AtsStudio() {
       setQueuedMissingKeywords([]);
     }
     setBusy("analyze");
-    setError(null);
+    setError(gate.warning);
     if (!opts?.silentTab) setTab("analyze");
     try {
       const resolvedRaw = await resolveJdText();
@@ -752,9 +770,15 @@ export function AtsStudio() {
       setShowInlineJd(false);
 
       const working = resumeText.trim();
-      // Freeze original once for Before gauges (ATS independent of later drafts)
-      if (!originalText.trim()) setOriginalText(working);
-      const baseline = originalText.trim() || working;
+      // Fresh analyse: baseline is current working text (never reuse a prior resume)
+      // Re-analyse (preserveTailor): keep frozen original for Before gauges
+      if (!preserveTailor || !originalText.trim()) {
+        setOriginalText(working);
+      }
+      const baseline =
+        preserveTailor && originalText.trim()
+          ? originalText.trim()
+          : working;
       setAnalyzeBaselineText(baseline);
 
       const { res, data } = await fetchJson<{
@@ -1410,7 +1434,7 @@ export function AtsStudio() {
                   value={resumeText}
                   onChange={(e) => {
                     setResumeText(e.target.value);
-                    invalidatePipelineOnInputChange();
+                    invalidatePipelineOnInputChange({ clearOriginal: true });
                     markDirty();
                   }}
                 />
@@ -1912,7 +1936,7 @@ export function AtsStudio() {
           try {
             setLocalPreview(file);
             const text = await parseUpload(file);
-            invalidatePipelineOnInputChange();
+            invalidatePipelineOnInputChange({ clearOriginal: true });
             setResumeText(text);
             setOriginalText(text);
             setImprovedText("");
