@@ -252,6 +252,16 @@ body {
   color: var(--accent);
   font-weight: 700;
 }
+.landing__bar-link {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink);
+  text-decoration: none;
+  letter-spacing: 0.02em;
+}
+.landing__bar-link:hover {
+  color: var(--accent);
+}
 .landing__stage {
   flex: 1;
   display: grid;
@@ -298,26 +308,15 @@ body {
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
-.landing__quote {
-  margin: 0 0 28px;
-  padding-left: 16px;
-  border-left: 3px solid var(--gold);
-  font-family: var(--font-display);
-  font-style: italic;
-  font-size: 1.15rem;
-  color: var(--ink);
-  max-width: 36ch;
-  animation: fade-up 0.55s ease-out 0.06s both;
-}
 .landing__headline {
   margin: 0 0 18px;
   font-family: var(--font-display);
-  font-size: clamp(2.8rem, 5.5vw, 4.1rem);
-  line-height: 1.02;
+  font-size: clamp(2.55rem, 5.2vw, 3.85rem);
+  line-height: 1.05;
   letter-spacing: -0.035em;
   font-weight: 700;
-  max-width: 11ch;
-  animation: fade-up 0.6s ease-out 0.1s both;
+  max-width: 14ch;
+  animation: fade-up 0.6s ease-out 0.08s both;
 }
 .landing__headline em {
   font-style: italic;
@@ -383,70 +382,235 @@ body {
   max-width: 42ch;
 }
 .landing__atmosphere {
-  margin: 40px 40px 40px 0;
-  border-radius: 28px;
+  margin: 0;
+  border-radius: 0;
   background:
-    linear-gradient(160deg, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.35)),
-    url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%230f766e' fill-opacity='0.06'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
-  border: 1px solid var(--line);
-  box-shadow: var(--shadow);
-  padding: 36px 32px;
+    linear-gradient(
+      165deg,
+      rgba(15, 26, 22, 0.88) 0%,
+      rgba(15, 80, 72, 0.82) 45%,
+      rgba(12, 45, 40, 0.9) 100%
+    ),
+    url("data:image/svg+xml,%3Csvg width='80' height='80' viewBox='0 0 80 80' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.04'%3E%3Cpath d='M0 0h40v40H0V0zm40 40h40v40H40V40z'/%3E%3C/g%3E%3C/svg%3E");
+  border: 0;
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: none;
+  padding: 48px 40px 56px;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
-  min-height: 420px;
+  min-height: calc(100vh - 52px);
   position: relative;
   overflow: hidden;
+  color: #f3f7f5;
   animation: fade-up 0.7s ease-out 0.12s both;
 }
 .landing__atmosphere::before {
   content: "";
   position: absolute;
-  inset: auto -20% -30% 20%;
-  height: 70%;
-  background: radial-gradient(circle at 30% 30%, rgba(15, 118, 110, 0.35), transparent 60%);
-  filter: blur(20px);
+  inset: -10% 10% auto -15%;
+  height: 55%;
+  background: radial-gradient(
+    circle at 40% 40%,
+    rgba(45, 212, 191, 0.28),
+    transparent 62%
+  );
+  filter: blur(28px);
+  pointer-events: none;
+  animation: landing-drift 12s ease-in-out infinite alternate;
+}
+.landing__atmosphere::after {
+  content: "";
+  position: absolute;
+  inset: auto -30% -40% 30%;
+  height: 65%;
+  background: radial-gradient(
+    circle at 50% 40%,
+    rgba(250, 204, 21, 0.12),
+    transparent 55%
+  );
+  filter: blur(36px);
   pointer-events: none;
 }
 .landing__atmosphere-inner {
   position: relative;
   z-index: 1;
+  max-width: 34ch;
+}
+.landing__atmosphere-kicker {
+  margin: 0 0 14px;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: rgba(243, 247, 245, 0.65);
 }
 .landing__atmosphere h3 {
-  margin: 0 0 10px;
+  margin: 0 0 14px;
   font-family: var(--font-display);
-  font-size: 1.75rem;
+  font-size: clamp(1.65rem, 2.8vw, 2.1rem);
   font-weight: 650;
+  line-height: 1.15;
+  color: #fff;
 }
 .landing__atmosphere p {
   margin: 0;
-  color: var(--muted);
-  line-height: 1.5;
+  color: rgba(243, 247, 245, 0.78);
+  line-height: 1.55;
+  font-size: 0.98rem;
 }
-.landing__chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 22px;
+.landing__atmosphere em {
+  font-style: italic;
+  color: #5eead4;
 }
-.landing__chips span {
-  font-size: 12px;
-  font-weight: 600;
-  padding: 6px 12px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.75);
-  border: 1px solid var(--line);
+@keyframes landing-drift {
+  from {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  to {
+    transform: translate3d(4%, 6%, 0) scale(1.06);
+  }
 }
 .landing__below {
-  max-width: 1040px;
+  max-width: 920px;
   margin: 0 auto;
-  padding: 8px 28px 64px;
+  padding: 8px 28px 72px;
+}
+.landing__section-kicker {
+  margin: 0 0 10px;
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: #9a3412;
+}
+.landing__section-kicker--hope {
+  color: var(--accent);
+}
+.landing__section-title {
+  margin: 0 0 14px;
+  font-family: var(--font-display);
+  font-size: clamp(1.75rem, 3.2vw, 2.35rem);
+  line-height: 1.12;
+  letter-spacing: -0.03em;
+  font-weight: 700;
+  max-width: 22ch;
+}
+.landing__section-lead {
+  margin: 0 0 28px;
+  font-size: 1.05rem;
+  line-height: 1.65;
+  color: var(--muted);
+  max-width: 58ch;
+}
+.landing__section-lead strong {
+  color: var(--ink);
+  font-weight: 700;
+}
+.landing__cold {
+  margin-top: 56px;
+  padding-top: 8px;
+  animation: fade-up 0.55s ease-out both;
+}
+.landing__facts {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0;
+  border-top: 1px solid var(--line);
+}
+.landing__facts li {
+  display: grid;
+  grid-template-columns: minmax(7rem, 9rem) 1fr;
+  gap: 4px 20px;
+  padding: 22px 0;
+  border-bottom: 1px solid var(--line);
+}
+.landing__fact-figure {
+  grid-row: span 2;
+  align-self: center;
+  font-family: var(--font-display);
+  font-size: clamp(1.65rem, 3vw, 2.1rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: #9a3412;
+  line-height: 1.05;
+}
+.landing__fact-label {
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--ink);
+}
+.landing__fact-detail {
+  font-size: 0.92rem;
+  color: var(--muted);
+  line-height: 1.45;
+}
+.landing__hope {
+  margin-top: 64px;
+  padding: 36px 0 8px;
+  border-top: 1px solid var(--line);
+  animation: fade-up 0.6s ease-out 0.05s both;
+}
+.landing__steps {
+  margin: 0 0 28px;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 14px;
+  max-width: 48ch;
+}
+.landing__steps li {
+  font-size: 1rem;
+  line-height: 1.45;
+  color: var(--muted);
+  padding-left: 0;
+}
+.landing__steps strong {
+  color: var(--ink);
+  font-weight: 750;
+}
+.landing__hope-ctas {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px 22px;
+}
+.landing__text-link {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--accent);
+  text-decoration: none;
+}
+.landing__text-link:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.landing__jobs {
+  margin-top: 48px;
+  padding: 32px 0 8px;
+  border-top: 1px solid var(--line);
+  animation: fade-up 0.6s ease-out 0.08s both;
+}
+.landing__jobs-stat {
+  margin: 0 0 18px;
+  max-width: 48ch;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 1.12rem;
+  line-height: 1.45;
+  color: var(--ink);
+}
+.landing__jobs-stat strong {
+  font-style: normal;
+  color: var(--accent);
 }
 .landing__features {
   display: grid;
   gap: 28px 40px;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  margin: 48px 0;
+  margin: 56px 0 40px;
   border-top: 1px solid var(--line);
   padding-top: 40px;
 }
@@ -486,21 +650,36 @@ body {
     padding: 40px 24px 24px;
   }
   .landing__atmosphere {
-    margin: 0 20px 32px;
+    margin: 0;
     min-height: 280px;
+    padding: 36px 24px 40px;
+    border-left: 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
   }
   .landing__below {
-    padding: 0 20px 48px;
+    padding: 0 20px 56px;
+  }
+  .landing__facts li {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+  .landing__fact-figure {
+    grid-row: auto;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .landing__brand-mark,
-  .landing__quote,
   .landing__headline,
   .landing__sub,
   .landing__auth,
-  .landing__atmosphere {
+  .landing__atmosphere,
+  .landing__cold,
+  .landing__hope,
+  .landing__jobs {
+    animation: none;
+  }
+  .landing__atmosphere::before {
     animation: none;
   }
 }

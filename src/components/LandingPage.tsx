@@ -3,32 +3,47 @@
 import { signIn } from "next-auth/react";
 import { useState } from "react";
 import Image from "next/image";
-import { MPI_URL } from "@/lib/productUrls";
+import { JOB_SEARCH_URL, MPI_URL } from "@/lib/productUrls";
+
+const COLD_FACTS = [
+  {
+    figure: "75–80%",
+    label: "of resumes never clear the ATS filter",
+    detail: "Before a recruiter ever opens the file.",
+  },
+  {
+    figure: "250+",
+    label: "applications per corporate role, on average",
+    detail: "High-demand posts can hit hundreds in minutes.",
+  },
+  {
+    figure: "<2%",
+    label: "typical interview callback rate",
+    detail: "You apply everywhere — silence is the default.",
+  },
+  {
+    figure: "0 eyes",
+    label: "on most first-pass screening",
+    detail: "In the AI era, parsers and rankers decide who exists.",
+  },
+];
 
 const FEATURES = [
   {
-    title: "Prepare",
-    body: "Upload or paste your resume and job description — import from Google Drive.",
+    title: "Match the JD",
+    body: "Paste the role you’re targeting. We score keyword coverage, gaps, and fit — so your resume speaks that job’s language.",
   },
   {
-    title: "Analyze",
-    body: "ATS keyword coverage, gap highlights, and dual-view suggestions before you edit.",
+    title: "Analyse & improve",
+    body: "ATS readiness, missing skills, and targeted rewrites. Raise your odds before you hit Apply.",
   },
   {
-    title: "Improve",
-    body: "AI-assisted rewrites with compare view — you stay in control of every claim.",
+    title: "Export clean PDFs",
+    body: "30+ parser-friendly layouts. Looks sharp to humans — and readable to the bots in between.",
   },
   {
-    title: "Builder",
-    body: "30+ PDF layout templates in groups, JSON Resume editor, preview and download.",
-  },
-  {
-    title: "Sessions",
-    body: "Save prepare → analyze → improve → builder progress and pick up later.",
-  },
-  {
-    title: "Invite-only",
-    body: "Google or email sign-in, restricted to emails your admin allowlists.",
+    title: "Job Search, too",
+    body: "TomorrowTools Job Search finds and queues roles while you tailor. Stop spraying the same generic PDF at every listing.",
   },
 ];
 
@@ -73,6 +88,9 @@ export function LandingPage({
     <div className="landing">
       <div className="landing__bar">
         <span className="landing__bar-mark">Private · Invite-only</span>
+        <a className="landing__bar-link" href={JOB_SEARCH_URL}>
+          Job Search →
+        </a>
       </div>
 
       <div className="landing__stage">
@@ -81,23 +99,16 @@ export function LandingPage({
           <div className="landing__brand-mark">
             <Image src="/mpi-logo.svg" alt="" width={48} height={48} priority />
             <div>
-              <span>ATS-friendly</span>
+              <span>ATS-first</span>
               <strong>Resume Builder</strong>
             </div>
           </div>
-          <p className="landing__quote">
-            A sharp resume opens the door — make every line earn its place.
-          </p>
           <h1 className="landing__headline">
-            Prepare, analyze, improve — then <em>export</em>.
+            Most resumes never reach a <em>human</em>.
           </h1>
           <p className="landing__sub">
-            Full ATS workflow: JD coverage, targeted improvements, and polished
-            PDF templates. Practice interviews on{" "}
-            <a href={MPI_URL} className="underline underline-offset-2">
-              MPI
-            </a>
-            .
+            You apply. Silence. Again. The filter already decided — unless your
+            resume matches the job you&apos;re actually targeting.
           </p>
 
           <div className="landing__auth">
@@ -113,7 +124,7 @@ export function LandingPage({
                   )
                 }
               >
-                Continue with Google
+                Analyse my resume
               </button>
             )}
             {googleEnabled && !showEmail && (
@@ -158,29 +169,126 @@ export function LandingPage({
               <p className="landing__error">{error || localError}</p>
             )}
             <p className="landing__hint">
-              Access is allowlisted. Prefer Google when OAuth is configured.
+              Invite-only. Sign in to score ATS fit against a real JD — then
+              raise your odds before you apply.
             </p>
           </div>
         </main>
 
-        <aside className="landing__atmosphere" aria-label="Atmosphere">
+        <aside className="landing__atmosphere" aria-label="The quiet pipeline">
           <div className="landing__atmosphere-inner">
-            <h3>ATS-first, not generic.</h3>
+            <p className="landing__atmosphere-kicker">The quiet pipeline</p>
+            <h3>Hundreds apply. Almost nobody gets through.</h3>
             <p>
-              Keyword coverage, honest gaps, and templates that parse cleanly —
-              before you hit apply.
+              When a high-demand role goes live, applications stack in minutes.
+              Nearly all of them claim to be “ATS-ready.” Almost none are tuned
+              to <em>that</em> job description.
             </p>
-            <div className="landing__chips">
-              <span>Prepare</span>
-              <span>Analyze</span>
-              <span>Improve</span>
-              <span>Builder</span>
-            </div>
           </div>
         </aside>
       </div>
 
       <div className="landing__below">
+        <section className="landing__cold" aria-label="Why applications go dark">
+          <p className="landing__section-kicker">The cold numbers</p>
+          <h2 className="landing__section-title">
+            This is why your inbox stays empty.
+          </h2>
+          <p className="landing__section-lead">
+            HR teams are not reading 300 PDFs with their eyes. Rankers do the
+            first cut. If you miss the keywords, your chance of a reply collapses
+            toward zero — no matter how strong you are in person.
+          </p>
+          <ul className="landing__facts">
+            {COLD_FACTS.map((f) => (
+              <li key={f.figure}>
+                <span className="landing__fact-figure">{f.figure}</span>
+                <span className="landing__fact-label">{f.label}</span>
+                <span className="landing__fact-detail">{f.detail}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <section className="landing__hope" aria-label="How to stand out">
+          <p className="landing__section-kicker landing__section-kicker--hope">
+            The turn
+          </p>
+          <h2 className="landing__section-title">
+            Stand out by matching the JD you&apos;re targeting.
+          </h2>
+          <p className="landing__section-lead">
+            Generic “ATS resumes” still look identical to a parser. Specificity
+            wins. Align your summary, skills, and bullets to the role — and your
+            odds of clearing the filter can jump from near-zero into the
+            interview stack. Candidates who tailor per JD often see{" "}
+            <strong>2–3× higher response rates</strong> than spray-and-pray.
+          </p>
+          <ol className="landing__steps">
+            <li>
+              <strong>Paste the JD</strong>
+              <span> — the exact role you want.</span>
+            </li>
+            <li>
+              <strong>See the gaps</strong>
+              <span> — what’s missing vs what already lands.</span>
+            </li>
+            <li>
+              <strong>Tailor &amp; export</strong>
+              <span> — then apply with a resume built for that posting.</span>
+            </li>
+          </ol>
+          <div className="landing__hope-ctas">
+            {googleEnabled ? (
+              <button
+                type="button"
+                className="btn-primary btn-primary--pill px-5 py-3 text-sm"
+                onClick={() =>
+                  void signIn(
+                    "google",
+                    { callbackUrl: "/app" },
+                    { prompt: "select_account" },
+                  )
+                }
+              >
+                Raise my ATS odds
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="btn-primary btn-primary--pill px-5 py-3 text-sm"
+                onClick={() => setShowEmail(true)}
+              >
+                Raise my ATS odds
+              </button>
+            )}
+            <a className="landing__text-link" href={JOB_SEARCH_URL}>
+              Pair with Job Search →
+            </a>
+          </div>
+        </section>
+
+        <section className="landing__jobs" aria-label="Job Search">
+          <p className="landing__section-kicker">Also from TomorrowTools</p>
+          <h2 className="landing__section-title">
+            Finding roles is half the fight.
+          </h2>
+          <p className="landing__section-lead">
+            <strong>TomorrowTools Job Search</strong> hunts openings while you
+            tailor. Stop losing hours to tabs and stale boards — surface roles,
+            then score each resume against that JD here. One loop: discover →
+            match → apply with a fighting chance.
+          </p>
+          <p className="landing__jobs-stat">
+            High-demand posts fill their ATS queues in{" "}
+            <strong>~15–60 minutes</strong>. Being first with a matched resume
+            beats being 200th with a perfect generic one.
+          </p>
+          <a className="landing__text-link" href={JOB_SEARCH_URL}>
+            Explore Job Search →
+          </a>
+        </section>
+
         <section className="landing__features" aria-label="What you get">
           {FEATURES.map((f) => (
             <article key={f.title}>
@@ -189,9 +297,10 @@ export function LandingPage({
             </article>
           ))}
         </section>
+
         <footer className="landing__footer">
           <p>
-            Ready to rehearse?{" "}
+            Practice the interview once you clear the filter —{" "}
             <a href={MPI_URL} className="underline underline-offset-2">
               Mock interviews on MPI →
             </a>

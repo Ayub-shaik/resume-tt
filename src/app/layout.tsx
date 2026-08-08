@@ -16,7 +16,7 @@ const body = Manrope({
 export const metadata: Metadata = {
   title: "Resume Builder — TomorrowTools",
   description:
-    "ATS-friendly resume builder: prepare, analyze, improve, and export PDF templates.",
+    "Most resumes never reach a human. Match yours to the JD you’re targeting — ATS analyse, tailor, and export. Pair with TomorrowTools Job Search.",
   icons: {
     icon: "/mpi-logo.svg",
     apple: "/mpi-logo.svg",
