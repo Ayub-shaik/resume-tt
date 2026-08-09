@@ -6,3 +6,6 @@ data/
 .env.production
 *.tsbuildinfo
 .cursor/
+
+# Debug APKs (built locally / served from disk; not in git)
+public/downloads/*.apk
