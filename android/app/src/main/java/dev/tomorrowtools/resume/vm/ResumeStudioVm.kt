@@ -21,6 +21,7 @@ import dev.tomorrowtools.resume.data.*
 import dev.tomorrowtools.resume.startGoogleBrowserLogin
 import dev.tomorrowtools.resume.util.assessResumeInput
 import dev.tomorrowtools.resume.util.isDestructiveSuggestion
+import dev.tomorrowtools.resume.util.parseExtensionAllowed
 import dev.tomorrowtools.resume.util.parseScoreView
 import dev.tomorrowtools.resume.util.toUserMessage
 import kotlinx.coroutines.Dispatchers
@@ -258,6 +259,11 @@ class ResumeStudioVm(app: Application) : AndroidViewModel(app) {
         }
         val safeName = if (displayName.contains('.')) displayName
         else "resume.$ext"
+        if (!parseExtensionAllowed(safeName)) {
+            error(
+                "Unsupported type .$ext — use txt, md, pdf, doc, docx, docm, rtf, odt, pptx, ppt, xlsx, xls, csv, or epub",
+            )
+        }
         val tmp = File(ctx.cacheDir, "upload-${System.currentTimeMillis()}-$safeName")
         resolver.openInputStream(uri)?.use { input -> tmp.outputStream().use { input.copyTo(it) } }
             ?: error("Could not read file")
@@ -266,11 +272,15 @@ class ResumeStudioVm(app: Application) : AndroidViewModel(app) {
         } catch (_: Exception) {
             "application/octet-stream".toMediaType()
         }
+        // Server Firecrawl AnyDoc — keep multipart filename + MIME (never embed AnyDoc on device)
         val body = tmp.asRequestBody(mediaType)
         val part = MultipartBody.Part.createFormData("file", safeName, body)
         val res = api.parseResume(part)
-        if (res.text.isNullOrBlank()) error = "Could not extract text from file"
-        else updateResume(res.text)
+        if (res.text.isNullOrBlank()) {
+            error = "Could not extract text from file (scanned PDFs need OCR and may fail server-side)"
+        } else {
+            updateResume(res.text)
+        }
         tmp.delete()
     }
 

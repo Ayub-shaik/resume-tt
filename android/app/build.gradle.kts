@@ -13,8 +13,8 @@ android {
         applicationId = "dev.tomorrowtools.resume"
         minSdk = 26
         targetSdk = 35
-        versionCode = 5
-        versionName = "1.0.1-hotfix"
+        versionCode = 6
+        versionName = "1.0.2-anydoc-types"
         buildConfigField("String", "API_BASE_URL", "\"https://resume.tomorrowtools.dev\"")
         buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"829272773483-upav25kf2gn900ard260gucsro46430h.apps.googleusercontent.com\"")
         buildConfigField("String", "SIBLING_APP_URL", "\"https://mpi.tomorrowtools.dev\"")

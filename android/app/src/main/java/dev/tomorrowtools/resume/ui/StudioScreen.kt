@@ -50,6 +50,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import dev.tomorrowtools.resume.BuildConfig
 import dev.tomorrowtools.resume.data.RewriteSuggestion
+import dev.tomorrowtools.resume.util.PARSE_MIME_TYPES
 import dev.tomorrowtools.resume.util.openSiblingOrWeb
 import dev.tomorrowtools.resume.vm.ResumeStudioVm
 import dev.tomorrowtools.resume.vm.ResumeTab
@@ -145,7 +146,7 @@ fun StudioScreen(vm: ResumeStudioVm) {
 @Composable
 private fun PrepareTab(vm: ResumeStudioVm) {
     val ctx = LocalContext.current
-    val pick = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+    val pick = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         uri?.let { vm.parseResumeUri(ctx, it) }
     }
     Column(
@@ -156,7 +157,7 @@ private fun PrepareTab(vm: ResumeStudioVm) {
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Text("Prepare", style = MaterialTheme.typography.titleLarge)
-        Text("Paste or upload a resume, add a JD, then Analyse.")
+        Text("Paste or upload (.txt/.md/.pdf/.doc/.docx/.pptx/.xlsx/…). Scanned PDFs need OCR on server.")
         OutlinedTextField(
             value = vm.resumeText,
             onValueChange = vm::updateResume,
@@ -164,7 +165,9 @@ private fun PrepareTab(vm: ResumeStudioVm) {
             modifier = Modifier.fillMaxWidth().height(220.dp),
         )
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedButton(onClick = { pick.launch("*/*") }) { Text("Upload PDF/DOCX") }
+            OutlinedButton(onClick = { pick.launch(PARSE_MIME_TYPES) }) {
+                Text("Upload resume file")
+            }
             OutlinedButton(onClick = { vm.saveSession("prepare") }) { Text("Save draft") }
         }
         OutlinedTextField(
