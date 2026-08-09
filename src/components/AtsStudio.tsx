@@ -1949,7 +1949,7 @@ export function AtsStudio() {
       <input
         ref={fileRef}
         type="file"
-        accept=".txt,.md,.pdf,.docx"
+        accept=".txt,.md,.pdf,.doc,.docx,.docm,.rtf,.odt,.pptx,.ppt,.xlsx,.xls,.csv,.epub"
         className="hidden"
         onChange={async (e) => {
           const file = e.target.files?.[0];

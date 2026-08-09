@@ -7,6 +7,7 @@ import path from "path";
 function cleanupExtracted(text: string): string {
   return text
     .replace(/\r\n/g, "\n")
+    .replace(/!\[([^\]]*)\]\([^)]+\)/g, "$1")
     .replace(/[ \t]+\n/g, "\n")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
@@ -25,6 +26,29 @@ function looksLikeBinaryGarbage(text: string): boolean {
   return bad / sample.length > 0.08 || replacement > 20;
 }
 
+/** Firecrawl AnyDoc — local, no API key. Office + text PDFs → markdown. */
+async function extractAnydoc(
+  buf: Buffer,
+  filename: string,
+): Promise<string | null> {
+  try {
+    const { toMarkdownBytes, formatFromBytes, formatFromExtension } =
+      await import("@firecrawl/anydoc");
+    const bytes = buf instanceof Uint8Array ? buf : new Uint8Array(buf);
+    const ext = path.extname(filename || "");
+    const fmt =
+      formatFromBytes(bytes) ||
+      (ext ? formatFromExtension(ext) : null) ||
+      undefined;
+    const md = await toMarkdownBytes(bytes, fmt ?? null);
+    const text = cleanupExtracted(md || "");
+    if (text && !looksLikeBinaryGarbage(text)) return text;
+  } catch {
+    /* fall through to legacy extractors */
+  }
+  return null;
+}
+
 async function extractPdfUnpdf(buf: Buffer): Promise<string> {
   const { ensureMathSumPrecise } = await import("@/lib/polyfills/mathSumPrecise");
   ensureMathSumPrecise();
@@ -36,7 +60,7 @@ async function extractPdfUnpdf(buf: Buffer): Promise<string> {
 }
 
 function extractPdfPoppler(buf: Buffer): string {
-  const tmp = path.join(os.tmpdir(), `mpi-resume-${randomUUID()}.pdf`);
+  const tmp = path.join(os.tmpdir(), `resume-tt-${randomUUID()}.pdf`);
   fs.writeFileSync(tmp, buf);
   try {
     const r = spawnSync(
@@ -58,6 +82,9 @@ function extractPdfPoppler(buf: Buffer): string {
 }
 
 async function extractPdf(buf: Buffer): Promise<string> {
+  const any = await extractAnydoc(buf, "file.pdf");
+  if (any) return any;
+
   const errors: string[] = [];
   try {
     const t = await extractPdfUnpdf(buf);
@@ -79,6 +106,9 @@ async function extractPdf(buf: Buffer): Promise<string> {
 }
 
 async function extractDocx(buf: Buffer): Promise<string> {
+  const any = await extractAnydoc(buf, "file.docx");
+  if (any) return any;
+
   try {
     const mammoth = await import("mammoth");
     const result = await mammoth.extractRawText({ buffer: buf });
@@ -88,7 +118,7 @@ async function extractDocx(buf: Buffer): Promise<string> {
     /* fall through to unzip */
   }
 
-  const tmp = path.join(os.tmpdir(), `mpi-resume-${randomUUID()}.docx`);
+  const tmp = path.join(os.tmpdir(), `resume-tt-${randomUUID()}.docx`);
   fs.writeFileSync(tmp, buf);
   try {
     const r = spawnSync("unzip", ["-p", tmp, "word/document.xml"], {
@@ -123,6 +153,9 @@ async function extractDocx(buf: Buffer): Promise<string> {
   }
 }
 
+const OFFICE_EXT =
+  /\.(docx?|docm|pptx?|pptm|ppsx?|ppsm|xlsx?|xlsm|xlsb|odt|ods|odp|rtf|epub|csv)$/i;
+
 export async function extractResumeText(
   buf: Buffer,
   filename: string,
@@ -132,28 +165,37 @@ export async function extractResumeText(
   const mime = (mimeType || "").toLowerCase();
   const isPdf = name.endsWith(".pdf") || mime.includes("pdf");
   const isDocx =
-    name.endsWith(".docx") || mime.includes("wordprocessingml");
-  const isDoc = name.endsWith(".doc") && !name.endsWith(".docx");
+    name.endsWith(".docx") ||
+    name.endsWith(".docm") ||
+    mime.includes("wordprocessingml");
   const isPlain =
     name.endsWith(".txt") ||
     name.endsWith(".md") ||
     mime.startsWith("text/");
 
-  if (isPdf) return extractPdf(buf);
-  if (isDocx) return extractDocx(buf);
-  if (isDoc) {
-    throw new Error(
-      "Legacy .doc is not supported. Save as .docx or .pdf, or paste text.",
-    );
-  }
-
-  const asUtf8 = cleanupExtracted(buf.toString("utf8"));
   if (isPlain) {
+    const asUtf8 = cleanupExtracted(buf.toString("utf8"));
     if (!asUtf8) throw new Error("Empty text file");
     return asUtf8;
   }
+
+  if (isPdf) return extractPdf(buf);
+  if (isDocx) return extractDocx(buf);
+
+  if (OFFICE_EXT.test(name) || mime.includes("officedocument") || mime.includes("msword") || mime.includes("ms-powerpoint") || mime.includes("ms-excel") || mime.includes("opendocument") || mime.includes("rtf") || mime.includes("epub")) {
+    const any = await extractAnydoc(buf, filename);
+    if (any) return any;
+    throw new Error(
+      "Could not extract text from this office document. Try .docx, .pdf, or paste text.",
+    );
+  }
+
+  const any = await extractAnydoc(buf, filename);
+  if (any) return any;
+
+  const asUtf8 = cleanupExtracted(buf.toString("utf8"));
   if (asUtf8 && !looksLikeBinaryGarbage(asUtf8)) return asUtf8;
   throw new Error(
-    "Unsupported or binary file. Use .txt, .md, .pdf, or .docx.",
+    "Unsupported or binary file. Use .txt, .md, .pdf, .doc, .docx, .pptx, or paste text.",
   );
 }
