@@ -13,8 +13,8 @@ android {
         applicationId = "dev.tomorrowtools.resume"
         minSdk = 26
         targetSdk = 35
-        versionCode = 4
-        versionName = "1.0.0-native"
+        versionCode = 5
+        versionName = "1.0.1-hotfix"
         buildConfigField("String", "API_BASE_URL", "\"https://resume.tomorrowtools.dev\"")
         buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"829272773483-upav25kf2gn900ard260gucsro46430h.apps.googleusercontent.com\"")
         buildConfigField("String", "SIBLING_APP_URL", "\"https://mpi.tomorrowtools.dev\"")
@@ -55,6 +55,7 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
     implementation("androidx.datastore:datastore-preferences:1.1.1")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
     implementation("com.squareup.retrofit2:retrofit:2.11.0")
     implementation("com.jakewharton.retrofit:retrofit2-kotlinx-serialization-converter:1.0.0")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")

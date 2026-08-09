@@ -3,6 +3,8 @@ package dev.tomorrowtools.resume.vm
 import android.app.Application
 import android.content.Context
 import android.net.Uri
+import android.provider.OpenableColumns
+import android.webkit.MimeTypeMap
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -20,6 +22,7 @@ import dev.tomorrowtools.resume.startGoogleBrowserLogin
 import dev.tomorrowtools.resume.util.assessResumeInput
 import dev.tomorrowtools.resume.util.isDestructiveSuggestion
 import dev.tomorrowtools.resume.util.parseScoreView
+import dev.tomorrowtools.resume.util.toUserMessage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -47,6 +50,8 @@ class ResumeStudioVm(app: Application) : AndroidViewModel(app) {
     var error by mutableStateOf<String?>(null); private set
     var gateWarning by mutableStateOf<String?>(null); private set
     var tab by mutableStateOf(ResumeTab.Prepare); private set
+    /** True after Tailor until user re-scores — gauges are pre-improve. */
+    var scoresArePreImprove by mutableStateOf(false); private set
 
     var emailInput by mutableStateOf(""); private set
     var passwordInput by mutableStateOf(""); private set
@@ -126,6 +131,7 @@ class ResumeStudioVm(app: Application) : AndroidViewModel(app) {
         brandKit = null; linkedinPaste = ""; targetRole = ""
         jsonResume = null; pdfPath = null; sessionId = null
         gateWarning = null; error = null
+        scoresArePreImprove = false
         tab = ResumeTab.Prepare
     }
 
@@ -195,30 +201,36 @@ class ResumeStudioVm(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    private suspend fun persistSession(stepHint: String? = null) {
+        val res = api.writeSession(
+            SessionWrite(
+                id = sessionId,
+                name = "Android session",
+                step = when (tab) {
+                    ResumeTab.Prepare -> "prepare"
+                    ResumeTab.Analyse, ResumeTab.Tailor -> stepHint ?: "analyze"
+                    ResumeTab.Brand -> "brand"
+                    ResumeTab.Builder -> "builder"
+                    ResumeTab.Profile -> stepHint ?: "prepare"
+                },
+                resumeText = resumeText,
+                jdText = jdText,
+                originalText = originalText,
+                improvedText = tailoredMd,
+                analysis = analysisRaw,
+                templateId = selectedTemplate,
+            ),
+        )
+        sessionId = res.session.id
+        sessions = api.listSessions().sessions
+    }
+
     fun saveSession(step: String = tab.name.lowercase()) = viewModelScope.launch {
         try {
-            val res = api.writeSession(
-                SessionWrite(
-                    id = sessionId,
-                    name = "Android session",
-                    step = when (tab) {
-                        ResumeTab.Prepare -> "prepare"
-                        ResumeTab.Analyse, ResumeTab.Tailor -> "analyze"
-                        ResumeTab.Brand -> "brand"
-                        ResumeTab.Builder -> "builder"
-                        ResumeTab.Profile -> step
-                    },
-                    resumeText = resumeText,
-                    jdText = jdText,
-                    originalText = originalText,
-                    improvedText = tailoredMd,
-                    analysis = analysisRaw,
-                    templateId = selectedTemplate,
-                ),
-            )
-            sessionId = res.session.id
-            sessions = api.listSessions().sessions
-        } catch (e: Exception) { error = e.message }
+            persistSession(step)
+        } catch (e: Exception) {
+            error = e.toUserMessage()
+        }
     }
 
     fun fetchJd() = launchBusy {
@@ -228,11 +240,34 @@ class ResumeStudioVm(app: Application) : AndroidViewModel(app) {
     }
 
     fun parseResumeUri(ctx: Context, uri: Uri) = launchBusy {
-        val tmp = File(ctx.cacheDir, "upload-${System.currentTimeMillis()}")
-        ctx.contentResolver.openInputStream(uri)?.use { input -> tmp.outputStream().use { input.copyTo(it) } }
+        val resolver = ctx.contentResolver
+        var displayName = "resume.pdf"
+        resolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { c ->
+            if (c.moveToFirst()) {
+                val idx = c.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                if (idx >= 0) displayName = c.getString(idx) ?: displayName
+            }
+        }
+        val mime = resolver.getType(uri)
+            ?: MimeTypeMap.getSingleton().getMimeTypeFromExtension(
+                displayName.substringAfterLast('.', "").lowercase(),
+            )
+            ?: "application/octet-stream"
+        val ext = displayName.substringAfterLast('.', "").ifBlank {
+            MimeTypeMap.getSingleton().getExtensionFromMimeType(mime) ?: "bin"
+        }
+        val safeName = if (displayName.contains('.')) displayName
+        else "resume.$ext"
+        val tmp = File(ctx.cacheDir, "upload-${System.currentTimeMillis()}-$safeName")
+        resolver.openInputStream(uri)?.use { input -> tmp.outputStream().use { input.copyTo(it) } }
             ?: error("Could not read file")
-        val body = tmp.asRequestBody("application/octet-stream".toMediaType())
-        val part = MultipartBody.Part.createFormData("file", tmp.name, body)
+        val mediaType = try {
+            mime.toMediaType()
+        } catch (_: Exception) {
+            "application/octet-stream".toMediaType()
+        }
+        val body = tmp.asRequestBody(mediaType)
+        val part = MultipartBody.Part.createFormData("file", safeName, body)
         val res = api.parseResume(part)
         if (res.text.isNullOrBlank()) error = "Could not extract text from file"
         else updateResume(res.text)
@@ -249,12 +284,19 @@ class ResumeStudioVm(app: Application) : AndroidViewModel(app) {
         val res = api.analyze(AnalyzeRequest(resumeText, jdText.ifBlank { null }))
         analysisRaw = res.analysis
         scores = parseScoreView(res.analysis)
+        scoresArePreImprove = false
         if (originalText == null) {
             originalText = resumeText
             originalScores = scores
         }
         tab = ResumeTab.Analyse
-        saveSession("analyze")
+        // Session save must not fail the Analyse path
+        viewModelScope.launch {
+            try {
+                persistSession("analyze")
+            } catch (_: Exception) {
+            }
+        }
     }
 
     fun toggleMissing(kw: String) {
@@ -262,7 +304,7 @@ class ResumeStudioVm(app: Application) : AndroidViewModel(app) {
     }
 
     fun applySuggestion(s: RewriteSuggestion, replace: Boolean) {
-        val payload = if (replace && s.current.isNotBlank()) s.suggested else s.suggested
+        val payload = s.suggested
         if (isDestructiveSuggestion(payload) || isDestructiveSuggestion(s.why)) {
             error = "Skipped destructive contact-removal suggestion."
             return
@@ -273,6 +315,32 @@ class ResumeStudioVm(app: Application) : AndroidViewModel(app) {
             resumeText = (resumeText.trimEnd() + "\n\n" + s.suggested).trim()
         }
         originalText = null; originalScores = null
+        scoresArePreImprove = true
+    }
+
+    fun applyAllSuggestions() {
+        val list = scores.suggestions.filterNot {
+            isDestructiveSuggestion(it.suggested) || isDestructiveSuggestion(it.why)
+        }
+        if (list.isEmpty()) {
+            error = "No non-destructive suggestions to apply"
+            return
+        }
+        list.forEach { s ->
+            applySuggestion(s, replace = s.current.isNotBlank() && resumeText.contains(s.current))
+        }
+    }
+
+    fun tailorSuggestion(s: RewriteSuggestion) {
+        if (s.suggested.isNotBlank() && !queuedMissing.contains(s.area)) {
+            // Prefer incorporating the suggested wording via tailor focus on JD + suggestion
+            queuedMissing = (queuedMissing + s.suggested.split(Regex("\\s+"))
+                .filter { it.length in 3..28 && it.any(Char::isLetter) }
+                .take(4)).distinct().take(12)
+        }
+        selectTab(ResumeTab.Tailor)
+        if (jdText.isNotBlank()) tailor()
+        else error = "Add a job description, then Improve"
     }
 
     fun accommodateMissing() {
@@ -290,23 +358,34 @@ class ResumeStudioVm(app: Application) : AndroidViewModel(app) {
     }
 
     fun tailor() = launchBusy {
-        val jd = when (focus) {
-            "ats" -> "Focus on ATS keyword coverage and section completeness.\n\n$jdText"
-            "jd" -> "Focus on matching the job description responsibilities and required skills.\n\n$jdText"
-            else -> "Balance ATS readability with JD keyword match.\n\n$jdText"
-        }.let { base ->
-            if (queuedMissing.isEmpty()) base
-            else base + "\n\nPrioritize incorporating these missing keywords naturally: ${queuedMissing.joinToString(", ")}"
-        }
         if (jdText.isBlank()) error("Job description required for tailor")
-        val res = api.tailor(TailorRequest(resumeText, jd))
-        val md = res.resumeMd ?: error("Empty tailor result")
+        // Keep jdText as the JD body the API expects; put focus/missing as prefix context in jdText
+        // only when needed — server requires resumeText + jdText (route: POST api/ats/tailor).
+        val jdPayload = buildString {
+            when (focus) {
+                "ats" -> appendLine("Focus: ATS keyword coverage and section completeness.")
+                "jd" -> appendLine("Focus: match JD responsibilities and required skills.")
+                else -> appendLine("Focus: balance ATS readability with JD keyword match.")
+            }
+            if (queuedMissing.isNotEmpty()) {
+                appendLine("Prioritize incorporating: ${queuedMissing.joinToString(", ")}")
+            }
+            appendLine()
+            append(jdText)
+        }
+        val res = api.tailor(TailorRequest(resumeText = resumeText, jdText = jdPayload, saveAsResume = true))
+        val md = res.resumeMd?.takeIf { it.isNotBlank() } ?: error("Empty tailor result")
         versions = (versions + VersionSnap("v${versions.size + 1}", md, focus)).takeLast(12)
         tailoredMd = md
         resumeText = md
+        scoresArePreImprove = true
         tab = ResumeTab.Tailor
-        saveSession("improve")
-        // refresh scores lightly via analyse optional — skip to save tokens unless user re-analyses
+        viewModelScope.launch {
+            try {
+                persistSession("improve")
+            } catch (_: Exception) {
+            }
+        }
     }
 
     fun restoreVersion(snap: VersionSnap) {
@@ -345,7 +424,10 @@ class ResumeStudioVm(app: Application) : AndroidViewModel(app) {
                 .build()
             val bytes = withContext(Dispatchers.IO) {
                 http.newCall(req).execute().use { resp ->
-                    if (!resp.isSuccessful) error("Render failed: ${resp.code}")
+                    if (!resp.isSuccessful) {
+                        val err = resp.body?.string()?.take(280)
+                        error("Render HTTP ${resp.code}${err?.let { ": $it" } ?: ""}")
+                    }
                     resp.body?.bytes() ?: error("Empty PDF")
                 }
             }
@@ -361,7 +443,10 @@ class ResumeStudioVm(app: Application) : AndroidViewModel(app) {
                 .build()
             val bytes = withContext(Dispatchers.IO) {
                 http.newCall(req).execute().use { resp ->
-                    if (!resp.isSuccessful) error("PDF failed: ${resp.code}")
+                    if (!resp.isSuccessful) {
+                        val err = resp.body?.string()?.take(280)
+                        error("PDF HTTP ${resp.code}${err?.let { ": $it" } ?: ""}")
+                    }
                     resp.body?.bytes() ?: error("Empty PDF")
                 }
             }
@@ -379,8 +464,13 @@ class ResumeStudioVm(app: Application) : AndroidViewModel(app) {
     private fun launchBusy(block: suspend () -> Unit) {
         viewModelScope.launch {
             busy = true; error = null
-            try { block() } catch (e: Exception) { error = e.message ?: e.toString() }
-            finally { busy = false }
+            try {
+                block()
+            } catch (e: Exception) {
+                error = e.toUserMessage()
+            } finally {
+                busy = false
+            }
         }
     }
 

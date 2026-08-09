@@ -115,9 +115,15 @@ fun parseScoreView(el: JsonElement?): ScoreView {
     )
     val obj = el as? JsonObject ?: return empty
     val scores = obj["scores"] as? JsonObject
-    val overall = obj.intOf("overall", "overallScore", "score") ?: scores?.intOf("overall", "ats", "total")
-    val ats = obj.intOf("atsReadability", "ats", "readability") ?: scores?.intOf("atsReadability", "ats")
-    val keyword = obj.intOf("keywordMatch", "keywords", "jdCoverage") ?: scores?.intOf("keywordMatch", "keywords")
+    val heuristic = obj["heuristic"] as? JsonObject
+    val overall = obj.intOf("overallScore", "overall", "score")
+        ?: scores?.intOf("overallScore", "overall", "total")
+    val ats = obj.intOf("atsReadability", "ats", "readability")
+        ?: scores?.intOf("atsReadability", "ats")
+    // Web/API field is keywordMatchPct (not keywordMatch)
+    val keyword = obj.intOf("keywordMatchPct", "keywordMatch", "keywords", "jdCoverage")
+        ?: scores?.intOf("keywordMatchPct", "keywordMatch", "keywords")
+        ?: heuristic?.intOf("keywordMatchPct", "keywordMatch")
     val missing = obj.strList("missingKeywords", "missing_keywords", "keywordsMissing")
     val matched = obj.strList("matchedKeywords", "matched_keywords", "presentKeywords")
     val strengths = obj.strList("strengths")
