@@ -19,7 +19,7 @@ import {
   releaseUserAiJob,
 } from "@/lib/security/rateLimit";
 import { LIMITS, sanitizeText } from "@/lib/security/validate";
-import { runRecoveryJob, saveMemorySnapshot } from "@/lib/recovery/store";
+import { getMemoryContext, runRecoveryJob, saveMemorySnapshot } from "@/lib/recovery/store";
 import { z } from "zod";
 
 export const runtime = "nodejs";
@@ -74,6 +74,7 @@ export async function POST(req: Request) {
   }
 
   try {
+    const memoryContext = getMemoryContext(ctx.user.id, `resume:${ctx.user.id}`);
     const recovery = await runRecoveryJob({
       userId: ctx.user.id,
       action: `ats.${parsed.data.action}`,
@@ -88,6 +89,7 @@ export async function POST(req: Request) {
             kind: "structure" as const,
             out: await structureResumeToJson({
               resumeText: text,
+              memoryContext,
               sessionKey: `ats-structure-${ctx.user.id}`,
               signal: job.controller.signal,
             }),
@@ -104,6 +106,7 @@ export async function POST(req: Request) {
                 jsonResume: JsonResumeSchema.parse(parsed.data.jsonResume),
                 instruction,
                 jdText: jd,
+                memoryContext,
                 sessionKey: `ats-improve-${ctx.user.id}`,
                 signal: job.controller.signal,
               }),
@@ -117,6 +120,7 @@ export async function POST(req: Request) {
               resumeText: text,
               instruction,
               jdText: jd,
+              memoryContext,
               sessionKey: `ats-improve-${ctx.user.id}`,
               signal: job.controller.signal,
             }),
@@ -127,6 +131,7 @@ export async function POST(req: Request) {
           out: await tailorJsonResume({
             jsonResume: JsonResumeSchema.parse(parsed.data.jsonResume),
             jdText: jd,
+            memoryContext,
             sessionKey: `ats-tailor-json-${ctx.user.id}`,
             signal: job.controller.signal,
           }),
@@ -148,7 +153,7 @@ export async function POST(req: Request) {
     const response = { ...out, resume: saved, recoveryJobId: recovery.job.id };
     saveMemorySnapshot({
       userId: ctx.user.id,
-      resourceId: recovery.job.id,
+      resourceId: `resume:${ctx.user.id}`,
       kind: `ats.${kind}`,
       summary: out.markdown,
       sourceCursor: recovery.job.id,

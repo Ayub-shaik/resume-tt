@@ -17,6 +17,7 @@ export async function tailorResumeForJd(input: {
   jdText: string;
   sessionKey?: string;
   signal?: AbortSignal;
+  memoryContext?: string;
 }): Promise<AtsTailorResult> {
   if (!input.jdText.trim()) {
     throw new Error("Job description required to tailor resume");
@@ -44,6 +45,7 @@ HARD RULES — ATS + fidelity (from TomorrowTools job-search pipeline):
 - Target title line may lean toward JD but stay truthful
 - Prefer ~2 pages. Do not drop EDUCATION/CERTIFICATIONS if present.
 - Cover letter: markdown, ~1 page, English, no invention.
+${input.memoryContext?.trim() ? `\nPrior compact session memory (continuity only; current inputs are authoritative):\n${neutralizeForPrompt(input.memoryContext)}` : ""}
 
 Return ONLY JSON:
 {

@@ -8,7 +8,12 @@ import okhttp3.Interceptor
 import okio.Buffer
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
+import okhttp3.Response
+import okhttp3.ResponseBody.Companion.toResponseBody
 import okhttp3.logging.HttpLoggingInterceptor
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import retrofit2.Retrofit
 import java.net.Inet4Address
 import java.net.InetAddress
@@ -17,6 +22,7 @@ import java.net.Socket
 import java.util.concurrent.TimeUnit
 import javax.net.SocketFactory
 import java.security.MessageDigest
+import java.io.IOException
 
 val appJson = Json { ignoreUnknownKeys = true; isLenient = true; encodeDefaults = true }
 
@@ -46,11 +52,61 @@ fun buildOkHttp(tokenProvider: () -> String?): OkHttpClient {
             chain.proceed(request)
         }
     }
+    val recoveryPolling = Interceptor { chain ->
+        var response = chain.proceed(chain.request())
+        if (response.code != 202) return@Interceptor response
+        val queuedBody = response.body?.string().orEmpty()
+        val jobId = runCatching {
+            appJson.parseToJsonElement(queuedBody).jsonObject["recoveryJobId"]
+                ?.jsonPrimitive?.contentOrNull
+        }.getOrNull() ?: return@Interceptor response.newBuilder()
+            .body(queuedBody.toResponseBody(response.body?.contentType()))
+            .build()
+        response.close()
+        repeat(180) {
+            Thread.sleep(500)
+            val pollUrl = chain.request().url.newBuilder()
+                .encodedPath("/api/recovery/jobs/$jobId")
+                .query(null)
+                .build()
+            val pollRequest = chain.request().newBuilder()
+                .url(pollUrl)
+                .get()
+                .removeHeader("Content-Type")
+                .build()
+            response = chain.proceed(pollRequest)
+            val pollText = response.body?.string().orEmpty()
+            val job = runCatching {
+                appJson.parseToJsonElement(pollText).jsonObject["job"]?.jsonObject
+            }.getOrNull()
+            val status = job?.get("status")?.jsonPrimitive?.contentOrNull
+            if (status == "completed") {
+                val result = job["result"] ?: error("Recovery completed without a result")
+                response.close()
+                return@Interceptor Response.Builder()
+                    .request(chain.request())
+                    .protocol(response.protocol)
+                    .code(200)
+                    .message("Recovered")
+                    .headers(response.headers)
+                    .body(result.toString().toResponseBody("application/json".toMediaType()))
+                    .build()
+            }
+            if (status == "failed" || status == "cancelled") {
+                val detail = job["error"]?.jsonPrimitive?.contentOrNull ?: "Recovery job failed"
+                response.close()
+                throw IOException(detail)
+            }
+            response.close()
+        }
+        throw IOException("Recovery is still reconciling. Reopen this action to resume status.")
+    }
     return OkHttpClient.Builder()
         .dns(PreferIpv4Dns)
         .socketFactory(Ipv4SocketFactory)
         .addInterceptor(auth)
         .addInterceptor(idempotency)
+        .addInterceptor(recoveryPolling)
         .addInterceptor(log)
         .connectTimeout(60, TimeUnit.SECONDS)
         .readTimeout(240, TimeUnit.SECONDS)

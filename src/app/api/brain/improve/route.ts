@@ -15,7 +15,7 @@ import {
   getUserAiJob,
   releaseUserAiJob,
 } from "@/lib/security/rateLimit";
-import { runRecoveryJob, saveMemorySnapshot } from "@/lib/recovery/store";
+import { getMemoryContext, runRecoveryJob, saveMemorySnapshot } from "@/lib/recovery/store";
 
 export const runtime = "nodejs";
 
@@ -73,6 +73,7 @@ export async function POST(req: Request) {
     }
 
     try {
+      const memoryContext = getMemoryContext(ctx.user.id, `resume:${ctx.user.id}`);
       if (action === "chain") {
         const targetVersion = (body.targetVersion || 1) as ResumeVersion;
         const recovery = await runRecoveryJob({
@@ -84,7 +85,7 @@ export async function POST(req: Request) {
           execute: async () => {
             const chain = await brainImproveChain({
               masterResume: master, jdText, targetRole, targetVersion,
-              focus: body.focus, matchScore, signal: job.controller.signal,
+              focus: body.focus, matchScore, signal: job.controller.signal, memoryContext,
             });
             return {
               chain,
@@ -97,7 +98,7 @@ export async function POST(req: Request) {
         if (!recovery.result) {
           return NextResponse.json({ recoveryJobId: recovery.job.id, status: recovery.job.status, checkpoint: recovery.job.checkpoint }, { status: 202 });
         }
-        saveMemorySnapshot({ userId: ctx.user.id, resourceId: recovery.job.id, kind: "brain.improve.chain", summary: JSON.stringify(recovery.result), sourceCursor: recovery.job.id });
+        saveMemorySnapshot({ userId: ctx.user.id, resourceId: `resume:${ctx.user.id}`, kind: "brain.improve.chain", summary: JSON.stringify(recovery.result), sourceCursor: recovery.job.id });
         return NextResponse.json({ ...recovery.result, recoveryJobId: recovery.job.id });
       }
 
@@ -114,7 +115,7 @@ export async function POST(req: Request) {
             const pass = await brainImproveMore({
               masterResume: master, currentResume: current, currentVersion,
               jdText, targetRole, matchScore, focus: body.focus,
-              signal: job.controller.signal,
+              signal: job.controller.signal, memoryContext,
             });
             return {
               pass,
@@ -125,7 +126,7 @@ export async function POST(req: Request) {
         if (!recovery.result) {
           return NextResponse.json({ recoveryJobId: recovery.job.id, status: recovery.job.status, checkpoint: recovery.job.checkpoint }, { status: 202 });
         }
-        saveMemorySnapshot({ userId: ctx.user.id, resourceId: recovery.job.id, kind: "brain.improve.more", summary: recovery.result.pass.resumeMd, sourceCursor: recovery.job.id });
+        saveMemorySnapshot({ userId: ctx.user.id, resourceId: `resume:${ctx.user.id}`, kind: "brain.improve.more", summary: recovery.result.pass.resumeMd, sourceCursor: recovery.job.id });
         return NextResponse.json({ ...recovery.result, recoveryJobId: recovery.job.id });
       }
 
@@ -141,7 +142,7 @@ export async function POST(req: Request) {
           const pass = await brainImprovePass({
             masterResume: master, currentResume: current, jdText, targetRole,
             version, focus: body.focus || "balanced", matchScore,
-            signal: job.controller.signal,
+            signal: job.controller.signal, memoryContext,
           });
           return {
             pass,
@@ -153,7 +154,7 @@ export async function POST(req: Request) {
       if (!recovery.result) {
         return NextResponse.json({ recoveryJobId: recovery.job.id, status: recovery.job.status, checkpoint: recovery.job.checkpoint }, { status: 202 });
       }
-      saveMemorySnapshot({ userId: ctx.user.id, resourceId: recovery.job.id, kind: "brain.improve.pass", summary: recovery.result.pass.resumeMd, sourceCursor: recovery.job.id });
+      saveMemorySnapshot({ userId: ctx.user.id, resourceId: `resume:${ctx.user.id}`, kind: "brain.improve.pass", summary: recovery.result.pass.resumeMd, sourceCursor: recovery.job.id });
       return NextResponse.json({ ...recovery.result, recoveryJobId: recovery.job.id });
     } finally {
       releaseUserAiJob(ctx.user.id, job.token);

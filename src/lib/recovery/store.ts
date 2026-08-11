@@ -209,6 +209,20 @@ export function saveMemorySnapshot(input: {
   });
 }
 
+export function getMemoryContext(
+  userId: string,
+  resourceId: string,
+  limit = 6,
+): string {
+  return withDatabase((db) => {
+    const rows = db.prepare(
+      `SELECT summary FROM memory_snapshots
+       WHERE user_id=? AND resource_id=? ORDER BY created_at DESC LIMIT ?`,
+    ).all(userId, resourceId, limit) as Array<{ summary: string }>;
+    return compactMemory(rows.reverse().map((row) => row.summary).join("\n\n"));
+  });
+}
+
 /** Reconciles work that was interrupted by a process restart. */
 export function reconcileStaleRecoveryJobs(maxAgeMs = 5 * 60_000): number {
   return withDatabase((db) => {

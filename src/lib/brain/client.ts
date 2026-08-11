@@ -14,6 +14,7 @@ import {
 export function createResumeBrainComplete(
   matchScore: number,
   signal?: AbortSignal,
+  memoryContext?: string,
 ): LLMComplete {
   const tier = selectModelTier(matchScore);
   const premium =
@@ -28,7 +29,16 @@ export function createResumeBrainComplete(
   return async (messages, opts) => {
     const useTier = opts?.tier || tier;
     const model = useTier === "premium" ? premium : standard;
-    const result = await runOpenClaw(messages, {
+    const contextualMessages = memoryContext?.trim()
+      ? [
+          {
+            role: "system" as const,
+            content: `Durable prior-session memory (continuity only; current resume/JD are authoritative):\n${memoryContext}`,
+          },
+          ...messages,
+        ]
+      : messages;
+    const result = await runOpenClaw(contextualMessages, {
       sessionKey:
         opts?.sessionId || ephemeralOpenClawSession(`resume-brain-${model}`),
       signal,
@@ -45,8 +55,9 @@ export async function brainImproveChain(input: {
   focus?: ImproveFocus;
   matchScore: number;
   signal?: AbortSignal;
+  memoryContext?: string;
 }) {
-  const complete = createResumeBrainComplete(input.matchScore, input.signal);
+  const complete = createResumeBrainComplete(input.matchScore, input.signal, input.memoryContext);
   return runImproveChain({
     masterResume: input.masterResume,
     jdText: input.jdText || "",
@@ -68,8 +79,9 @@ export async function brainImprovePass(input: {
   focus?: ImproveFocus;
   matchScore: number;
   signal?: AbortSignal;
+  memoryContext?: string;
 }) {
-  const complete = createResumeBrainComplete(input.matchScore, input.signal);
+  const complete = createResumeBrainComplete(input.matchScore, input.signal, input.memoryContext);
   return runImprovePass({
     ...input,
     factLedger: buildFactLedger(input.masterResume),
@@ -86,8 +98,9 @@ export async function brainImproveMore(input: {
   matchScore: number;
   focus?: ImproveFocus;
   signal?: AbortSignal;
+  memoryContext?: string;
 }) {
-  const complete = createResumeBrainComplete(input.matchScore, input.signal);
+  const complete = createResumeBrainComplete(input.matchScore, input.signal, input.memoryContext);
   return runImproveMore({
     ...input,
     complete,

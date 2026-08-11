@@ -3,9 +3,13 @@ import { withDatabase } from "@/lib/db";
 import {
   beginRecoveryJob,
   compactMemory,
+  getMemoryContext,
   getRecoveryJob,
+  reconcileStaleRecoveryJobs,
+  saveMemorySnapshot,
   updateRecoveryJob,
 } from "@/lib/recovery/store";
+import { resolveAiConfig } from "@/lib/runtime/provider";
 
 beforeEach(() => {
   withDatabase((db) => {
@@ -62,5 +66,38 @@ describe("durable recovery store", () => {
     const compacted = compactMemory("a".repeat(20), 10);
     expect(compacted).toContain("[context compacted]");
     expect(compacted.length).toBeLessThan(40);
+  });
+
+  it("loads compact session memory and reconciles stale work", () => {
+    saveMemorySnapshot({
+      userId: "owner",
+      resourceId: "resume:owner",
+      kind: "test",
+      summary: "remember this",
+    });
+    expect(getMemoryContext("owner", "resume:owner")).toContain("remember this");
+    const { job } = beginRecoveryJob({
+      userId: "owner",
+      action: "stale",
+      idempotencyKey: "stale",
+      request: {},
+    });
+    reconcileStaleRecoveryJobs(-1);
+    expect(getRecoveryJob("owner", job.id)?.status).toBe("uncertain");
+  });
+
+  it("selects a configured provider and blocks untrusted remote endpoints", () => {
+    const previous = { ...process.env };
+    process.env.AI_BASE_URL = "http://127.0.0.1:9999/v1";
+    process.env.AI_API_KEY = "test-key";
+    process.env.AI_MODEL = "test-model";
+    expect(resolveAiConfig()).toMatchObject({
+      endpoint: "http://127.0.0.1:9999/v1/chat/completions",
+      model: "test-model",
+    });
+    process.env.AI_BASE_URL = "https://example.com/v1";
+    process.env.AI_ALLOW_REMOTE = "false";
+    expect(() => resolveAiConfig()).toThrow("AI endpoint must be localhost");
+    process.env = previous;
   });
 });

@@ -101,6 +101,7 @@ export async function analyzeResumeVsJd(input: {
   jdText: string;
   sessionKey?: string;
   signal?: AbortSignal;
+  memoryContext?: string;
 }): Promise<AtsAnalysis> {
   const heuristic = keywordHeuristic(input.resumeText, input.jdText || "");
   const formatScore = atsFormatHeuristic(input.resumeText);
@@ -146,7 +147,8 @@ Rules:
 - Soft keyword matching: if resume has "CI/CD", do NOT list "CI/CD pipeline" as missing.
   Treat synonyms/abbreviations as matches (k8s≈kubernetes, IaC≈Terraform when used as IaC, etc.).
 - Prefer fewer, high-signal missingKeywords (core skills/tools), not every JD noun phrase.
-- Without a JD: score general ATS quality; keywordMatchPct may be 0.`,
+- Without a JD: score general ATS quality; keywordMatchPct may be 0.
+${input.memoryContext?.trim() ? `\nDurable prior-session memory (continuity only; current resume/JD are authoritative):\n${neutralizeForPrompt(input.memoryContext)}` : ""}`,
         },
         {
           role: "user",

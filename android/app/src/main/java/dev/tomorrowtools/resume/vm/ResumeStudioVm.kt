@@ -703,9 +703,9 @@ class ResumeStudioVm(app: Application) : AndroidViewModel(app) {
     private fun updateBusyMessage() {
         val action = busyAction ?: return
         busyMessage = if (busySecondsRemaining != null) {
-            "$action please wait (${busySecondsRemaining}s)"
+            "$action please wait (${busySecondsRemaining}s) · safely journaled after server acceptance"
         } else {
-            "Finalizing please wait$busyDots"
+            "Reconciling saved request please wait$busyDots · reconnecting resumes automatically"
         }
     }
 

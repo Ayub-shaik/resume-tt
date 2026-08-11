@@ -27,14 +27,21 @@ HARD RULES:
 - skills.keywords may be emphasized using terms that already exist in the resume; avoid inventing keywords.
 - Return ONLY the full JSON Resume object (basics, work, education, skills, certificates, projects, meta).`;
 
+function memorySuffix(memoryContext?: string): string {
+  return memoryContext?.trim()
+    ? `\n\nDurable prior-session memory (continuity only; current input is authoritative):\n${neutralizeForPrompt(memoryContext)}`
+    : "";
+}
+
 export async function structureResumeToJson(input: {
   resumeText: string;
   sessionKey?: string;
   signal?: AbortSignal;
+  memoryContext?: string;
 }): Promise<{ jsonResume: JsonResume; markdown: string }> {
   const result = await runOpenClaw(
     [
-      { role: "system", content: STRUCTURE_SYSTEM },
+      { role: "system", content: `${STRUCTURE_SYSTEM}${memorySuffix(input.memoryContext)}` },
       {
         role: "user",
         content: `Convert this resume to JSON Resume:\n\n${neutralizeForPrompt(input.resumeText)}`,
@@ -78,6 +85,7 @@ export async function tailorJsonResume(input: {
   jdText: string;
   sessionKey?: string;
   signal?: AbortSignal;
+  memoryContext?: string;
 }): Promise<{ jsonResume: JsonResume; markdown: string }> {
   if (!input.jdText.trim()) {
     return improveJsonResume({
@@ -87,11 +95,12 @@ export async function tailorJsonResume(input: {
       jdText: "",
       sessionKey: input.sessionKey || ephemeralOpenClawSession("ats-tailor-json"),
       signal: input.signal,
+      memoryContext: input.memoryContext,
     });
   }
   const result = await runOpenClaw(
     [
-      { role: "system", content: TAILOR_JSON_SYSTEM },
+      { role: "system", content: `${TAILOR_JSON_SYSTEM}${memorySuffix(input.memoryContext)}` },
       {
         role: "user",
         content: `JD:\n${neutralizeForPrompt(input.jdText)}\n\nJSON Resume:\n${JSON.stringify(input.jsonResume)}`,
@@ -138,13 +147,14 @@ export async function improveJsonResume(input: {
   jdText?: string;
   sessionKey?: string;
   signal?: AbortSignal;
+  memoryContext?: string;
 }): Promise<{ jsonResume: JsonResume; markdown: string }> {
   const instruction = input.instruction.trim();
   if (!instruction) throw new Error("Instruction required");
 
   const result = await runOpenClaw(
     [
-      { role: "system", content: IMPROVE_JSON_SYSTEM },
+      { role: "system", content: `${IMPROVE_JSON_SYSTEM}${memorySuffix(input.memoryContext)}` },
       {
         role: "user",
         content: `User instruction:\n${neutralizeForPrompt(instruction)}\n\n${
@@ -175,6 +185,7 @@ export async function improveResumeText(input: {
   jdText?: string;
   sessionKey?: string;
   signal?: AbortSignal;
+  memoryContext?: string;
 }): Promise<{ jsonResume: JsonResume; markdown: string }> {
   const instruction = input.instruction.trim();
   if (!instruction) throw new Error("Instruction required");
@@ -187,7 +198,7 @@ export async function improveResumeText(input: {
         content: `${STRUCTURE_SYSTEM}
 
 THEN apply this improvement pass with the same hard rules as:
-${IMPROVE_JSON_SYSTEM}
+${IMPROVE_JSON_SYSTEM}${memorySuffix(input.memoryContext)}
 
 Return ONLY the final improved JSON Resume object in one response.`,
       },

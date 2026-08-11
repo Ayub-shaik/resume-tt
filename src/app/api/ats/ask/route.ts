@@ -11,7 +11,7 @@ import {
   releaseUserAiJob,
 } from "@/lib/security/rateLimit";
 import { LIMITS, neutralizeForPrompt, sanitizeText } from "@/lib/security/validate";
-import { runRecoveryJob, saveMemorySnapshot } from "@/lib/recovery/store";
+import { getMemoryContext, runRecoveryJob, saveMemorySnapshot } from "@/lib/recovery/store";
 import { z } from "zod";
 
 export const runtime = "nodejs";
@@ -92,6 +92,9 @@ If the user asks to rewrite a line, offer one improved version that stays factua
             context
               ? `FOCUS LINE / SUGGESTION:\n${neutralizeForPrompt(context)}\n`
               : "",
+            getMemoryContext(ctx.user.id, `resume:${ctx.user.id}`)
+              ? `PRIOR COMPACT MEMORY (continuity only):\n${neutralizeForPrompt(getMemoryContext(ctx.user.id, `resume:${ctx.user.id}`))}\n`
+              : "",
             `QUESTION:\n${neutralizeForPrompt(question)}`,
           ]
             .filter(Boolean)
@@ -113,7 +116,7 @@ If the user asks to rewrite a line, offer one improved version that stays factua
     const response = { reply: recovery.result.text.trim() || "No reply.", recoveryJobId: recovery.job.id };
     saveMemorySnapshot({
       userId: ctx.user.id,
-      resourceId: recovery.job.id,
+      resourceId: `resume:${ctx.user.id}`,
       kind: "ats.ask",
       summary: `${question}\n\n${response.reply}`,
       sourceCursor: recovery.job.id,
