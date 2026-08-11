@@ -338,6 +338,15 @@ export function LandingPage({
               Personal Interviewer →
             </a>
           </p>
+          <p className="mt-2 text-sm">
+            <a href="/privacy" className="underline underline-offset-2">
+              Privacy
+            </a>
+            {" · "}
+            <a href="/terms" className="underline underline-offset-2">
+              Terms
+            </a>
+          </p>
         </footer>
       </div>
     </div>

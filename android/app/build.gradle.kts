@@ -16,14 +16,14 @@ fun loadLocalApiBase(key: String, fallback: String): String {
 
 android {
     namespace = "dev.tomorrowtools.resume"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "dev.tomorrowtools.resume"
         minSdk = 26
-        targetSdk = 35
-        versionCode = 10
-        versionName = "1.0.6-busy-offline"
+        targetSdk = 36
+        versionCode = 11
+        versionName = "1.0.7-play-prep"
         // Override in android/local.properties: resume.api.baseUrl=https://...
         buildConfigField(
             "String",
@@ -32,6 +32,30 @@ android {
         )
         buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"829272773483-upav25kf2gn900ard260gucsro46430h.apps.googleusercontent.com\"")
         buildConfigField("String", "SIBLING_APP_URL", "\"https://mpi.tomorrowtools.dev\"")
+    }
+
+    val keystorePropsFile = rootProject.file("keystore.properties")
+    val keystoreProps = Properties()
+    if (keystorePropsFile.exists()) {
+        keystorePropsFile.inputStream().use { keystoreProps.load(it) }
+    }
+    signingConfigs {
+        if (keystorePropsFile.exists()) {
+            create("release") {
+                storeFile = rootProject.file(keystoreProps["storeFile"] as String)
+                storePassword = keystoreProps["storePassword"] as String
+                keyAlias = keystoreProps["keyAlias"] as String
+                keyPassword = keystoreProps["keyPassword"] as String
+            }
+        }
+    }
+    buildTypes {
+        release {
+            isMinifyEnabled = false
+            if (keystorePropsFile.exists()) {
+                signingConfig = signingConfigs.getByName("release")
+            }
+        }
     }
 
     buildFeatures {

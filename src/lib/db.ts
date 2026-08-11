@@ -942,3 +942,46 @@ export function deleteAtsSession(id: string, userId?: string): boolean {
   getDb().prepare("DELETE FROM ats_sessions WHERE id = ?").run(id);
   return true;
 }
+
+/** Cascading erase of product data owned by a user (Play / privacy deletion). */
+export function deleteAllUserOwnedData(userId: string): {
+  interviews: number;
+  resumes: number;
+  atsSessions: number;
+  recoveryJobs: number;
+  memorySnapshots: number;
+} {
+  const database = getDb();
+  return database.transaction(() => {
+    const interviewIds = (
+      database
+        .prepare("SELECT id FROM interviews WHERE user_id = ?")
+        .all(userId) as Array<{ id: string }>
+    ).map((r) => r.id);
+    for (const id of interviewIds) {
+      database.prepare(`DELETE FROM coach_asks WHERE interview_id = ?`).run(id);
+      database.prepare(`DELETE FROM review_packs WHERE interview_id = ?`).run(id);
+      database.prepare(`DELETE FROM turns WHERE interview_id = ?`).run(id);
+      database.prepare(`DELETE FROM interviews WHERE id = ?`).run(id);
+    }
+    const resumes = database
+      .prepare("DELETE FROM resumes WHERE user_id = ?")
+      .run(userId).changes;
+    const atsSessions = database
+      .prepare("DELETE FROM ats_sessions WHERE user_id = ?")
+      .run(userId).changes;
+    const recoveryJobs = database
+      .prepare("DELETE FROM recovery_jobs WHERE user_id = ?")
+      .run(userId).changes;
+    const memorySnapshots = database
+      .prepare("DELETE FROM memory_snapshots WHERE user_id = ?")
+      .run(userId).changes;
+    return {
+      interviews: interviewIds.length,
+      resumes,
+      atsSessions,
+      recoveryJobs,
+      memorySnapshots,
+    };
+  })();
+}

@@ -146,3 +146,25 @@ describe("provider retries and auth secret", () => {
     process.env = previous;
   });
 });
+
+describe("account cascading delete", () => {
+  it("removes recovery and memory rows for a user", async () => {
+    const { deleteAllUserOwnedData } = await import("@/lib/db");
+    beginRecoveryJob({
+      userId: "del-user",
+      action: "test",
+      idempotencyKey: "del-1",
+      request: { v: 1 },
+    });
+    saveMemorySnapshot({
+      userId: "del-user",
+      resourceId: "r1",
+      kind: "session",
+      summary: "note",
+    });
+    const result = deleteAllUserOwnedData("del-user");
+    expect(result.recoveryJobs).toBeGreaterThanOrEqual(1);
+    expect(result.memorySnapshots).toBeGreaterThanOrEqual(1);
+    expect(getMemoryContext("del-user", "r1")).toBe("");
+  });
+});

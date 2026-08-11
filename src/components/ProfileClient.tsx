@@ -110,6 +110,34 @@ export function ProfileClient() {
     }
   }
 
+  async function deleteAccount() {
+    if (
+      !window.confirm(
+        "Permanently delete your account and all stored resume/session data on this service? This cannot be undone.",
+      )
+    ) {
+      return;
+    }
+    const typed = window.prompt('Type DELETE to confirm account erasure:');
+    if (typed !== "DELETE") return;
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/account", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ confirm: "DELETE" }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json.error || "Delete failed");
+      await signOut({ callbackUrl: "/" });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function removeSelected() {
     const ids = [...selectedIds];
     if (!ids.length) return;
@@ -427,6 +455,25 @@ export function ProfileClient() {
           >
             Open Resume Studio
           </Link>
+        </div>
+        <div className="mt-4 space-y-2 border-t border-[var(--line)] pt-4">
+          <h3 className="text-sm font-semibold text-[var(--danger)]">Delete account</h3>
+          <p className="text-sm text-[var(--muted)]">
+            Permanently erase resumes, ATS sessions, recovery jobs, memory snapshots,
+            and your account on this service. See{" "}
+            <Link href="/privacy" className="underline underline-offset-2">
+              Privacy
+            </Link>
+            .
+          </p>
+          <button
+            type="button"
+            disabled={busy}
+            className="rounded-lg border border-[var(--danger)] px-3 py-2 text-sm font-semibold text-[var(--danger)]"
+            onClick={() => void deleteAccount()}
+          >
+            Delete my data
+          </button>
         </div>
       </section>
 

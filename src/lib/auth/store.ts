@@ -212,3 +212,12 @@ export function upsertUserFromGoogle(input: {
     );
   return getUserByEmail(email)!;
 }
+
+export function deleteUserById(userId: string, email: string) {
+  const database = getDb();
+  const tx = database.transaction(() => {
+    database.prepare("DELETE FROM users WHERE id = ?").run(userId);
+    database.prepare("DELETE FROM allowlist WHERE email = ?").run(email.toLowerCase());
+  });
+  tx();
+}

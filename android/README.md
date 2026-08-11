@@ -25,13 +25,28 @@ Sign-in → Prepare → Analyse (dimensions, replace workbench) → Tailor (gaug
 - App: `https://resume.tomorrowtools.dev/app`, `ttresume://open`
 - Sibling MPI: prefers `ttmpi://open`, falls back to https
 
-## Release (debug APK)
+## Release signing (Play / production)
+
+1. Create a release keystore (keep offline; never commit).
+2. Copy `keystore.properties.example` → `keystore.properties` and fill values.
+3. `./gradlew :app:assembleRelease` (or Android Studio Generate Signed Bundle).
+4. Upload the **AAB** to Play Console. Prefer Play App Signing.
+
+Debug APKs remain for sideload/Manager only — not for Play production.
+
+## Privacy / backup
+
+- `android:allowBackup="false"` (tokens must not land in cloud backup).
+- Public policy: https://resume.tomorrowtools.dev/privacy
+
+## Current debug APK metadata
 
 | Field | Value |
 |-------|-------|
-| versionCode | 10 |
-| versionName | 1.0.6-busy-offline |
+| versionCode | 11 |
+| versionName | 1.0.7-play-prep |
+| targetSdk | 36 |
 | Download | https://resume.tomorrowtools.dev/downloads/resume-ats-debug.apk |
-| Manifest | https://resume.tomorrowtools.dev/downloads/apps-manifest.json |
+| Manifest | https://resume.tomorrowtools.dev/downloads/apps-manifest.json (includes sha256) |
 
-Publish: bump versions → `./gradlew :app:assembleDebug` → copy APK into `public/downloads/` → update `apps-manifest.json` → `npm run build` + restart `resume-tt-web`.
+Publish: bump versions → assemble → copy APK → `sha256sum` into `apps-manifest.json` → deploy web.
