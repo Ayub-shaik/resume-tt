@@ -346,6 +346,14 @@ export function LandingPage({
             <a href="/terms" className="underline underline-offset-2">
               Terms
             </a>
+            {" · "}
+            <a href="/support" className="underline underline-offset-2">
+              Support
+            </a>
+            {" · "}
+            <a href="/contact" className="underline underline-offset-2">
+              Contact
+            </a>
           </p>
         </footer>
       </div>

@@ -59,8 +59,27 @@ export default function PrivacyPage() {
         </p>
         <h2 className="text-lg font-semibold">Contact</h2>
         <p>
-          Operator contact: use the email on your TomorrowTools invite / Play listing
-          contact field.
+          Support:{" "}
+          <a className="underline underline-offset-2" href="mailto:support@tomorrowtools.dev">
+            support@tomorrowtools.dev
+          </a>
+          . Admin:{" "}
+          <a className="underline underline-offset-2" href="mailto:admin@tomorrowtools.dev">
+            admin@tomorrowtools.dev
+          </a>
+          . Info:{" "}
+          <a className="underline underline-offset-2" href="mailto:info@tomorrowtools.dev">
+            info@tomorrowtools.dev
+          </a>
+          . Pages:{" "}
+          <Link href="/support" className="underline underline-offset-2">
+            Support
+          </Link>
+          {" · "}
+          <Link href="/contact" className="underline underline-offset-2">
+            Contact
+          </Link>
+          .
         </p>
         <p>
           See also <Link href="/terms" className="underline underline-offset-2">Terms</Link>.
