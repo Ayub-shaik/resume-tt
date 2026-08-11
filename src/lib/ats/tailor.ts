@@ -16,6 +16,7 @@ export async function tailorResumeForJd(input: {
   resumeText: string;
   jdText: string;
   sessionKey?: string;
+  signal?: AbortSignal;
 }): Promise<AtsTailorResult> {
   if (!input.jdText.trim()) {
     throw new Error("Job description required to tailor resume");
@@ -57,7 +58,10 @@ Return ONLY JSON:
         content: `JD:\n${neutralizeForPrompt(input.jdText)}\n\nMASTER RESUME:\n${neutralizeForPrompt(input.resumeText)}`,
       },
     ],
-    { sessionKey: input.sessionKey || ephemeralOpenClawSession("ats-tailor") },
+    {
+      sessionKey: input.sessionKey || ephemeralOpenClawSession("ats-tailor"),
+      signal: input.signal,
+    },
   );
 
   const parsed = extractJsonObject(result.text) as {

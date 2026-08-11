@@ -109,6 +109,9 @@ const ANALYZE_STAGE_MS = 5600;
 type Tab = "prepare" | "analyze" | "builder" | "brand";
 type StoredTab = Tab | "improve";
 type ChatMsg = { role: "user" | "assistant"; text: string };
+type PendingOverride =
+  | { action: "analyze"; preserveTailor: boolean }
+  | { action: "improve"; focus: ImproveFocus };
 type AtsSessionRow = {
   id: string;
   name: string;
@@ -135,6 +138,8 @@ export function AtsStudio() {
   const [busy, setBusy] = useState<string | null>(null);
   const [analyzeStage, setAnalyzeStage] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [pendingOverride, setPendingOverride] =
+    useState<PendingOverride | null>(null);
   const [driveConnected, setDriveConnected] = useState(false);
   const [driveOpen, setDriveOpen] = useState(false);
   const [driveEmail, setDriveEmail] = useState<string | null>(null);
@@ -746,6 +751,7 @@ export function AtsStudio() {
     silentTab?: boolean;
     /** Preserve tailor version counters (re-score only). */
     preserveTailor?: boolean;
+    overrideCurrent?: boolean;
   }) {
     if (!resumeText.trim()) {
       setError(
@@ -765,6 +771,7 @@ export function AtsStudio() {
     const ac = new AbortController();
     analyzeAbortRef.current = ac;
     const preserveTailor = Boolean(opts?.preserveTailor);
+    setPendingOverride(null);
     // Always clear stale analysis UI immediately so Prepare→Analyse never flashes old JD results
     setAnalysis(null);
     if (!preserveTailor) {
@@ -799,14 +806,25 @@ export function AtsStudio() {
         analysis?: AtsAnalysis;
       }>("/api/ats/analyze", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(opts?.overrideCurrent ? { "x-tt-override": "true" } : {}),
+        },
         body: JSON.stringify({
           resumeText: working,
           jdText: usableJd,
         }),
         signal: ac.signal,
       });
-      if (!res.ok) throw new Error(data.error || "Analyze failed");
+      if (!res.ok) {
+        if (res.status === 409 || res.status === 524) {
+          setPendingOverride({ action: "analyze", preserveTailor });
+          throw new Error(
+            "A previous analysis is still running. Cancel it and retry to replace it.",
+          );
+        }
+        throw new Error(data.error || "Analyze failed");
+      }
       const nextAnalysis = data.analysis || null;
       const local = scoreTriple(working, usableJd);
       if (nextAnalysis) {
@@ -879,6 +897,7 @@ export function AtsStudio() {
         setActiveAnalyzeVersion(snap.id);
       }
       markDirty();
+      setPendingOverride(null);
     } catch (e) {
       if (e instanceof Error && e.name === "AbortError") return;
       setError(e instanceof Error ? e.message : String(e));
@@ -942,7 +961,10 @@ export function AtsStudio() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- run when landing on analyse from prepare
   }, [tab]);
 
-  async function runBrainImprove(focus: ImproveFocus = "balanced") {
+  async function runBrainImprove(
+    focus: ImproveFocus = "balanced",
+    overrideCurrent = false,
+  ) {
     if (!resumeText.trim() || !masterScores) return;
     const row = tailorRows[focus];
     if (row.improveCount >= 4) return;
@@ -980,6 +1002,7 @@ export function AtsStudio() {
     setBusyFocus(focus);
     setBusy("improve");
     setError(null);
+    setPendingOverride(null);
 
     let tickIdx = 0;
     setTailorRows((prev) => ({
@@ -1037,10 +1060,19 @@ export function AtsStudio() {
         benchmark?: { benchmark?: { score: number; tool: string } };
       }>("/api/brain/improve", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(overrideCurrent ? { "x-tt-override": "true" } : {}),
+        },
         body: JSON.stringify(body),
       });
       if (!res.ok || !data.pass) {
+        if (res.status === 409 || res.status === 524) {
+          setPendingOverride({ action: "improve", focus });
+          throw new Error(
+            "A previous analysis/improve request is still running. Cancel it and retry to replace it.",
+          );
+        }
         throw new Error(data.error || "Tailor pass failed");
       }
       const pass = data.pass;
@@ -1082,6 +1114,7 @@ export function AtsStudio() {
       syncKeywordChipsFromDraft(pass.resumeMd, resolvedJd);
       setQueuedMissingKeywords([]);
       markDirty();
+      setPendingOverride(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
       setTailorRows((prev) => ({
@@ -1092,6 +1125,20 @@ export function AtsStudio() {
       window.clearInterval(feedTimer);
       setBusyFocus(null);
       setBusy(null);
+    }
+  }
+
+  function retryPendingOverride() {
+    const pending = pendingOverride;
+    if (!pending || busy) return;
+    setPendingOverride(null);
+    if (pending.action === "analyze") {
+      void runAnalyze({
+        preserveTailor: pending.preserveTailor,
+        overrideCurrent: true,
+      });
+    } else {
+      void runBrainImprove(pending.focus, true);
     }
   }
 
@@ -1367,6 +1414,17 @@ export function AtsStudio() {
           <p className="border-b border-[var(--line)] bg-white px-4 py-2 text-sm text-[var(--danger)]">
             {error}
           </p>
+        )}
+        {pendingOverride && !busy && (
+          <div className="border-b border-[var(--line)] bg-white px-4 py-2">
+            <button
+              type="button"
+              onClick={retryPendingOverride}
+              className="btn-secondary px-3 py-1.5 text-xs font-semibold"
+            >
+              Cancel previous request and retry
+            </button>
+          </div>
         )}
         {driveMsg && (
           <p className="border-b border-[var(--line)] bg-white px-4 py-2 text-xs text-[var(--muted)]">

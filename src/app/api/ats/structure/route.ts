@@ -12,9 +12,11 @@ import { formatResumeDisplayName } from "@/lib/context";
 import { ephemeralOpenClawSession } from "@/lib/runtime/sessionKey";
 import { jsonError, jsonOk, readJsonBody } from "@/lib/api";
 import {
-  acquireUserAiLock,
+  acquireUserAiJob,
+  cancelUserAiJob,
+  getUserAiJob,
   rateLimit,
-  releaseUserAiLock,
+  releaseUserAiJob,
 } from "@/lib/security/rateLimit";
 import { LIMITS, sanitizeText } from "@/lib/security/validate";
 import { z } from "zod";
@@ -53,10 +55,21 @@ export async function POST(req: Request) {
     .safeParse(body.data);
   if (!parsed.success) return jsonError("Invalid body", 400);
 
-  const lockToken = acquireUserAiLock(ctx.user.id);
-  if (!lockToken) {
+  const override = req.headers.get("x-tt-override") === "true";
+  const action = parsed.data.action === "improve" ? "improve" : "structure";
+  let job = acquireUserAiJob(ctx.user.id, action);
+  if (!job && override) {
+    cancelUserAiJob(ctx.user.id);
+    job = acquireUserAiJob(ctx.user.id, action);
+  }
+  if (!job) {
+    const active = getUserAiJob(ctx.user.id);
     console.warn(`[ats/structure ${requestId}] rejected overlapping request`);
-    return jsonError("Another analyze/improve request is already in progress. Please wait.", 409);
+    return jsonError(
+      "An earlier ATS request is still running. Cancel it and retry to replace it.",
+      409,
+      { code: "AI_JOB_ACTIVE", jobId: active?.jobId, activeAction: active?.action },
+    );
   }
 
   try {
@@ -66,6 +79,7 @@ export async function POST(req: Request) {
       const out = await structureResumeToJson({
         resumeText: text,
         sessionKey: `ats-structure-${ctx.user.id}`,
+        signal: job.controller.signal,
       });
       let saved = null;
       if (parsed.data.saveAsResume) {
@@ -92,6 +106,7 @@ export async function POST(req: Request) {
           instruction,
           jdText: jd,
           sessionKey: `ats-improve-${ctx.user.id}`,
+          signal: job.controller.signal,
         });
       } else {
         const text = sanitizeText(parsed.data.resumeText || "", LIMITS.resume);
@@ -103,6 +118,7 @@ export async function POST(req: Request) {
           instruction,
           jdText: jd,
           sessionKey: `ats-improve-${ctx.user.id}`,
+          signal: job.controller.signal,
         });
       }
 
@@ -122,6 +138,7 @@ export async function POST(req: Request) {
       jsonResume: jr,
       jdText: jd,
       sessionKey: `ats-tailor-json-${ctx.user.id}`,
+      signal: job.controller.signal,
     });
     let saved = null;
     if (parsed.data.saveAsResume !== false) {
@@ -137,6 +154,6 @@ export async function POST(req: Request) {
     console.error(`[ats/structure ${requestId}] HTTP 502: ${msg}`);
     return jsonError(msg, 502);
   } finally {
-    releaseUserAiLock(ctx.user.id, lockToken);
+    releaseUserAiJob(ctx.user.id, job.token);
   }
 }

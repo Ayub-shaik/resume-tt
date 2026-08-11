@@ -6,9 +6,11 @@ import { createResume } from "@/lib/db";
 import { formatResumeDisplayName } from "@/lib/context";
 import { jsonError, jsonOk, readJsonBody } from "@/lib/api";
 import {
-  acquireUserAiLock,
+  acquireUserAiJob,
+  cancelUserAiJob,
+  getUserAiJob,
   rateLimit,
-  releaseUserAiLock,
+  releaseUserAiJob,
 } from "@/lib/security/rateLimit";
 import { LIMITS, sanitizeText } from "@/lib/security/validate";
 import { z } from "zod";
@@ -45,10 +47,32 @@ export async function POST(req: Request) {
     return jsonError("resumeText and jdText required", 400);
   }
 
-  const lockToken = acquireUserAiLock(ctx.user.id);
-  if (!lockToken) {
+  const override = req.headers.get("x-tt-override") === "true";
+  let job = acquireUserAiJob(ctx.user.id, "improve");
+  if (!job && override) {
+    const cancelled = cancelUserAiJob(ctx.user.id);
+    if (cancelled) {
+      console.warn(
+        `[ats/tailor ${requestId}] cancelled job ${cancelled.jobId} for override`,
+      );
+    }
+    job = acquireUserAiJob(ctx.user.id, "improve");
+  }
+  if (!job) {
+    const active = getUserAiJob(ctx.user.id);
     console.warn(`[ats/tailor ${requestId}] rejected overlapping request`);
-    return jsonError("Another analyze/improve request is already in progress. Please wait.", 409);
+    return jsonError(
+      "An earlier analyze/improve request is still running. Cancel it and retry to replace it.",
+      409,
+      {
+        code: "AI_JOB_ACTIVE",
+        jobId: active?.jobId,
+        activeAction: active?.action,
+        elapsedSec: active
+          ? Math.max(0, Math.floor((Date.now() - active.startedAt) / 1000))
+          : undefined,
+      },
+    );
   }
 
   try {
@@ -56,6 +80,7 @@ export async function POST(req: Request) {
       resumeText: sanitizeText(parsed.data.resumeText, LIMITS.resume),
       jdText: sanitizeText(parsed.data.jdText, LIMITS.jd),
       sessionKey: ephemeralOpenClawSession("ats-tailor", [ctx.user.id]),
+      signal: job.controller.signal,
     });
 
     let saved = null;
@@ -73,6 +98,6 @@ export async function POST(req: Request) {
     console.error(`[ats/tailor ${requestId}] HTTP 502: ${msg}`);
     return jsonError(msg, 502);
   } finally {
-    releaseUserAiLock(ctx.user.id, lockToken);
+    releaseUserAiJob(ctx.user.id, job.token);
   }
 }

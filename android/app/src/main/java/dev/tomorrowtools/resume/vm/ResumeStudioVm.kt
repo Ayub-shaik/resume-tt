@@ -2,6 +2,8 @@ package dev.tomorrowtools.resume.vm
 
 import android.app.Application
 import android.content.Context
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.net.Uri
 import android.provider.OpenableColumns
 import android.webkit.MimeTypeMap
@@ -26,6 +28,7 @@ import dev.tomorrowtools.resume.util.parseExtensionAllowed
 import dev.tomorrowtools.resume.util.parseScoreView
 import dev.tomorrowtools.resume.util.toUserMessage
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -37,7 +40,10 @@ import okhttp3.MultipartBody
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
+import retrofit2.HttpException
 import java.io.File
+import java.net.ConnectException
+import java.net.UnknownHostException
 
 enum class ResumeTab { Prepare, Analyse, Tailor, Brand, Builder, Profile }
 
@@ -50,6 +56,12 @@ class ResumeStudioVm(app: Application) : AndroidViewModel(app) {
     var email by mutableStateOf<String?>(null); private set
     var busy by mutableStateOf(false); private set
     var busyMessage by mutableStateOf<String?>(null); private set
+    var busyAction by mutableStateOf<String?>(null); private set
+    var busySecondsRemaining by mutableStateOf<Int?>(null); private set
+    private var busyDots by mutableStateOf(""); private set
+    var overrideAvailable by mutableStateOf(false); private set
+    var overrideAction by mutableStateOf<String?>(null); private set
+    private var pendingOverrideRetry: (() -> Unit)? = null
     var error by mutableStateOf<String?>(null); private set
     var gateWarning by mutableStateOf<String?>(null); private set
     var tab by mutableStateOf(ResumeTab.Prepare); private set
@@ -141,7 +153,7 @@ class ResumeStudioVm(app: Application) : AndroidViewModel(app) {
         tab = ResumeTab.Prepare
     }
 
-    fun signInWithPassword() = launchBusy("Signing in. Please wait for LLM to process.") {
+    fun signInWithPassword() = launchBusy("Signing in") {
         val res = api.passwordAuth(PasswordAuthRequest(emailInput.trim(), passwordInput))
         token = res.token
         store.save(res.token, res.user.email)
@@ -186,7 +198,7 @@ class ResumeStudioVm(app: Application) : AndroidViewModel(app) {
     }
 
     /** Explicitly continue the most recent saved package (opt-in). */
-    fun continueLastSession() = launchBusy("Loading session. Please wait for LLM to process.") {
+    fun continueLastSession() = launchBusy("Loading session") {
         restoreLatestSession()
         if (sessionId == null) error = "No saved sessions yet"
     }
@@ -194,9 +206,12 @@ class ResumeStudioVm(app: Application) : AndroidViewModel(app) {
     fun startFreshPackage() {
         clearStudioState()
         tab = ResumeTab.Prepare
+        if (overrideAvailable) {
+            error = "A previous request is still running. Cancel it before analyzing this new package."
+        }
     }
 
-    fun loadSession(id: String) = launchBusy("Opening session. Please wait for LLM to process.") {
+    fun loadSession(id: String) = launchBusy("Opening session") {
         val s = api.getSession(id).session
         applySession(s)
     }
@@ -259,13 +274,13 @@ class ResumeStudioVm(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    fun fetchJd() = launchBusy("Fetching job description. Please wait for LLM to process.") {
+    fun fetchJd() = launchBusy("Fetching JD") {
         val res = api.fetchJd(JdRequest(jdUrl.trim()))
         if (res.text.isNullOrBlank()) error = "Empty JD from URL — paste the description manually."
         else jdText = res.text
     }
 
-    fun parseResumeUri(ctx: Context, uri: Uri) = launchBusy("Parsing resume. Please wait for LLM to process.") {
+    fun parseResumeUri(ctx: Context, uri: Uri) = launchBusy("Parsing resume") {
         val resolver = ctx.contentResolver
         var displayName = "resume.pdf"
         resolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { c ->
@@ -322,7 +337,11 @@ class ResumeStudioVm(app: Application) : AndroidViewModel(app) {
         tmp.delete()
     }
 
-    fun analyse() = launchBusy("Analyzing. Please wait for LLM to process.") {
+    fun analyse(overrideCurrent: Boolean = false): Unit = launchBusy(
+        action = "Analyzing",
+        overrideCurrent = overrideCurrent,
+        retryWithOverride = { analyse(true) },
+    ) {
         val text = resumeText.trim()
         var jd = jdText.trim()
         if (text.isEmpty()) {
@@ -346,7 +365,11 @@ class ResumeStudioVm(app: Application) : AndroidViewModel(app) {
             return@launchBusy
         }
         // API now expects a string for jdText; send empty string when JD is absent.
-        val analyzed = analyzeResumeText(text = text, jd = jd)
+        val analyzed = analyzeResumeText(
+            text = text,
+            jd = jd,
+            overrideCurrent = overrideCurrent,
+        )
         analysisRaw = analyzed.analysis
         scores = analyzed.scores
         appliedSuggestionKeys = emptySet()
@@ -368,7 +391,11 @@ class ResumeStudioVm(app: Application) : AndroidViewModel(app) {
 
     private data class AnalyzeResult(val analysis: JsonElement?, val scores: ScoreView)
 
-    private suspend fun analyzeResumeText(text: String, jd: String): AnalyzeResult {
+    private suspend fun analyzeResumeText(
+        text: String,
+        jd: String,
+        overrideCurrent: Boolean = false,
+    ): AnalyzeResult {
         // Encode explicitly so the wire body always includes resumeText (avoids empty Retrofit bodies).
         val payload = AnalyzeRequest(resumeText = text, jdText = jd)
         val bodyJson = appJson.encodeToString(AnalyzeRequest.serializer(), payload)
@@ -376,6 +403,9 @@ class ResumeStudioVm(app: Application) : AndroidViewModel(app) {
             .url(BuildConfig.API_BASE_URL.trimEnd('/') + "/api/ats/analyze")
             .header("Authorization", "Bearer ${token.orEmpty()}")
             .header("Content-Type", "application/json")
+            .apply {
+                if (overrideCurrent) header("x-tt-override", "true")
+            }
             .post(bodyJson.toRequestBody("application/json".toMediaType()))
             .build()
         val raw = withContext(Dispatchers.IO) {
@@ -383,6 +413,9 @@ class ResumeStudioVm(app: Application) : AndroidViewModel(app) {
                 val respBody = resp.body?.string().orEmpty()
                 if (!resp.isSuccessful) {
                     val detail = extractErrorDetail(respBody) ?: respBody.take(280)
+                    if (resp.code == 409) {
+                        throw ActiveJobConflictException(detail)
+                    }
                     error("HTTP ${resp.code}${if (detail.isNotBlank()) ": $detail" else ""}")
                 }
                 respBody
@@ -463,12 +496,23 @@ class ResumeStudioVm(app: Application) : AndroidViewModel(app) {
         tailor()
     }
 
-    fun askAts() = launchBusy("Asking ATS coach. Please wait for LLM to process.") {
-        val res = api.ask(AskRequest(askQuestion, resumeText, jdText))
+    fun askAts(overrideCurrent: Boolean = false): Unit = launchBusy(
+        action = "Asking ATS coach",
+        overrideCurrent = overrideCurrent,
+        retryWithOverride = { askAts(true) },
+    ) {
+        val res = api.ask(
+            AskRequest(askQuestion, resumeText, jdText),
+            overrideCurrent = if (overrideCurrent) "true" else null,
+        )
         askAnswer = res.answer ?: res.text ?: res.toString()
     }
 
-    fun tailor() = launchBusy("Improving. Please wait for LLM to process.") {
+    fun tailor(overrideCurrent: Boolean = false): Unit = launchBusy(
+        action = "Improving",
+        overrideCurrent = overrideCurrent,
+        retryWithOverride = { tailor(true) },
+    ) {
         if (jdText.isBlank()) error("Job description required for tailor")
         // Keep jdText as the JD body the API expects; put focus/missing as prefix context in jdText
         // only when needed — server requires resumeText + jdText (route: POST api/ats/tailor).
@@ -484,7 +528,10 @@ class ResumeStudioVm(app: Application) : AndroidViewModel(app) {
             appendLine()
             append(jdText)
         }
-        val res = api.tailor(TailorRequest(resumeText = resumeText, jdText = jdPayload, saveAsResume = true))
+        val res = api.tailor(
+            TailorRequest(resumeText = resumeText, jdText = jdPayload, saveAsResume = true),
+            overrideCurrent = if (overrideCurrent) "true" else null,
+        )
         val md = res.resumeMd?.takeIf { it.isNotBlank() } ?: error("Empty tailor result")
         versions = (versions + VersionSnap("v${versions.size + 1}", md, focus)).takeLast(12)
         tailoredMd = md
@@ -520,7 +567,7 @@ class ResumeStudioVm(app: Application) : AndroidViewModel(app) {
         focus = snap.focus
     }
 
-    fun loadBrand() = launchBusy("Generating brand kit. Please wait for LLM to process.") {
+    fun loadBrand() = launchBusy("Generating brand kit") {
         brandKit = api.careerBrand(BrandRequest(resumeText, linkedinPaste.ifBlank { null }, targetRole.ifBlank { null })).kit
         tab = ResumeTab.Brand
         saveSession("brand")
@@ -530,15 +577,22 @@ class ResumeStudioVm(app: Application) : AndroidViewModel(app) {
         try { templates = api.templates().templates } catch (e: Exception) { error = e.message }
     }
 
-    fun structureForBuilder() = launchBusy("Building template data. Please wait for LLM to process.") {
-        val res = api.structure(StructureRequest(action = "structure", resumeText = resumeText, jdText = jdText.ifBlank { null }))
+    fun structureForBuilder(overrideCurrent: Boolean = false): Unit = launchBusy(
+        action = "Building template data",
+        overrideCurrent = overrideCurrent,
+        retryWithOverride = { structureForBuilder(true) },
+    ) {
+        val res = api.structure(
+            StructureRequest(action = "structure", resumeText = resumeText, jdText = jdText.ifBlank { null }),
+            overrideCurrent = if (overrideCurrent) "true" else null,
+        )
         jsonResume = res.jsonResume
         if (templates.isEmpty()) templates = api.templates().templates
         tab = ResumeTab.Builder
         saveSession("builder")
     }
 
-    fun exportPdf(ctx: Context) = launchBusy("Exporting PDF. Please wait for LLM to process.") {
+    fun exportPdf(ctx: Context) = launchBusy("Exporting PDF") {
         val md = tailoredMd ?: resumeText
         if (jsonResume != null) {
             // prefer template render when structured
@@ -587,21 +641,140 @@ class ResumeStudioVm(app: Application) : AndroidViewModel(app) {
         tab = ResumeTab.Prepare
     }
 
-    private fun launchBusy(message: String, block: suspend () -> Unit) {
+    private class ActiveJobConflictException(message: String) : Exception(message)
+
+    private fun hasNetwork(): Boolean {
+        val manager = getApplication<Application>()
+            .getSystemService(ConnectivityManager::class.java)
+            ?: return false
+        val network = manager.activeNetwork ?: return false
+        val capabilities = manager.getNetworkCapabilities(network) ?: return false
+        return capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+    }
+
+    private fun isOfflineException(error: Throwable): Boolean {
+        var current: Throwable? = error
+        while (current != null) {
+            if (current is UnknownHostException || current is ConnectException) return true
+            val message = current.message.orEmpty()
+            if (
+                message.contains("Unable to resolve host", ignoreCase = true) ||
+                message.contains("No address associated", ignoreCase = true) ||
+                message.contains("Network is unreachable", ignoreCase = true) ||
+                message.contains("No route to host", ignoreCase = true) ||
+                message.contains("Failed to connect", ignoreCase = true)
+            ) {
+                return true
+            }
+            current = current.cause
+        }
+        return false
+    }
+
+    private suspend fun waitForNetwork() {
+        while (!hasNetwork()) delay(1_000)
+        delay(500)
+    }
+
+    private suspend fun runWithNetworkRecovery(block: suspend () -> Unit) {
+        while (true) {
+            try {
+                block()
+                return
+            } catch (e: Exception) {
+                if (!isOfflineException(e)) throw e
+                error = "no network: waiting for network to resume automatically"
+                waitForNetwork()
+            }
+        }
+    }
+
+    fun overrideCurrentRun() {
+        if (busy) return
+        val retry = pendingOverrideRetry ?: return
+        pendingOverrideRetry = null
+        overrideAvailable = false
+        overrideAction = null
+        retry()
+    }
+
+    fun isBusyAction(action: String): Boolean = busy && busyAction == action
+
+    private fun updateBusyMessage() {
+        val action = busyAction ?: return
+        busyMessage = if (busySecondsRemaining != null) {
+            "$action please wait (${busySecondsRemaining}s)"
+        } else {
+            "Finalizing please wait$busyDots"
+        }
+    }
+
+    private suspend fun runBusyProgress() {
+        for (remaining in 29 downTo 0) {
+            delay(1_000)
+            if (!busy) return
+            busySecondsRemaining = remaining
+            updateBusyMessage()
+        }
+        busySecondsRemaining = null
+        updateBusyMessage()
+        val frames = listOf(".", "..", "...", "..")
+        var frame = 0
+        while (busy) {
+            busyDots = frames[frame % frames.size]
+            frame += 1
+            updateBusyMessage()
+            delay(350)
+        }
+    }
+
+    private fun launchBusy(
+        action: String,
+        overrideCurrent: Boolean = false,
+        retryWithOverride: (() -> Unit)? = null,
+        block: suspend () -> Unit,
+    ) {
         // Set the guard before launching so rapid taps cannot enqueue a second
         // request during the coroutine dispatch window.
         if (busy) return
         busy = true
         error = null
-        busyMessage = message
+        overrideAvailable = false
+        overrideAction = null
+        pendingOverrideRetry = null
+        busyAction = action
+        busySecondsRemaining = 30
+        busyDots = ""
+        updateBusyMessage()
         viewModelScope.launch {
+            val progressJob = launch { runBusyProgress() }
             try {
-                block()
+                runWithNetworkRecovery(block)
             } catch (e: Exception) {
-                error = e.toUserMessage()
+                val conflict = e is ActiveJobConflictException ||
+                    (e is HttpException && e.code() == 409) ||
+                    e.message.orEmpty().contains("HTTP 409")
+                val timeout = e.message.orEmpty().contains("HTTP 524") ||
+                    e.message.orEmpty().contains("timed out", ignoreCase = true)
+                if (conflict || timeout) {
+                    overrideAvailable = retryWithOverride != null
+                    overrideAction = action
+                    pendingOverrideRetry = retryWithOverride
+                    error = if (timeout) {
+                        "The previous $action request timed out. You can cancel it and start this request again."
+                    } else {
+                        "A previous $action request is still running. Cancel it and start this request again."
+                    }
+                } else {
+                    error = e.toUserMessage()
+                }
             } finally {
+                progressJob.cancel()
                 busy = false
                 busyMessage = null
+                busyAction = null
+                busySecondsRemaining = null
+                busyDots = ""
             }
         }
     }

@@ -3,6 +3,8 @@ package dev.tomorrowtools.resume.util
 import android.util.Log
 import org.json.JSONObject
 import retrofit2.HttpException
+import java.net.ConnectException
+import java.net.UnknownHostException
 import java.io.IOException
 
 fun Throwable.toUserMessage(tag: String = "ResumeApi"): String {
@@ -25,7 +27,16 @@ fun Throwable.toUserMessage(tag: String = "ResumeApi"): String {
         }
         is IOException -> {
             val msg = message ?: "connection failed"
-            if (msg.contains("Software caused connection abort", ignoreCase = true)) {
+            if (
+                this is UnknownHostException ||
+                this is ConnectException ||
+                msg.contains("Unable to resolve host", ignoreCase = true) ||
+                msg.contains("No address associated", ignoreCase = true) ||
+                msg.contains("Network is unreachable", ignoreCase = true) ||
+                msg.contains("No route to host", ignoreCase = true)
+            ) {
+                "no network: waiting for network to resume automatically"
+            } else if (msg.contains("Software caused connection abort", ignoreCase = true)) {
                 "Network error: connection aborted while waiting for ATS response. Please retry Re-analyze."
             } else {
                 "Network error: $msg"

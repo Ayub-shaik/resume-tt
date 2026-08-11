@@ -4,6 +4,7 @@ import kotlinx.serialization.json.JsonObject
 import okhttp3.MultipartBody
 import retrofit2.http.Body
 import retrofit2.http.GET
+import retrofit2.http.Header
 import retrofit2.http.Multipart
 import retrofit2.http.POST
 import retrofit2.http.Part
@@ -23,13 +24,22 @@ interface ResumeApi {
     suspend fun fetchJd(@Body body: JdRequest): JdPayload
 
     @POST("api/ats/analyze")
-    suspend fun analyze(@Body body: AnalyzeRequest): AnalyzePayload
+    suspend fun analyze(
+        @Body body: AnalyzeRequest,
+        @Header("x-tt-override") overrideCurrent: String? = null,
+    ): AnalyzePayload
 
     @POST("api/ats/tailor")
-    suspend fun tailor(@Body body: TailorRequest): TailorPayload
+    suspend fun tailor(
+        @Body body: TailorRequest,
+        @Header("x-tt-override") overrideCurrent: String? = null,
+    ): TailorPayload
 
     @POST("api/ats/ask")
-    suspend fun ask(@Body body: AskRequest): AskPayload
+    suspend fun ask(
+        @Body body: AskRequest,
+        @Header("x-tt-override") overrideCurrent: String? = null,
+    ): AskPayload
 
     @POST("api/ats/career-brand")
     suspend fun careerBrand(@Body body: BrandRequest): BrandPayload
@@ -38,7 +48,10 @@ interface ResumeApi {
     suspend fun templates(): TemplatesPayload
 
     @POST("api/ats/structure")
-    suspend fun structure(@Body body: StructureRequest): StructurePayload
+    suspend fun structure(
+        @Body body: StructureRequest,
+        @Header("x-tt-override") overrideCurrent: String? = null,
+    ): StructurePayload
 
     @GET("api/ats/sessions")
     suspend fun listSessions(): SessionsPayload

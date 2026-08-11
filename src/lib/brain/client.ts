@@ -11,7 +11,10 @@ import {
   type ResumeVersion,
 } from "@tomorrowtools/resume-brain";
 
-export function createResumeBrainComplete(matchScore: number): LLMComplete {
+export function createResumeBrainComplete(
+  matchScore: number,
+  signal?: AbortSignal,
+): LLMComplete {
   const tier = selectModelTier(matchScore);
   const premium =
     process.env.RESUME_BRAIN_PREMIUM_MODEL ||
@@ -28,6 +31,7 @@ export function createResumeBrainComplete(matchScore: number): LLMComplete {
     const result = await runOpenClaw(messages, {
       sessionKey:
         opts?.sessionId || ephemeralOpenClawSession(`resume-brain-${model}`),
+      signal,
     });
     return result.text;
   };
@@ -40,8 +44,9 @@ export async function brainImproveChain(input: {
   targetVersion: ResumeVersion;
   focus?: ImproveFocus;
   matchScore: number;
+  signal?: AbortSignal;
 }) {
-  const complete = createResumeBrainComplete(input.matchScore);
+  const complete = createResumeBrainComplete(input.matchScore, input.signal);
   return runImproveChain({
     masterResume: input.masterResume,
     jdText: input.jdText || "",
@@ -62,8 +67,9 @@ export async function brainImprovePass(input: {
   version: ResumeVersion;
   focus?: ImproveFocus;
   matchScore: number;
+  signal?: AbortSignal;
 }) {
-  const complete = createResumeBrainComplete(input.matchScore);
+  const complete = createResumeBrainComplete(input.matchScore, input.signal);
   return runImprovePass({
     ...input,
     factLedger: buildFactLedger(input.masterResume),
@@ -79,8 +85,9 @@ export async function brainImproveMore(input: {
   targetRole?: string;
   matchScore: number;
   focus?: ImproveFocus;
+  signal?: AbortSignal;
 }) {
-  const complete = createResumeBrainComplete(input.matchScore);
+  const complete = createResumeBrainComplete(input.matchScore, input.signal);
   return runImproveMore({
     ...input,
     complete,

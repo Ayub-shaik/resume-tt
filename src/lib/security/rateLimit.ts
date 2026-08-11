@@ -59,30 +59,80 @@ export function releaseInterviewLock(interviewId: string) {
   locks.delete(interviewId);
 }
 
-/** Prevent overlapping long AI jobs for same user. */
-type UserAiLock = { token: string; until: number };
+export type UserAiJob = {
+  jobId: string;
+  userId: string;
+  action: string;
+  token: string;
+  startedAt: number;
+  until: number;
+  controller: AbortController;
+};
 
-const userLocks = new Map<string, UserAiLock>();
+const userJobs = new Map<string, UserAiJob>();
 
 /**
- * Returns an ownership token so an expired request cannot release a newer
- * request's lock. The TTL is only a recovery guard; normal requests release
- * in finally blocks.
+ * Starts one cancellable AI job per user. The TTL is only a recovery guard;
+ * normal requests release in finally blocks.
  */
+export function acquireUserAiJob(
+  userId: string,
+  action: string,
+  ttlMs = 240_000,
+): UserAiJob | null {
+  const now = Date.now();
+  const current = userJobs.get(userId);
+  if (current && current.until > now) return null;
+  if (current) {
+    current.controller.abort();
+    userJobs.delete(userId);
+  }
+  const job: UserAiJob = {
+    jobId: randomUUID(),
+    userId,
+    action,
+    token: randomUUID(),
+    startedAt: now,
+    until: now + ttlMs,
+    controller: new AbortController(),
+  };
+  userJobs.set(userId, job);
+  return job;
+}
+
+export function getUserAiJob(userId: string): UserAiJob | null {
+  const current = userJobs.get(userId);
+  if (!current) return null;
+  if (current.until <= Date.now()) {
+    userJobs.delete(userId);
+    current.controller.abort();
+    return null;
+  }
+  return current;
+}
+
+export function cancelUserAiJob(userId: string, jobId?: string): UserAiJob | null {
+  const current = getUserAiJob(userId);
+  if (!current || (jobId && current.jobId !== jobId)) return null;
+  current.controller.abort();
+  userJobs.delete(userId);
+  return current;
+}
+
+export function releaseUserAiJob(userId: string, token: string) {
+  if (userJobs.get(userId)?.token === token) {
+    userJobs.delete(userId);
+  }
+}
+
+/** Backward-compatible lock API for lower-priority ATS routes. */
 export function acquireUserAiLock(
   userId: string,
   ttlMs = 240_000,
 ): string | null {
-  const now = Date.now();
-  const current = userLocks.get(userId);
-  if (current && current.until > now) return null;
-  const token = randomUUID();
-  userLocks.set(userId, { token, until: now + ttlMs });
-  return token;
+  return acquireUserAiJob(userId, "legacy", ttlMs)?.token ?? null;
 }
 
 export function releaseUserAiLock(userId: string, token: string) {
-  if (userLocks.get(userId)?.token === token) {
-    userLocks.delete(userId);
-  }
+  releaseUserAiJob(userId, token);
 }

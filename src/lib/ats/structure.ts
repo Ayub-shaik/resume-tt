@@ -30,6 +30,7 @@ HARD RULES:
 export async function structureResumeToJson(input: {
   resumeText: string;
   sessionKey?: string;
+  signal?: AbortSignal;
 }): Promise<{ jsonResume: JsonResume; markdown: string }> {
   const result = await runOpenClaw(
     [
@@ -39,7 +40,10 @@ export async function structureResumeToJson(input: {
         content: `Convert this resume to JSON Resume:\n\n${neutralizeForPrompt(input.resumeText)}`,
       },
     ],
-    { sessionKey: input.sessionKey || ephemeralOpenClawSession("ats-structure") },
+    {
+      sessionKey: input.sessionKey || ephemeralOpenClawSession("ats-structure"),
+      signal: input.signal,
+    },
   );
   const parsed = JsonResumeSchema.parse(extractJsonObject(result.text));
   const withMeta: JsonResume = {
@@ -73,6 +77,7 @@ export async function tailorJsonResume(input: {
   jsonResume: JsonResume;
   jdText: string;
   sessionKey?: string;
+  signal?: AbortSignal;
 }): Promise<{ jsonResume: JsonResume; markdown: string }> {
   if (!input.jdText.trim()) {
     return improveJsonResume({
@@ -81,6 +86,7 @@ export async function tailorJsonResume(input: {
         "Strengthen wording and ATS clarity for a general professional resume. Do not invent facts.",
       jdText: "",
       sessionKey: input.sessionKey || ephemeralOpenClawSession("ats-tailor-json"),
+      signal: input.signal,
     });
   }
   const result = await runOpenClaw(
@@ -91,7 +97,10 @@ export async function tailorJsonResume(input: {
         content: `JD:\n${neutralizeForPrompt(input.jdText)}\n\nJSON Resume:\n${JSON.stringify(input.jsonResume)}`,
       },
     ],
-    { sessionKey: input.sessionKey || ephemeralOpenClawSession("ats-tailor-json") },
+    {
+      sessionKey: input.sessionKey || ephemeralOpenClawSession("ats-tailor-json"),
+      signal: input.signal,
+    },
   );
   const parsed = JsonResumeSchema.parse(extractJsonObject(result.text));
   const withMeta: JsonResume = {
@@ -128,6 +137,7 @@ export async function improveJsonResume(input: {
   instruction: string;
   jdText?: string;
   sessionKey?: string;
+  signal?: AbortSignal;
 }): Promise<{ jsonResume: JsonResume; markdown: string }> {
   const instruction = input.instruction.trim();
   if (!instruction) throw new Error("Instruction required");
@@ -144,7 +154,10 @@ export async function improveJsonResume(input: {
         }JSON Resume:\n${JSON.stringify(input.jsonResume)}`,
       },
     ],
-    { sessionKey: input.sessionKey || ephemeralOpenClawSession("ats-improve-json") },
+    {
+      sessionKey: input.sessionKey || ephemeralOpenClawSession("ats-improve-json"),
+      signal: input.signal,
+    },
   );
   const withMeta = withResumeMeta(
     JsonResumeSchema.parse(extractJsonObject(result.text)),
@@ -161,6 +174,7 @@ export async function improveResumeText(input: {
   instruction: string;
   jdText?: string;
   sessionKey?: string;
+  signal?: AbortSignal;
 }): Promise<{ jsonResume: JsonResume; markdown: string }> {
   const instruction = input.instruction.trim();
   if (!instruction) throw new Error("Instruction required");
@@ -186,7 +200,10 @@ Return ONLY the final improved JSON Resume object in one response.`,
         }Resume text:\n${neutralizeForPrompt(input.resumeText)}`,
       },
     ],
-    { sessionKey: input.sessionKey || ephemeralOpenClawSession("ats-improve-text") },
+    {
+      sessionKey: input.sessionKey || ephemeralOpenClawSession("ats-improve-text"),
+      signal: input.signal,
+    },
   );
   const withMeta = withResumeMeta(
     JsonResumeSchema.parse(extractJsonObject(result.text)),

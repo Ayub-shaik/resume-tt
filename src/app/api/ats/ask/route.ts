@@ -4,9 +4,11 @@ import { runOpenClaw } from "@/lib/runtime/openclaw";
 import { ephemeralOpenClawSession } from "@/lib/runtime/sessionKey";
 import { jsonError, jsonOk, readJsonBody } from "@/lib/api";
 import {
-  acquireUserAiLock,
+  acquireUserAiJob,
+  cancelUserAiJob,
+  getUserAiJob,
   rateLimit,
-  releaseUserAiLock,
+  releaseUserAiJob,
 } from "@/lib/security/rateLimit";
 import { LIMITS, neutralizeForPrompt, sanitizeText } from "@/lib/security/validate";
 import { z } from "zod";
@@ -47,10 +49,20 @@ export async function POST(req: Request) {
   const resumeText = sanitizeText(parsed.data.resumeText || "", LIMITS.resume);
   const jdText = sanitizeText(parsed.data.jdText || "", LIMITS.jd);
 
-  const lockToken = acquireUserAiLock(ctx.user.id);
-  if (!lockToken) {
+  const override = req.headers.get("x-tt-override") === "true";
+  let job = acquireUserAiJob(ctx.user.id, "ask", 240_000);
+  if (!job && override) {
+    cancelUserAiJob(ctx.user.id);
+    job = acquireUserAiJob(ctx.user.id, "ask", 240_000);
+  }
+  if (!job) {
+    const active = getUserAiJob(ctx.user.id);
     console.warn(`[ats/ask ${requestId}] rejected overlapping request`);
-    return jsonError("Another ATS request is already in progress. Please wait.", 409);
+    return jsonError(
+      "An earlier ATS request is still running. Cancel it and retry to replace it.",
+      409,
+      { code: "AI_JOB_ACTIVE", jobId: active?.jobId, activeAction: active?.action },
+    );
   }
 
   try {
@@ -80,6 +92,7 @@ If the user asks to rewrite a line, offer one improved version that stays factua
       ],
       {
         sessionKey: ephemeralOpenClawSession("ats-ask", [ctx.user.id]),
+        signal: job.controller.signal,
       },
     );
     return jsonOk({ reply: result.text.trim() || "No reply." });
@@ -88,6 +101,6 @@ If the user asks to rewrite a line, offer one improved version that stays factua
     console.error(`[ats/ask ${requestId}] HTTP 502: ${msg}`);
     return jsonError(msg, 502);
   } finally {
-    releaseUserAiLock(ctx.user.id, lockToken);
+    releaseUserAiJob(ctx.user.id, job.token);
   }
 }

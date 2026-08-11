@@ -100,6 +100,7 @@ export async function analyzeResumeVsJd(input: {
   resumeText: string;
   jdText: string;
   sessionKey?: string;
+  signal?: AbortSignal;
 }): Promise<AtsAnalysis> {
   const heuristic = keywordHeuristic(input.resumeText, input.jdText || "");
   const formatScore = atsFormatHeuristic(input.resumeText);
@@ -154,7 +155,10 @@ Rules:
             : `No JD provided. Analyze this resume for ATS quality and concrete improvements.\n\nRESUME:\n${neutralizeForPrompt(input.resumeText)}\n\nformatScore=${formatScore}`,
         },
       ],
-      { sessionKey: input.sessionKey || ephemeralOpenClawSession("ats-analyze") },
+      {
+        sessionKey: input.sessionKey || ephemeralOpenClawSession("ats-analyze"),
+        signal: input.signal,
+      },
     );
 
     const parsed = extractJsonObject(result.text) as Partial<AtsAnalysis> & {

@@ -6,7 +6,9 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -53,7 +55,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import dev.tomorrowtools.resume.BuildConfig
@@ -63,17 +70,27 @@ import dev.tomorrowtools.resume.util.openSiblingOrWeb
 import dev.tomorrowtools.resume.vm.ResumeStudioVm
 import dev.tomorrowtools.resume.vm.ResumeTab
 import java.io.File
+import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StudioScreen(vm: ResumeStudioVm) {
     val ctx = LocalContext.current
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
     var moreOpen by remember { mutableStateOf(false) }
     var hideMpiPrompt by remember { mutableStateOf(false) }
     val canOpenMpi = vm.analysisRaw != null
-    Scaffold(
-        topBar = {
-            TopAppBar(
+    LaunchedEffect(vm.busy) {
+        if (vm.busy) {
+            focusManager.clearFocus(force = true)
+            keyboardController?.hide()
+        }
+    }
+    Box(Modifier.fillMaxSize()) {
+        Scaffold(
+            topBar = {
+                TopAppBar(
                 title = { Text("Resume ATS") },
                 actions = {
                     if (canOpenMpi) {
@@ -109,41 +126,49 @@ fun StudioScreen(vm: ResumeStudioVm) {
                         )
                     }
                 },
-            )
-        },
-        bottomBar = {
-            NavigationBar {
-                NavigationBarItem(
+                )
+            },
+            bottomBar = {
+                NavigationBar {
+                    NavigationBarItem(
                     selected = vm.tab == ResumeTab.Prepare,
                     onClick = { if (!vm.busy) vm.selectTab(ResumeTab.Prepare) },
                     enabled = !vm.busy,
                     icon = { Icon(Icons.Filled.UploadFile, contentDescription = "Prepare") },
                     label = { Text("Prepare") },
-                )
-                NavigationBarItem(
+                    )
+                    NavigationBarItem(
                     selected = vm.tab == ResumeTab.Analyse || vm.tab == ResumeTab.Brand || vm.tab == ResumeTab.Profile || vm.tab == ResumeTab.Builder,
                     onClick = { if (!vm.busy) vm.selectTab(ResumeTab.Analyse) },
                     enabled = !vm.busy,
                     icon = { Icon(Icons.AutoMirrored.Filled.FactCheck, contentDescription = "Results") },
                     label = { Text("Results") },
-                )
-                NavigationBarItem(
+                    )
+                    NavigationBarItem(
                     selected = vm.tab == ResumeTab.Tailor,
                     onClick = { if (!vm.busy) vm.selectTab(ResumeTab.Tailor) },
                     enabled = !vm.busy,
                     icon = { Icon(Icons.Filled.AutoFixHigh, contentDescription = "Improve") },
                     label = { Text("Improve") },
-                )
-            }
-        },
-    ) { pad ->
-        Column(Modifier.padding(pad).fillMaxSize()) {
+                    )
+                }
+            },
+        ) { pad ->
+            Column(Modifier.padding(pad).fillMaxSize()) {
             if (vm.busy) LinearProgressIndicator(Modifier.fillMaxWidth())
             vm.busyMessage?.let {
                 Text(it, color = MaterialTheme.colorScheme.tertiary, modifier = Modifier.padding(8.dp))
             }
             vm.error?.let {
                 Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(8.dp))
+            }
+            if (vm.overrideAvailable && !vm.busy) {
+                OutlinedButton(
+                    onClick = vm::overrideCurrentRun,
+                    modifier = Modifier.padding(horizontal = 8.dp),
+                ) {
+                    Text("Cancel previous request and retry")
+                }
             }
             vm.gateWarning?.let {
                 Text(it, color = MaterialTheme.colorScheme.tertiary, modifier = Modifier.padding(8.dp))
@@ -170,6 +195,23 @@ fun StudioScreen(vm: ResumeStudioVm) {
                 ResumeTab.Builder -> BuilderTab(vm)
                 ResumeTab.Profile -> ProfileTab(vm)
             }
+            }
+        }
+        if (vm.busy) {
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.06f))
+                    .pointerInput(Unit) {
+                        awaitPointerEventScope {
+                            while (true) {
+                                awaitPointerEvent(PointerEventPass.Initial)
+                                    .changes
+                                    .forEach { it.consume() }
+                            }
+                        }
+                    },
+            )
         }
     }
 }
@@ -186,6 +228,41 @@ private fun openMpiWithResumeContext(ctx: android.content.Context, vm: ResumeStu
         .build()
         .toString()
     openSiblingOrWeb(ctx, appUri, BuildConfig.SIBLING_APP_URL)
+}
+
+@Composable
+private fun ActionButtonLabel(vm: ResumeStudioVm, action: String, default: String) {
+    if (!vm.isBusyAction(action)) {
+        Text(default)
+        return
+    }
+    vm.busySecondsRemaining?.let {
+        Text("$action please wait (${it}s)")
+        return
+    }
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text("Finalizing please wait")
+        BlinkingDots()
+    }
+}
+
+@Composable
+private fun BlinkingDots() {
+    var activeDot by remember { mutableStateOf(0) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(350)
+            activeDot = (activeDot + 1) % 3
+        }
+    }
+    Row {
+        repeat(3) { index ->
+            Text(
+                ".",
+                modifier = Modifier.alpha(if (index == activeDot) 1f else 0.25f),
+            )
+        }
+    }
 }
 
 @Composable
@@ -208,17 +285,20 @@ private fun PrepareTab(vm: ResumeStudioVm) {
             OutlinedButton(
                 onClick = { vm.continueLastSession() },
                 enabled = !vm.busy,
-            ) { Text("Continue last session") }
+            ) {
+                ActionButtonLabel(vm, "Loading session", "Continue last session")
+            }
         }
         OutlinedTextField(
             value = vm.resumeText,
             onValueChange = vm::updateResume,
             label = { Text("Resume text") },
             modifier = Modifier.fillMaxWidth().height(220.dp),
+            readOnly = vm.busy,
         )
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedButton(onClick = { pick.launch(PARSE_MIME_TYPES) }, enabled = !vm.busy) {
-                Text("Upload resume file")
+                ActionButtonLabel(vm, "Parsing resume", "Upload resume file")
             }
             OutlinedButton(onClick = { vm.saveSession("prepare") }, enabled = !vm.busy) { Text("Save draft") }
         }
@@ -228,21 +308,25 @@ private fun PrepareTab(vm: ResumeStudioVm) {
             label = { Text("JD URL") },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
+            readOnly = vm.busy,
         )
         OutlinedButton(onClick = { vm.fetchJd() }, enabled = vm.jdUrl.isNotBlank() && !vm.busy) {
-            Text("Fetch JD from URL")
+            ActionButtonLabel(vm, "Fetching JD", "Fetch JD from URL")
         }
         OutlinedTextField(
             value = vm.jdText,
             onValueChange = vm::updateJd,
             label = { Text("Job description") },
             modifier = Modifier.fillMaxWidth().height(180.dp),
+            readOnly = vm.busy,
         )
         Button(
             onClick = { vm.analyse() },
             enabled = !vm.busy && vm.resumeText.isNotBlank(),
             modifier = Modifier.fillMaxWidth(),
-        ) { Text("Analyse") }
+        ) {
+            ActionButtonLabel(vm, "Analyzing", "Analyse")
+        }
         OutlinedButton(onClick = { vm.selectTab(ResumeTab.Builder) }, enabled = !vm.busy, modifier = Modifier.fillMaxWidth()) {
             Text("Go to Templates")
         }
@@ -279,7 +363,7 @@ private fun AnalyseTab(vm: ResumeStudioVm) {
                     selected = vm.focus == f,
                     onClick = { if (!vm.busy) vm.improveWithFocus(f) },
                     enabled = !vm.busy,
-                    label = { Text("Improve $f") },
+                    label = { ActionButtonLabel(vm, "Improving", "Improve $f") },
                 )
             }
         }
@@ -338,7 +422,7 @@ private fun AnalyseTab(vm: ResumeStudioVm) {
         }
         if (vm.queuedMissing.isNotEmpty()) {
             OutlinedButton(onClick = { vm.accommodateMissing() }, enabled = !vm.busy, modifier = Modifier.fillMaxWidth()) {
-                Text("Accommodate missing (${vm.queuedMissing.size})")
+                ActionButtonLabel(vm, "Improving", "Accommodate missing (${vm.queuedMissing.size})")
             }
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -364,13 +448,14 @@ private fun AnalyseTab(vm: ResumeStudioVm) {
             onValueChange = vm::updateAsk,
             label = { Text("Ask ATS") },
             modifier = Modifier.fillMaxWidth(),
+            readOnly = vm.busy,
         )
         OutlinedButton(onClick = { vm.askAts() }, enabled = vm.askQuestion.isNotBlank() && !vm.busy) {
-            Text("Ask")
+            ActionButtonLabel(vm, "Asking ATS coach", "Ask")
         }
         vm.askAnswer?.let { Text(it) }
         OutlinedButton(onClick = { vm.analyse() }, enabled = !vm.busy, modifier = Modifier.fillMaxWidth()) {
-            Text("Re-analyze with added improvements")
+            ActionButtonLabel(vm, "Analyzing", "Re-analyze with added improvements")
         }
         Button(onClick = { vm.selectTab(ResumeTab.Builder) }, enabled = !vm.busy, modifier = Modifier.fillMaxWidth()) {
             Text("Continue to Templates")
@@ -482,7 +567,9 @@ private fun TailorTab(vm: ResumeStudioVm) {
             onClick = { vm.tailor() },
             enabled = !vm.busy && vm.jdText.isNotBlank(),
             modifier = Modifier.fillMaxWidth(),
-        ) { Text("Improve (${vm.focus})") }
+        ) {
+            ActionButtonLabel(vm, "Improving", "Improve (${vm.focus})")
+        }
         vm.tailoredMd?.let {
             Text("Latest tailored resume", style = MaterialTheme.typography.titleMedium)
             Text(it.take(4000))
@@ -496,7 +583,7 @@ private fun TailorTab(vm: ResumeStudioVm) {
             }
         }
         OutlinedButton(onClick = { vm.analyse() }, enabled = !vm.busy, modifier = Modifier.fillMaxWidth()) {
-            Text("Re-score after tailor")
+            ActionButtonLabel(vm, "Analyzing", "Re-score after tailor")
         }
         Button(onClick = { vm.selectTab(ResumeTab.Builder) }, enabled = !vm.busy, modifier = Modifier.fillMaxWidth()) {
             Text("Continue to Templates")
@@ -520,15 +607,17 @@ private fun BrandTab(vm: ResumeStudioVm) {
             label = { Text("Target role (optional)") },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
+            readOnly = vm.busy,
         )
         OutlinedTextField(
             value = vm.linkedinPaste,
             onValueChange = vm::updateLinkedin,
             label = { Text("LinkedIn paste (optional)") },
             modifier = Modifier.fillMaxWidth().height(120.dp),
+            readOnly = vm.busy,
         )
         Button(onClick = { vm.loadBrand() }, enabled = vm.resumeText.isNotBlank() && !vm.busy) {
-            Text("Generate brand kit")
+            ActionButtonLabel(vm, "Generating brand kit", "Generate brand kit")
         }
         vm.brandKit?.let { kit ->
             Text("Score: ${kit.score} · Niche: ${kit.niche}")
@@ -577,7 +666,9 @@ private fun BuilderTab(vm: ResumeStudioVm) {
                     onClick = { vm.structureForBuilder() },
                     enabled = !vm.busy,
                     modifier = Modifier.fillMaxWidth(),
-                ) { Text("Generate Premium Preview") }
+                ) {
+                    ActionButtonLabel(vm, "Building template data", "Generate Premium Preview")
+                }
             }
         }
         Text("Choose template", style = MaterialTheme.typography.titleMedium)
@@ -589,7 +680,7 @@ private fun BuilderTab(vm: ResumeStudioVm) {
             )
         }
         Button(onClick = { vm.exportPdf(ctx) }, enabled = !vm.busy, modifier = Modifier.fillMaxWidth()) {
-            Text("Export Premium PDF")
+            ActionButtonLabel(vm, "Exporting PDF", "Export Premium PDF")
         }
         vm.pdfPath?.let { path ->
             Text("Saved: $path")

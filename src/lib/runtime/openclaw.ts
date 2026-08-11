@@ -16,7 +16,7 @@ function isRetryableStatus(status: number) {
  */
 export async function runOpenClaw(
   messages: ChatMessage[],
-  opts?: { sessionKey?: string },
+  opts?: { sessionKey?: string; signal?: AbortSignal },
 ): Promise<RuntimeResult> {
   const rawBase =
     process.env.OPENCLAW_BASE_URL?.replace(/\/$/, "") ||
@@ -39,6 +39,9 @@ export async function runOpenClaw(
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     const controller = new AbortController();
+    const abortFromCaller = () => controller.abort();
+    if (opts?.signal?.aborted) controller.abort();
+    opts?.signal?.addEventListener("abort", abortFromCaller, { once: true });
     const timeout = setTimeout(() => controller.abort(), 170_000);
     try {
       const res = await fetch(endpoint, {
@@ -98,6 +101,7 @@ export async function runOpenClaw(
       await sleep(350 * attempt * attempt);
     } finally {
       clearTimeout(timeout);
+      opts?.signal?.removeEventListener("abort", abortFromCaller);
     }
   }
 
