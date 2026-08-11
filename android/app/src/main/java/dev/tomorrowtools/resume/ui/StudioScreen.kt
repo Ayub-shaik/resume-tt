@@ -4,9 +4,9 @@ import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -28,10 +28,9 @@ import androidx.compose.material.icons.filled.AutoFixHigh
 import androidx.compose.material.icons.filled.UploadFile
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -56,8 +55,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.input.pointer.PointerEventPass
-import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -72,6 +70,18 @@ import dev.tomorrowtools.resume.vm.ResumeTab
 import java.io.File
 import kotlinx.coroutines.delay
 
+private fun templateAccentColor(accent: String?, id: String): Color {
+    val key = (accent ?: id).lowercase()
+    return when {
+        "classic" in key || "navy" in key -> Color(0xFF1E3A5F)
+        "clean" in key || "air" in key || "teal" in key -> Color(0xFF0F766E)
+        "center" in key || "formal" in key -> Color(0xFF334155)
+        "rule" in key || "line" in key -> Color(0xFF475569)
+        "modern" in key || "band" in key -> Color(0xFF1D4ED8)
+        "spine" in key || "date" in key -> Color(0xFF7C2D12)
+        else -> Color(0xFF4B5563)
+    }
+}
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StudioScreen(vm: ResumeStudioVm) {
@@ -138,18 +148,18 @@ fun StudioScreen(vm: ResumeStudioVm) {
                     label = { Text("Prepare") },
                     )
                     NavigationBarItem(
-                    selected = vm.tab == ResumeTab.Analyse || vm.tab == ResumeTab.Brand || vm.tab == ResumeTab.Profile || vm.tab == ResumeTab.Builder,
+                    selected = vm.tab == ResumeTab.Analyse || vm.tab == ResumeTab.Brand || vm.tab == ResumeTab.Profile,
                     onClick = { if (!vm.busy) vm.selectTab(ResumeTab.Analyse) },
                     enabled = !vm.busy,
-                    icon = { Icon(Icons.AutoMirrored.Filled.FactCheck, contentDescription = "Results") },
-                    label = { Text("Results") },
+                    icon = { Icon(Icons.AutoMirrored.Filled.FactCheck, contentDescription = "Analyze and improve") },
+                    label = { Text("Analyze & improve") },
                     )
                     NavigationBarItem(
-                    selected = vm.tab == ResumeTab.Tailor,
-                    onClick = { if (!vm.busy) vm.selectTab(ResumeTab.Tailor) },
+                    selected = vm.tab == ResumeTab.Builder || vm.tab == ResumeTab.Tailor,
+                    onClick = { if (!vm.busy) vm.selectTab(ResumeTab.Builder) },
                     enabled = !vm.busy,
-                    icon = { Icon(Icons.Filled.AutoFixHigh, contentDescription = "Improve") },
-                    label = { Text("Improve") },
+                    icon = { Icon(Icons.Filled.AutoFixHigh, contentDescription = "Templates") },
+                    label = { Text("Templates") },
                     )
                 }
             },
@@ -197,37 +207,23 @@ fun StudioScreen(vm: ResumeStudioVm) {
             }
             }
         }
-        if (vm.busy) {
-            Box(
-                Modifier
-                    .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.06f))
-                    .pointerInput(Unit) {
-                        awaitPointerEventScope {
-                            while (true) {
-                                awaitPointerEvent(PointerEventPass.Initial)
-                                    .changes
-                                    .forEach { it.consume() }
-                            }
-                        }
-                    },
-            )
-        }
+        // Busy: controls use enabled/readOnly guards — do not overlay-consume pointers
+        // (that froze scrolling). Scroll stays available while analyze/improve runs.
     }
 }
 
 private fun openMpiWithResumeContext(ctx: android.content.Context, vm: ResumeStudioVm) {
     val resumePayload = vm.resumeText.trim().take(6000)
     val jdPayload = vm.jdText.trim().take(6000)
-    val appUri = Uri.Builder()
+    val builder = Uri.Builder()
         .scheme("ttmpi")
         .authority("open")
         .appendQueryParameter("source", "resume")
         .appendQueryParameter("resumeText", resumePayload)
         .appendQueryParameter("jdText", jdPayload)
-        .build()
-        .toString()
-    openSiblingOrWeb(ctx, appUri, BuildConfig.SIBLING_APP_URL)
+    vm.sessionToken()?.let { builder.appendQueryParameter("token", it) }
+    vm.email?.let { builder.appendQueryParameter("email", it) }
+    openSiblingOrWeb(ctx, builder.build().toString(), BuildConfig.SIBLING_APP_URL)
 }
 
 @Composable
@@ -336,102 +332,150 @@ private fun PrepareTab(vm: ResumeStudioVm) {
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun AnalyseTab(vm: ResumeStudioVm) {
-    var dimDialog by remember { mutableStateOf<Pair<String, String>?>(null) }
+    val hasJd = vm.jdText.trim().isNotBlank()
+    val compact = MaterialTheme.typography
     Column(
         Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+            .padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Text("Results", style = MaterialTheme.typography.titleLarge)
+        Text("Analyze and improve", style = compact.titleMedium)
         if (vm.scoresArePreImprove) {
             Text(
                 "Scores from last Analyse (pre-improve). Tap Re-analyse after edits.",
-                style = MaterialTheme.typography.bodySmall,
+                style = compact.bodySmall,
                 color = MaterialTheme.colorScheme.tertiary,
             )
         }
-        Speedometers(vm.scores.overall, vm.scores.ats, vm.scores.keyword)
-        Text("Improve")
+        // As-is baseline row
+        vm.originalScores?.let {
+            Text("As-is", style = compact.labelLarge)
+            Speedometers(
+                overall = if (hasJd) it.overall else null,
+                ats = it.ats,
+                keyword = if (hasJd) it.keyword else null,
+                showOverall = hasJd,
+                showJd = hasJd,
+            )
+        }
+        // Current / after row
+        Text(
+            if (vm.versions.isEmpty()) "Current" else "After (${vm.versions.lastOrNull()?.label ?: "v1"})",
+            style = compact.labelLarge,
+        )
+        Speedometers(
+            overall = if (hasJd) vm.scores.overall else null,
+            ats = vm.scores.ats,
+            keyword = if (hasJd) vm.scores.keyword else null,
+            showOverall = hasJd,
+            showJd = hasJd,
+        )
+        // Version history rows (v1/v2/v3) with their own meters
+        vm.versions.takeLast(3).forEach { snap ->
+            Text("${snap.label} · ${snap.focus}", style = compact.labelMedium)
+            Speedometers(
+                overall = if (hasJd) snap.overall else null,
+                ats = snap.ats,
+                keyword = if (hasJd) snap.keyword else null,
+                showOverall = hasJd,
+                showJd = hasJd,
+            )
+        }
+        Text("Improve", style = compact.labelLarge)
         Row(
             Modifier.horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            listOf("ats", "jd", "balanced").forEach { f ->
+            FilterChip(
+                selected = vm.focus == "ats",
+                onClick = { if (!vm.busy) vm.improveWithFocus("ats") },
+                enabled = !vm.busy,
+                label = { ActionButtonLabel(vm, "Improving", "Improve ats") },
+            )
+            if (hasJd) {
                 FilterChip(
-                    selected = vm.focus == f,
-                    onClick = { if (!vm.busy) vm.improveWithFocus(f) },
+                    selected = vm.focus == "jd",
+                    onClick = { if (!vm.busy) vm.improveWithFocus("jd") },
                     enabled = !vm.busy,
-                    label = { ActionButtonLabel(vm, "Improving", "Improve $f") },
+                    label = { ActionButtonLabel(vm, "Improving", "Improve jd") },
+                )
+                FilterChip(
+                    selected = vm.focus == "balanced",
+                    onClick = { if (!vm.busy) vm.improveWithFocus("balanced") },
+                    enabled = !vm.busy,
+                    label = { ActionButtonLabel(vm, "Improving", "Improve balance") },
                 )
             }
         }
-        vm.originalScores?.let {
-            Text("As-is / Before", style = MaterialTheme.typography.titleMedium)
-            Speedometers(it.overall, it.ats, it.keyword)
-        }
         if (vm.scores.dimensions.isNotEmpty()) {
-            Text("Dimensions", style = MaterialTheme.typography.titleMedium)
+            Text("Dimensions", style = compact.titleSmall)
             vm.scores.dimensions.forEach { d ->
-                Column(
-                    Modifier
-                        .padding(vertical = 4.dp)
-                        .clickable {
-                            dimDialog = d.label to explainDimension(d.id, d.label, d.note)
-                        },
-                ) {
-                    Text("${d.label}: ${d.score ?: "—"}")
+                Column(Modifier.padding(vertical = 2.dp)) {
                     d.score?.let {
                         LinearProgressIndicator(
                             progress = { it.coerceIn(0, 100) / 100f },
                             modifier = Modifier.fillMaxWidth(),
                         )
                     }
-                    d.note?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
+                    Text(
+                        "${d.label}: ${d.score ?: "—"}",
+                        style = compact.labelSmall,
+                    )
+                    Text(
+                        explainDimension(d.id, d.label, d.note),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
             }
         }
         if (vm.scores.sections.isNotEmpty()) {
-            Text("Sections", style = MaterialTheme.typography.titleMedium)
+            Text("Sections", style = compact.titleSmall)
             vm.scores.sections.forEach { s ->
-                Text("${s.name}: ${s.score ?: "—"}${s.notes?.let { " — $it" } ?: ""}")
-            }
-        }
-        if (vm.scores.skim.isNotEmpty()) {
-            Text("Hiring skim", style = MaterialTheme.typography.titleMedium)
-            vm.scores.skim.forEach { Text("• $it") }
-        }
-        SectionList("Strengths", vm.scores.strengths)
-        SectionList("Gaps", vm.scores.gaps)
-        Text("Matched", style = MaterialTheme.typography.titleMedium)
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            vm.scores.matched.forEach { kw ->
-                AssistChip(onClick = {}, label = { Text(kw) })
-            }
-        }
-        Text("Missing — tap to queue", style = MaterialTheme.typography.titleMedium)
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            vm.scores.missing.forEach { kw ->
-                FilterChip(
-                    selected = vm.queuedMissing.contains(kw),
-                    onClick = { vm.toggleMissing(kw) },
-                    label = { Text(kw) },
+                Text(
+                    "${s.name}: ${s.score ?: "—"}${s.notes?.let { " — $it" } ?: ""}",
+                    style = compact.bodySmall,
                 )
             }
         }
-        if (vm.queuedMissing.isNotEmpty()) {
-            OutlinedButton(onClick = { vm.accommodateMissing() }, enabled = !vm.busy, modifier = Modifier.fillMaxWidth()) {
-                ActionButtonLabel(vm, "Improving", "Accommodate missing (${vm.queuedMissing.size})")
+        if (vm.scores.skim.isNotEmpty()) {
+            Text("Hiring skim", style = compact.titleSmall)
+            vm.scores.skim.forEach { Text("• $it", style = compact.bodySmall) }
+        }
+        SectionList("Strengths", vm.scores.strengths)
+        SectionList("Gaps", vm.scores.gaps)
+        if (hasJd) {
+            Text("Matched", style = compact.titleSmall)
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                vm.scores.matched.forEach { kw ->
+                    AssistChip(onClick = {}, label = { Text(kw, style = compact.labelSmall) })
+                }
+            }
+            Text("Missing — tap to queue", style = compact.titleSmall)
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                vm.scores.missing.forEach { kw ->
+                    FilterChip(
+                        selected = vm.queuedMissing.contains(kw),
+                        onClick = { vm.toggleMissing(kw) },
+                        label = { Text(kw, style = compact.labelSmall) },
+                    )
+                }
+            }
+            if (vm.queuedMissing.isNotEmpty()) {
+                OutlinedButton(onClick = { vm.accommodateMissing() }, enabled = !vm.busy, modifier = Modifier.fillMaxWidth()) {
+                    ActionButtonLabel(vm, "Improving", "Accommodate missing (${vm.queuedMissing.size})")
+                }
             }
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text("Workbench", style = MaterialTheme.typography.titleMedium)
+            Text("Workbench", style = compact.titleSmall)
             TextButton(
                 onClick = { vm.applyAllSuggestions() },
                 enabled = !vm.allSuggestionsApplied() && !vm.busy,
             ) {
-                Text(if (vm.allSuggestionsApplied()) "Applied all" else "Apply all")
+                Text(if (vm.allSuggestionsApplied()) "Applied all" else "Apply all", style = compact.labelMedium)
             }
         }
         vm.scores.suggestions.forEach { s ->
@@ -449,27 +493,18 @@ private fun AnalyseTab(vm: ResumeStudioVm) {
             label = { Text("Ask ATS") },
             modifier = Modifier.fillMaxWidth(),
             readOnly = vm.busy,
+            textStyle = compact.bodySmall,
         )
         OutlinedButton(onClick = { vm.askAts() }, enabled = vm.askQuestion.isNotBlank() && !vm.busy) {
             ActionButtonLabel(vm, "Asking ATS coach", "Ask")
         }
-        vm.askAnswer?.let { Text(it) }
+        vm.askAnswer?.let { Text(it, style = compact.bodySmall) }
         OutlinedButton(onClick = { vm.analyse() }, enabled = !vm.busy, modifier = Modifier.fillMaxWidth()) {
             ActionButtonLabel(vm, "Analyzing", "Re-analyze with added improvements")
         }
         Button(onClick = { vm.selectTab(ResumeTab.Builder) }, enabled = !vm.busy, modifier = Modifier.fillMaxWidth()) {
             Text("Continue to Templates")
         }
-    }
-    dimDialog?.let { (title, body) ->
-        AlertDialog(
-            onDismissRequest = { dimDialog = null },
-            title = { Text(title) },
-            text = { Text(body) },
-            confirmButton = {
-                TextButton(onClick = { dimDialog = null }) { Text("OK") }
-            },
-        )
     }
 }
 
@@ -503,14 +538,20 @@ private fun SuggestionCard(
 }
 
 @Composable
-private fun Speedometers(overall: Int?, ats: Int?, keyword: Int?) {
+private fun Speedometers(
+    overall: Int?,
+    ats: Int?,
+    keyword: Int?,
+    showOverall: Boolean = true,
+    showJd: Boolean = true,
+) {
     Row(
         Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Gauge("Overall", overall)
+        if (showOverall) Gauge("Overall", overall)
         Gauge("ATS", ats)
-        Gauge("JD", keyword)
+        if (showJd) Gauge("JD", keyword)
     }
 }
 
@@ -519,11 +560,11 @@ private fun Gauge(label: String, value: Int?) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         CircularProgressIndicator(
             progress = { (value ?: 0).coerceIn(0, 100) / 100f },
-            modifier = Modifier.size(72.dp).padding(4.dp),
-            strokeWidth = 6.dp,
+            modifier = Modifier.size(56.dp).padding(2.dp),
+            strokeWidth = 5.dp,
         )
-        Text(label, style = MaterialTheme.typography.labelMedium)
-        Text(value?.toString() ?: "—", style = MaterialTheme.typography.titleMedium)
+        Text(label, style = MaterialTheme.typography.labelSmall)
+        Text(value?.toString() ?: "—", style = MaterialTheme.typography.titleSmall)
     }
 }
 
@@ -628,6 +669,7 @@ private fun BrandTab(vm: ResumeStudioVm) {
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
 private fun BuilderTab(vm: ResumeStudioVm) {
     val ctx = LocalContext.current
@@ -671,13 +713,44 @@ private fun BuilderTab(vm: ResumeStudioVm) {
                 }
             }
         }
-        Text("Choose template", style = MaterialTheme.typography.titleMedium)
-        vm.templates.forEach { t ->
-            FilterChip(
-                selected = vm.selectedTemplate == t.id,
-                onClick = { vm.selectTemplate(t.id) },
-                label = { Text(t.name) },
-            )
+        Text("Choose template", style = MaterialTheme.typography.titleSmall)
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            vm.templates.forEach { t ->
+                val selected = vm.selectedTemplate == t.id
+                val accent = templateAccentColor(t.accent, t.id)
+                Card(
+                    onClick = { vm.selectTemplate(t.id) },
+                    modifier = Modifier.width(148.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = if (selected) MaterialTheme.colorScheme.primaryContainer
+                        else MaterialTheme.colorScheme.surfaceVariant,
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = if (selected) 6.dp else 1.dp),
+                ) {
+                    Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Box(
+                            Modifier
+                                .fillMaxWidth()
+                                .height(56.dp)
+                                .background(accent, shape = MaterialTheme.shapes.small),
+                        ) {
+                            Text(
+                                t.name.take(1),
+                                modifier = Modifier.align(Alignment.Center),
+                                color = Color.White,
+                                style = MaterialTheme.typography.titleLarge,
+                            )
+                        }
+                        Text(t.name, style = MaterialTheme.typography.labelLarge, maxLines = 2)
+                        Text(
+                            t.blurb ?: "ATS-safe layout",
+                            style = MaterialTheme.typography.bodySmall,
+                            maxLines = 3,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            }
         }
         Button(onClick = { vm.exportPdf(ctx) }, enabled = !vm.busy, modifier = Modifier.fillMaxWidth()) {
             ActionButtonLabel(vm, "Exporting PDF", "Export Premium PDF")

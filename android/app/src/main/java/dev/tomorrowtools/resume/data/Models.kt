@@ -33,6 +33,22 @@ import kotlinx.serialization.json.JsonObject
 @Serializable data class BrandPayload(val kit: CareerBrandKit)
 @Serializable data class TemplateMeta(val id: String, val name: String, val blurb: String? = null, val category: String? = null, val accent: String? = null)
 @Serializable data class TemplatesPayload(val templates: List<TemplateMeta> = emptyList())
+@Serializable data class ImproveRequest(
+    val action: String = "pass",
+    val masterResume: String,
+    val currentResume: String? = null,
+    val jdText: String? = null,
+    val focus: String? = null,
+    val matchScore: Int? = null,
+    val currentVersion: Int? = null,
+)
+@Serializable data class ImprovePass(
+    val version: Int? = null,
+    val resumeMd: String? = null,
+    val saturated: Boolean? = null,
+    val notes: List<String>? = null,
+)
+@Serializable data class ImprovePayload(val pass: ImprovePass? = null, val error: String? = null)
 @Serializable data class StructureRequest(
     val action: String = "structure",
     val resumeText: String? = null,
@@ -72,7 +88,14 @@ import kotlinx.serialization.json.JsonObject
     val delete: Boolean? = null,
 )
 @Serializable data class ParseTextPayload(val text: String? = null)
-@Serializable data class VersionSnap(val label: String, val text: String, val focus: String)
+@Serializable data class VersionSnap(
+    val label: String,
+    val text: String,
+    val focus: String,
+    val overall: Int? = null,
+    val ats: Int? = null,
+    val keyword: Int? = null,
+)
 
 data class DimensionView(
     val id: String,

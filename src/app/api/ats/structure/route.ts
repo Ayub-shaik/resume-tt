@@ -47,14 +47,23 @@ export async function POST(req: Request) {
   const parsed = z
     .object({
       action: z.enum(["structure", "tailor", "improve"]).default("structure"),
-      resumeText: z.string().max(LIMITS.resume).optional(),
-      jdText: z.string().max(LIMITS.jd).optional(),
-      instruction: z.string().max(4000).optional(),
-      jsonResume: z.unknown().optional(),
-      saveAsResume: z.boolean().optional(),
+      // Mobile encodes absent optionals as null — accept nullish.
+      resumeText: z.string().max(LIMITS.resume).nullish(),
+      jdText: z.string().max(LIMITS.jd).nullish(),
+      instruction: z.string().max(4000).nullish(),
+      jsonResume: z.unknown().nullish(),
+      saveAsResume: z.boolean().nullish(),
     })
     .safeParse(body.data);
-  if (!parsed.success) return jsonError("Invalid body", 400);
+  if (!parsed.success) {
+    const issue = parsed.error.issues[0];
+    return jsonError(
+      issue?.message
+        ? `Invalid body: ${issue.path.join(".") || "payload"} ${issue.message}`
+        : "Invalid body",
+      400,
+    );
+  }
 
   const override = req.headers.get("x-tt-override") === "true";
   const action = parsed.data.action === "improve" ? "improve" : "structure";
@@ -147,9 +156,9 @@ export async function POST(req: Request) {
       : kind === "improve"
         ? "improved-resume.json"
         : "tailored-resume.json";
-    const saved = parsed.data.saveAsResume !== false
-      ? createResume(formatResumeDisplayName(filename), out.markdown, ctx.user.id)
-      : null;
+    const saved = parsed.data.saveAsResume === false
+      ? null
+      : createResume(formatResumeDisplayName(filename), out.markdown, ctx.user.id);
     const response = { ...out, resume: saved, recoveryJobId: recovery.job.id };
     updateRecoveryJob(recovery.job.id, { result: response });
     saveMemorySnapshot({

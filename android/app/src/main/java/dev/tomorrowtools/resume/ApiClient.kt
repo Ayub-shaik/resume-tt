@@ -24,7 +24,12 @@ import javax.net.SocketFactory
 import java.security.MessageDigest
 import java.io.IOException
 
-val appJson = Json { ignoreUnknownKeys = true; isLenient = true; encodeDefaults = true }
+val appJson = Json {
+    ignoreUnknownKeys = true
+    isLenient = true
+    encodeDefaults = true
+    explicitNulls = false
+}
 
 fun buildOkHttp(tokenProvider: () -> String?): OkHttpClient {
     val auth = Interceptor { chain ->

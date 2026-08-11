@@ -6,6 +6,9 @@ const SECTION_RE =
 const GIBBERISH_RE =
   /^(.)\1{3,}$|^(asdf+|qwer+|zxcv+|hjkl+|gggg+|xxxx+|test+|lorem|ipsum|dummy|blah|foo|bar)+$/i;
 
+const COVER_LETTER_RE =
+  /\b(dear\s+(hiring|sir|madam|recruiter)|cover\s*letter|i\s+am\s+writing\s+to\s+(apply|express)|to\s+whom\s+it\s+may\s+concern|please\s+find\s+(my|attached)\s+resume)\b/i;
+
 export type ResumeGateResult = {
   wordCount: number;
   hasSectionSignal: boolean;
@@ -37,6 +40,24 @@ export function assessResumeInput(raw: string): ResumeGateResult {
     (wordCount <= 3 && text.length < 40) ||
     (wordCount < 12 && letterRatio < 0.45) ||
     (wordCount < 8 && !hasSectionSignal && /^[a-z\s]{1,40}$/i.test(text));
+
+  const looksLikeCoverLetter =
+    COVER_LETTER_RE.test(text) &&
+    !hasSectionSignal &&
+    !/\b(experience|education|skills|employment)\b/i.test(text);
+
+  if (looksLikeCoverLetter) {
+    return {
+      wordCount,
+      hasSectionSignal,
+      looksGibberish: false,
+      block: true,
+      blockMessage:
+        "This looks like a cover letter or prose, not a resume. Upload a resume or enter professional data (Experience, Skills, Education) to score and improve.",
+      warning:
+        "Cover letters are not scored as resumes — paste a resume instead.",
+    };
+  }
 
   // Half-page resume ≈ 150 words; allow shorter if section headings present
   const tooThin =

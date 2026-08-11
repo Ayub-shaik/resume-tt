@@ -331,6 +331,46 @@ export function LandingPage({
           ))}
         </section>
 
+        <section className="landing__hope" aria-label="What, why, and how to use Resume ATS">
+          <p className="landing__section-kicker">Guide</p>
+          <h2 className="landing__section-title">What, why, and how-to</h2>
+          <div className="landing__features" style={{ marginTop: 16 }}>
+            <article>
+              <h3>What it is</h3>
+              <p>
+                Resume ATS (RocketCV) helps you paste or upload a resume, optionally add a job
+                description, analyse ATS-oriented readiness, improve ATS wording without inventing
+                facts, preview parser-friendly templates, and export a clean PDF. From a logged-in
+                session you can open MPI with context for mock interviews.
+              </p>
+            </article>
+            <article>
+              <h3>Why it exists</h3>
+              <p>
+                Most applications die in first-pass parsers and keyword screens. The product focuses
+                on coaching heuristics you can act on — coverage, clarity, and export layouts —
+                while keeping your published API contracts stable across Play builds.
+              </p>
+            </article>
+            <article>
+              <h3>How to use</h3>
+              <p>
+                1) Sign in (invite-only). 2) Prepare: paste/upload resume; add JD text or URL when
+                targeting a role. 3) Analyze &amp; improve: read meters/dimensions, apply rewrites,
+                Improve ATS even without a JD. 4) Templates: pick a layout, generate structured
+                preview, export PDF. 5) Continue to MPI when ready for interview practice.
+              </p>
+            </article>
+          </div>
+          <p className="landing__section-lead" style={{ marginTop: 20 }}>
+            <strong>Shipped capabilities:</strong> JD-aware scoring when a role is present; hide
+            missing-keywords / Improve JD / JD &amp; Overall meters when no JD; cover-letter vs
+            resume detection; 60s wait messaging; scrollable UI while jobs run; template gallery
+            with visual cards; session handoff into MPI; fact-safe improve via brain passes;
+            recovery journaling for long AI jobs.
+          </p>
+        </section>
+
         <footer className="landing__footer">
           <p>
             Resume → call → close the loop with{" "}

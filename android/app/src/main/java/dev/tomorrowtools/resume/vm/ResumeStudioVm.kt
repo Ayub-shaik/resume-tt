@@ -26,6 +26,7 @@ import dev.tomorrowtools.resume.util.extractErrorDetail
 import dev.tomorrowtools.resume.util.isDestructiveSuggestion
 import dev.tomorrowtools.resume.util.parseExtensionAllowed
 import dev.tomorrowtools.resume.util.parseScoreView
+import dev.tomorrowtools.resume.util.isSilentRecoverable
 import dev.tomorrowtools.resume.util.toUserMessage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -116,6 +117,8 @@ class ResumeStudioVm(app: Application) : AndroidViewModel(app) {
             }
         }
     }
+
+    fun sessionToken(): String? = token
 
     fun updateEmailInput(v: String) { emailInput = v }
     fun updatePasswordInput(v: String) { passwordInput = v }
@@ -488,11 +491,15 @@ class ResumeStudioVm(app: Application) : AndroidViewModel(app) {
     }
 
     fun accommodateMissing() {
+        if (jdText.isBlank()) {
+            error = "Add a job description before accommodating missing keywords."
+            return
+        }
         if (queuedMissing.isEmpty()) {
             error = "Tap missing keyword chips first"
             return
         }
-        selectTab(ResumeTab.Tailor)
+        selectTab(ResumeTab.Analyse)
         tailor()
     }
 
@@ -513,7 +520,56 @@ class ResumeStudioVm(app: Application) : AndroidViewModel(app) {
         overrideCurrent = overrideCurrent,
         retryWithOverride = { tailor(true) },
     ) {
-        if (jdText.isBlank()) error("Job description required for tailor")
+        val needsJd = focus == "jd" || focus == "balanced"
+        if (needsJd && jdText.isBlank()) {
+            error("Job description required for Improve $focus")
+        }
+        // ATS-only improve does not require JD (parity with web /api/brain/improve).
+        if (focus == "ats" || jdText.isBlank()) {
+            val master = originalText?.takeIf { it.isNotBlank() } ?: resumeText
+            val res = api.improve(
+                ImproveRequest(
+                    action = "pass",
+                    masterResume = master,
+                    currentResume = resumeText,
+                    jdText = jdText,
+                    focus = focus.ifBlank { "ats" },
+                    matchScore = scores.overall ?: scores.ats,
+                    currentVersion = versions.size.coerceAtLeast(1),
+                ),
+                overrideCurrent = if (overrideCurrent) "true" else null,
+            )
+            val md = res.pass?.resumeMd?.takeIf { it.isNotBlank() }
+                ?: error(res.error ?: "Empty improve result")
+            tailoredMd = md
+            resumeText = md
+            scoresArePreImprove = true
+            var overall: Int? = null
+            var ats: Int? = null
+            var keyword: Int? = null
+            try {
+                val reScored = analyzeResumeText(text = resumeText.trim(), jd = jdText.trim())
+                analysisRaw = reScored.analysis
+                scores = reScored.scores
+                scoresArePreImprove = false
+                overall = scores.overall
+                ats = scores.ats
+                keyword = scores.keyword
+            } catch (_: Exception) {
+                gateWarning = "Improved text saved, but re-score failed. Tap Re-analyze."
+            }
+            versions = (versions + VersionSnap(
+                "v${versions.size + 1}",
+                md,
+                focus.ifBlank { "ats" },
+                overall,
+                ats,
+                keyword,
+            )).takeLast(12)
+            queuedMissing = emptyList()
+            saveSession("improve")
+            return@launchBusy
+        }
         // Keep jdText as the JD body the API expects; put focus/missing as prefix context in jdText
         // only when needed — server requires resumeText + jdText (route: POST api/ats/tailor).
         val jdPayload = buildString {
@@ -533,20 +589,28 @@ class ResumeStudioVm(app: Application) : AndroidViewModel(app) {
             overrideCurrent = if (overrideCurrent) "true" else null,
         )
         val md = res.resumeMd?.takeIf { it.isNotBlank() } ?: error("Empty tailor result")
-        versions = (versions + VersionSnap("v${versions.size + 1}", md, focus)).takeLast(12)
         tailoredMd = md
         resumeText = md
         scoresArePreImprove = true
+        var overall: Int? = null
+        var ats: Int? = null
+        var keyword: Int? = null
         // Web parity: refresh scorecards after Improve so ATS/JD/Overall are not stale.
         try {
             val reScored = analyzeResumeText(text = resumeText.trim(), jd = jdText.trim())
             analysisRaw = reScored.analysis
             scores = reScored.scores
             scoresArePreImprove = false
+            overall = scores.overall
+            ats = scores.ats
+            keyword = scores.keyword
         } catch (e: Exception) {
             // Keep tailored text even if re-score fails; show actionable warning.
             gateWarning = "Improved text saved, but re-score failed. Tap Re-score after tailor."
         }
+        versions = (versions + VersionSnap("v${versions.size + 1}", md, focus, overall, ats, keyword)).takeLast(12)
+        queuedMissing = emptyList()
+        saveSession("improve")
         tab = ResumeTab.Tailor
         viewModelScope.launch {
             try {
@@ -583,7 +647,7 @@ class ResumeStudioVm(app: Application) : AndroidViewModel(app) {
         retryWithOverride = { structureForBuilder(true) },
     ) {
         val res = api.structure(
-            StructureRequest(action = "structure", resumeText = resumeText, jdText = jdText.ifBlank { null }),
+            StructureRequest(action = "structure", resumeText = resumeText, jdText = jdText.ifBlank { "" }),
             overrideCurrent = if (overrideCurrent) "true" else null,
         )
         jsonResume = res.jsonResume
@@ -683,8 +747,9 @@ class ResumeStudioVm(app: Application) : AndroidViewModel(app) {
                 return
             } catch (e: Exception) {
                 if (!isOfflineException(e)) throw e
-                error = "no network: waiting for network to resume automatically"
+                error = "Waiting for network / laptop connection…"
                 waitForNetwork()
+                error = null
             }
         }
     }
@@ -703,14 +768,14 @@ class ResumeStudioVm(app: Application) : AndroidViewModel(app) {
     private fun updateBusyMessage() {
         val action = busyAction ?: return
         busyMessage = if (busySecondsRemaining != null) {
-            "$action please wait (${busySecondsRemaining}s) · safely journaled after server acceptance"
+            "$action please wait (${busySecondsRemaining}s)"
         } else {
-            "Reconciling saved request please wait$busyDots · reconnecting resumes automatically"
+            "$action please wait$busyDots"
         }
     }
 
     private suspend fun runBusyProgress() {
-        for (remaining in 29 downTo 0) {
+        for (remaining in 59 downTo 0) {
             delay(1_000)
             if (!busy) return
             busySecondsRemaining = remaining
@@ -728,14 +793,14 @@ class ResumeStudioVm(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    private var silentRetryDepth = 0
+
     private fun launchBusy(
         action: String,
         overrideCurrent: Boolean = false,
         retryWithOverride: (() -> Unit)? = null,
         block: suspend () -> Unit,
     ) {
-        // Set the guard before launching so rapid taps cannot enqueue a second
-        // request during the coroutine dispatch window.
         if (busy) return
         busy = true
         error = null
@@ -743,30 +808,48 @@ class ResumeStudioVm(app: Application) : AndroidViewModel(app) {
         overrideAction = null
         pendingOverrideRetry = null
         busyAction = action
-        busySecondsRemaining = 30
+        busySecondsRemaining = 60
         busyDots = ""
         updateBusyMessage()
         viewModelScope.launch {
             val progressJob = launch { runBusyProgress() }
             try {
-                runWithNetworkRecovery(block)
-            } catch (e: Exception) {
-                val conflict = e is ActiveJobConflictException ||
-                    (e is HttpException && e.code() == 409) ||
-                    e.message.orEmpty().contains("HTTP 409")
-                val timeout = e.message.orEmpty().contains("HTTP 524") ||
-                    e.message.orEmpty().contains("timed out", ignoreCase = true)
-                if (conflict || timeout) {
-                    overrideAvailable = retryWithOverride != null
-                    overrideAction = action
-                    pendingOverrideRetry = retryWithOverride
-                    error = if (timeout) {
-                        "The previous $action request timed out. You can cancel it and start this request again."
-                    } else {
-                        "A previous $action request is still running. Cancel it and start this request again."
+                while (true) {
+                    try {
+                        runWithNetworkRecovery(block)
+                        silentRetryDepth = 0
+                        break
+                    } catch (e: Exception) {
+                        if (isOfflineException(e)) {
+                            error = "Waiting for network / laptop connection…"
+                            waitForNetwork()
+                            error = null
+                            continue
+                        }
+                        if (e.isSilentRecoverable()) {
+                            error = null
+                            if (retryWithOverride != null && silentRetryDepth < 6) {
+                                silentRetryDepth += 1
+                                delay(1_500L * silentRetryDepth.coerceAtMost(4))
+                                progressJob.cancel()
+                                busy = false
+                                busyMessage = null
+                                busyAction = null
+                                busySecondsRemaining = null
+                                busyDots = ""
+                                // Re-enter with x-tt-override=true; never show busy/timeout text.
+                                retryWithOverride.invoke()
+                                return@launch
+                            }
+                            // Exhausted silent retries — stay quiet (no red error banner).
+                            silentRetryDepth = 0
+                            break
+                        }
+                        val msg = e.toUserMessage()
+                        error = msg.ifBlank { null }
+                        silentRetryDepth = 0
+                        break
                     }
-                } else {
-                    error = e.toUserMessage()
                 }
             } finally {
                 progressJob.cancel()

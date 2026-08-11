@@ -56,7 +56,8 @@ export async function POST(req: Request) {
   const parsed = z
     .object({
       resumeText: z.string().min(1).max(LIMITS.resume),
-      jdText: z.string().max(LIMITS.jd).optional(),
+      // Mobile may send null when JD is absent.
+      jdText: z.string().max(LIMITS.jd).nullish(),
     })
     .safeParse(body.data);
   if (!parsed.success) {

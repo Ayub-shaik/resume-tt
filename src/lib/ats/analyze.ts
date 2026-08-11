@@ -252,10 +252,12 @@ ${input.memoryContext?.trim() ? `\nDurable prior-session memory (continuity only
         : [],
       gaps: heuristic.missing.length
         ? [`Add evidence for: ${heuristic.missing.slice(0, 8).join(", ")}`]
-        : ["Could not reach OpenClaw — showing keyword heuristic only."],
+        : [],
       rewriteSuggestions: [],
       summary:
-        "Heuristic analysis (OpenClaw unavailable). Connect OpenClaw for section scores and rewrite suggestions.",
+        heuristic.matched.length || heuristic.missing.length
+          ? "Keyword heuristic scores — retry Analyse shortly for fuller section coaching."
+          : "Scores refreshed. Retry Analyse shortly for fuller section coaching if needed.",
       recommendation:
         heuristic.pct >= 70 ? "moderate" : heuristic.pct >= 40 ? "weak" : "rewrite",
       heuristic: {
