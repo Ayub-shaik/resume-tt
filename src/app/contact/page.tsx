@@ -20,25 +20,25 @@ export default function ContactPage() {
       <ul className="mt-6 space-y-3 text-sm leading-relaxed">
         <li>
           <strong>Support</strong> —{" "}
-          <a className="underline underline-offset-2" href="mailto:support@tomorrowtools.dev">
-            support@tomorrowtools.dev
+          <a className="underline underline-offset-2" href="mailto:support@aysentra.com">
+            support@aysentra.com
           </a>
         </li>
         <li>
           <strong>Admin</strong> —{" "}
-          <a className="underline underline-offset-2" href="mailto:admin@tomorrowtools.dev">
-            admin@tomorrowtools.dev
+          <a className="underline underline-offset-2" href="mailto:admin@aysentra.com">
+            admin@aysentra.com
           </a>
         </li>
         <li>
           <strong>Info</strong> —{" "}
-          <a className="underline underline-offset-2" href="mailto:info@tomorrowtools.dev">
-            info@tomorrowtools.dev
+          <a className="underline underline-offset-2" href="mailto:info@aysentra.com">
+            info@aysentra.com
           </a>
         </li>
       </ul>
       <p className="mt-6 text-sm text-[var(--muted,#666)]">
-        These addresses use Cloudflare Email Routing catch-all on tomorrowtools.dev.
+        These addresses use Cloudflare Email Routing catch-all on aysentra.com (Aysentra Labs).
         Prefer{" "}
         <Link href="/support" className="underline underline-offset-2">
           Support

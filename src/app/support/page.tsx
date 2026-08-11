@@ -20,22 +20,22 @@ export default function SupportPage() {
       <p className="mt-4 text-sm leading-relaxed">
         For product help, account deletion help, or Play Store listing issues,
         email{" "}
-        <a className="underline underline-offset-2" href="mailto:support@tomorrowtools.dev">
-          support@tomorrowtools.dev
+        <a className="underline underline-offset-2" href="mailto:support@aysentra.com">
+          support@aysentra.com
         </a>
         .
       </p>
       <p className="mt-3 text-sm leading-relaxed">
         General questions:{" "}
-        <a className="underline underline-offset-2" href="mailto:info@tomorrowtools.dev">
-          info@tomorrowtools.dev
+        <a className="underline underline-offset-2" href="mailto:info@aysentra.com">
+          info@aysentra.com
         </a>
         .
       </p>
       <p className="mt-3 text-sm leading-relaxed">
         Admin / operator / security:{" "}
-        <a className="underline underline-offset-2" href="mailto:admin@tomorrowtools.dev">
-          admin@tomorrowtools.dev
+        <a className="underline underline-offset-2" href="mailto:admin@aysentra.com">
+          admin@aysentra.com
         </a>
         .
       </p>
