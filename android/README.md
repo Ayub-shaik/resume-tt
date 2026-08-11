@@ -24,3 +24,14 @@ Sign-in → Prepare → Analyse (dimensions, replace workbench) → Tailor (gaug
 ## Deep links
 - App: `https://resume.tomorrowtools.dev/app`, `ttresume://open`
 - Sibling MPI: prefers `ttmpi://open`, falls back to https
+
+## Release (debug APK)
+
+| Field | Value |
+|-------|-------|
+| versionCode | 10 |
+| versionName | 1.0.6-busy-offline |
+| Download | https://resume.tomorrowtools.dev/downloads/resume-ats-debug.apk |
+| Manifest | https://resume.tomorrowtools.dev/downloads/apps-manifest.json |
+
+Publish: bump versions → `./gradlew :app:assembleDebug` → copy APK into `public/downloads/` → update `apps-manifest.json` → `npm run build` + restart `resume-tt-web`.

@@ -38,3 +38,10 @@ Copy `.env.example` → `.env.local` (dev) or `.env.production` (prod).
 | `/` | Landing + sign-in |
 | `/app` | Resume studio (prepare/analyze/improve/builder) |
 | `/profile` | Saved resumes, settings |
+| `/downloads/` | Android Manager / Resume / MPI APKs + `apps-manifest.json` |
+
+## Android
+
+Debug client in `android/` — current release **versionCode 10** (`1.0.6-busy-offline`).
+
+See `android/README.md` and https://learn.tomorrowtools.dev/android-apps.html.

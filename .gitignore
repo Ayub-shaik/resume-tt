@@ -9,3 +9,6 @@ data/
 
 # Debug APKs (built locally / served from disk; not in git)
 public/downloads/*.apk
+
+# Android local caches
+android/.kotlin/
