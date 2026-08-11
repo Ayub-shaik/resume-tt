@@ -97,6 +97,9 @@ describe("durable recovery store", () => {
       endpoint: "http://127.0.0.1:9999/v1/chat/completions",
       model: "test-model",
     });
+    process.env.AI_MODEL_FAST = "fast-model";
+    expect(resolveAiConfig({ fast: true }).model).toBe("fast-model");
+    expect(resolveAiConfig().model).toBe("test-model");
     process.env.AI_BASE_URL = "https://example.com/v1";
     process.env.AI_ALLOW_REMOTE = "false";
     expect(() => resolveAiConfig()).toThrow("AI endpoint must be localhost");

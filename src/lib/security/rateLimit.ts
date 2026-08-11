@@ -70,10 +70,31 @@ export type UserAiJob = {
 };
 
 const userJobs = new Map<string, UserAiJob>();
+const globalAiTokens = new Set<string>();
+
+function maxUserInflight(): number {
+  const n = Number(process.env.AI_USER_MAX_INFLIGHT ?? "1");
+  return Number.isFinite(n) && n >= 1 ? Math.floor(n) : 1;
+}
+
+function maxGlobalInflight(): number {
+  const n = Number(process.env.AI_GLOBAL_MAX_INFLIGHT ?? "8");
+  return Number.isFinite(n) && n >= 1 ? Math.floor(n) : 8;
+}
+
+function pruneUserJobs(userId: string) {
+  const now = Date.now();
+  const current = userJobs.get(userId);
+  if (current && current.until <= now) {
+    current.controller.abort();
+    globalAiTokens.delete(current.token);
+    userJobs.delete(userId);
+  }
+}
 
 /**
- * Starts one cancellable AI job per user. The TTL is only a recovery guard;
- * normal requests release in finally blocks.
+ * Starts one cancellable AI job per user (or up to AI_USER_MAX_INFLIGHT).
+ * Also enforces AI_GLOBAL_MAX_INFLIGHT across all users on this process.
  */
 export function acquireUserAiJob(
   userId: string,
@@ -81,12 +102,17 @@ export function acquireUserAiJob(
   ttlMs = 240_000,
 ): UserAiJob | null {
   const now = Date.now();
+  pruneUserJobs(userId);
   const current = userJobs.get(userId);
-  if (current && current.until > now) return null;
-  if (current) {
+  const perUserMax = maxUserInflight();
+  if (current && current.until > now && perUserMax <= 1) return null;
+  if (current && perUserMax <= 1) {
     current.controller.abort();
+    globalAiTokens.delete(current.token);
     userJobs.delete(userId);
   }
+  if (globalAiTokens.size >= maxGlobalInflight()) return null;
+
   const job: UserAiJob = {
     jobId: randomUUID(),
     userId,
@@ -96,31 +122,28 @@ export function acquireUserAiJob(
     until: now + ttlMs,
     controller: new AbortController(),
   };
+  globalAiTokens.add(job.token);
   userJobs.set(userId, job);
   return job;
 }
 
 export function getUserAiJob(userId: string): UserAiJob | null {
-  const current = userJobs.get(userId);
-  if (!current) return null;
-  if (current.until <= Date.now()) {
-    userJobs.delete(userId);
-    current.controller.abort();
-    return null;
-  }
-  return current;
+  pruneUserJobs(userId);
+  return userJobs.get(userId) ?? null;
 }
 
 export function cancelUserAiJob(userId: string, jobId?: string): UserAiJob | null {
   const current = getUserAiJob(userId);
   if (!current || (jobId && current.jobId !== jobId)) return null;
   current.controller.abort();
+  globalAiTokens.delete(current.token);
   userJobs.delete(userId);
   return current;
 }
 
 export function releaseUserAiJob(userId: string, token: string) {
   if (userJobs.get(userId)?.token === token) {
+    globalAiTokens.delete(token);
     userJobs.delete(userId);
   }
 }

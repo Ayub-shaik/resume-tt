@@ -19,9 +19,9 @@ export class AiHttpError extends Error {
  */
 export async function runConfiguredAi(
   messages: ChatMessage[],
-  opts?: { sessionKey?: string; signal?: AbortSignal },
+  opts?: { sessionKey?: string; signal?: AbortSignal; fast?: boolean },
 ): Promise<RuntimeResult> {
-  const config = resolveAiConfig();
+  const config = resolveAiConfig({ fast: opts?.fast });
   const { endpoint, apiKey, model } = config;
   const response = await fetch(endpoint, {
     method: "POST",
@@ -52,7 +52,7 @@ export async function runConfiguredAi(
   return { text, runtime: "openclaw" };
 }
 
-export function resolveAiConfig(): {
+export function resolveAiConfig(opts?: { fast?: boolean }): {
   endpoint: string;
   apiKey: string;
   model: string;
@@ -66,12 +66,14 @@ export function resolveAiConfig(): {
   const apiKey =
     process.env.AI_API_KEY?.trim() || process.env.OPENCLAW_GATEWAY_TOKEN?.trim();
   if (!apiKey) throw new Error("AI_API_KEY or OPENCLAW_GATEWAY_TOKEN is not set");
+  const primary =
+    process.env.AI_MODEL?.trim() ||
+    process.env.OPENCLAW_MODEL?.trim() ||
+    "openclaw/default";
+  const fast = process.env.AI_MODEL_FAST?.trim();
   return {
     endpoint,
     apiKey,
-    model:
-      process.env.AI_MODEL?.trim() ||
-      process.env.OPENCLAW_MODEL?.trim() ||
-      "openclaw/default",
+    model: opts?.fast && fast ? fast : primary,
   };
 }
