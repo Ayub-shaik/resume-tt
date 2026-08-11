@@ -22,6 +22,15 @@ npm run start:prod   # 127.0.0.1:3060
 
 See `deploy/resume.tomorrowtools.dev.md`.
 
+## AI provider and recovery
+
+The app calls one OpenAI-compatible endpoint. OpenClaw is the default local
+choice, but an operator can set `AI_BASE_URL`, `AI_API_KEY`, `AI_MODEL`, and
+`AI_PROVIDER` to use another compatible gateway. Long requests are journaled
+with an idempotency key and can be inspected at `/api/recovery/jobs/:id`.
+SQLite stores recovery state and bounded memory snapshots; do not commit
+production secrets or user data.
+
 ## Env
 
 Copy `.env.example` → `.env.local` (dev) or `.env.production` (prod).

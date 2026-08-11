@@ -13,6 +13,7 @@ import {
   releaseUserAiJob,
 } from "@/lib/security/rateLimit";
 import { LIMITS, sanitizeText } from "@/lib/security/validate";
+import { runRecoveryJob, saveMemorySnapshot } from "@/lib/recovery/store";
 import { z } from "zod";
 
 export const runtime = "nodejs";
@@ -76,12 +77,27 @@ export async function POST(req: Request) {
   }
 
   try {
-    const tailored = await tailorResumeForJd({
+    const request = {
       resumeText: sanitizeText(parsed.data.resumeText, LIMITS.resume),
       jdText: sanitizeText(parsed.data.jdText, LIMITS.jd),
-      sessionKey: ephemeralOpenClawSession("ats-tailor", [ctx.user.id]),
-      signal: job.controller.signal,
+      saveAsResume: parsed.data.saveAsResume !== false,
+    };
+    const recovery = await runRecoveryJob({
+      userId: ctx.user.id,
+      action: "ats.tailor",
+      idempotencyKey: req.headers.get("x-idempotency-key") || requestId,
+      request,
+      provider: process.env.AI_PROVIDER || "openclaw",
+      execute: () => tailorResumeForJd({
+        ...request,
+        sessionKey: ephemeralOpenClawSession("ats-tailor", [ctx.user.id]),
+        signal: job.controller.signal,
+      }),
     });
+    if (!recovery.result) {
+      return jsonOk({ recoveryJobId: recovery.job.id, status: recovery.job.status, checkpoint: recovery.job.checkpoint }, 202);
+    }
+    const tailored = recovery.result;
 
     let saved = null;
     if (parsed.data.saveAsResume !== false) {
@@ -92,7 +108,15 @@ export async function POST(req: Request) {
       );
     }
 
-    return jsonOk({ ...tailored, resume: saved });
+    const response = { ...tailored, resume: saved, recoveryJobId: recovery.job.id };
+    saveMemorySnapshot({
+      userId: ctx.user.id,
+      resourceId: recovery.job.id,
+      kind: "ats.tailor",
+      summary: tailored.resumeMd,
+      sourceCursor: recovery.job.id,
+    });
+    return jsonOk(response);
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     console.error(`[ats/tailor ${requestId}] HTTP 502: ${msg}`);

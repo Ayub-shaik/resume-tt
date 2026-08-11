@@ -8,6 +8,7 @@ import retrofit2.http.Header
 import retrofit2.http.Multipart
 import retrofit2.http.POST
 import retrofit2.http.Part
+import retrofit2.http.Path
 import retrofit2.http.Query
 
 interface ResumeApi {
@@ -58,6 +59,9 @@ interface ResumeApi {
 
     @GET("api/ats/sessions")
     suspend fun getSession(@Query("id") id: String): SessionPayload
+
+    @GET("api/recovery/jobs/{id}")
+    suspend fun getRecoveryJob(@Path("id") id: String): JsonObject
 
     @POST("api/ats/sessions")
     suspend fun writeSession(@Body body: SessionWrite): SessionPayload

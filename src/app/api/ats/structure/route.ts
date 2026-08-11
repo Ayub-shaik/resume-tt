@@ -19,6 +19,7 @@ import {
   releaseUserAiJob,
 } from "@/lib/security/rateLimit";
 import { LIMITS, sanitizeText } from "@/lib/security/validate";
+import { runRecoveryJob, saveMemorySnapshot } from "@/lib/recovery/store";
 import { z } from "zod";
 
 export const runtime = "nodejs";
@@ -73,82 +74,86 @@ export async function POST(req: Request) {
   }
 
   try {
-    if (parsed.data.action === "structure") {
-      const text = sanitizeText(parsed.data.resumeText || "", LIMITS.resume);
-      if (!text) return jsonError("resumeText required", 400);
-      const out = await structureResumeToJson({
-        resumeText: text,
-        sessionKey: `ats-structure-${ctx.user.id}`,
-        signal: job.controller.signal,
-      });
-      let saved = null;
-      if (parsed.data.saveAsResume) {
-        saved = createResume(
-          formatResumeDisplayName("structured-resume.json"),
-          out.markdown,
-          ctx.user.id,
-        );
-      }
-      return jsonOk({ ...out, resume: saved });
-    }
-
-    const jd = sanitizeText(parsed.data.jdText || "", LIMITS.jd);
-
-    if (parsed.data.action === "improve") {
-      const instruction = sanitizeText(parsed.data.instruction || "", 4000);
-      if (!instruction) return jsonError("instruction required", 400);
-
-      let out;
-      if (parsed.data.jsonResume) {
-        const jr = JsonResumeSchema.parse(parsed.data.jsonResume);
-        out = await improveJsonResume({
-          jsonResume: jr,
-          instruction,
-          jdText: jd,
-          sessionKey: `ats-improve-${ctx.user.id}`,
-          signal: job.controller.signal,
-        });
-      } else {
-        const text = sanitizeText(parsed.data.resumeText || "", LIMITS.resume);
-        if (!text) {
-          return jsonError("jsonResume or resumeText required", 400);
+    const recovery = await runRecoveryJob({
+      userId: ctx.user.id,
+      action: `ats.${parsed.data.action}`,
+      idempotencyKey: req.headers.get("x-idempotency-key") || requestId,
+      request: parsed.data,
+      provider: process.env.AI_PROVIDER || "openclaw",
+      execute: async () => {
+        if (parsed.data.action === "structure") {
+          const text = sanitizeText(parsed.data.resumeText || "", LIMITS.resume);
+          if (!text) throw new Error("resumeText required");
+          return {
+            kind: "structure" as const,
+            out: await structureResumeToJson({
+              resumeText: text,
+              sessionKey: `ats-structure-${ctx.user.id}`,
+              signal: job.controller.signal,
+            }),
+          };
         }
-        out = await improveResumeText({
-          resumeText: text,
-          instruction,
-          jdText: jd,
-          sessionKey: `ats-improve-${ctx.user.id}`,
-          signal: job.controller.signal,
-        });
-      }
-
-      let saved = null;
-      if (parsed.data.saveAsResume !== false) {
-        saved = createResume(
-          formatResumeDisplayName("improved-resume.json"),
-          out.markdown,
-          ctx.user.id,
-        );
-      }
-      return jsonOk({ ...out, resume: saved });
-    }
-
-    const jr = JsonResumeSchema.parse(parsed.data.jsonResume);
-    const out = await tailorJsonResume({
-      jsonResume: jr,
-      jdText: jd,
-      sessionKey: `ats-tailor-json-${ctx.user.id}`,
-      signal: job.controller.signal,
+        const jd = sanitizeText(parsed.data.jdText || "", LIMITS.jd);
+        if (parsed.data.action === "improve") {
+          const instruction = sanitizeText(parsed.data.instruction || "", 4000);
+          if (!instruction) throw new Error("instruction required");
+          if (parsed.data.jsonResume) {
+            return {
+              kind: "improve" as const,
+              out: await improveJsonResume({
+                jsonResume: JsonResumeSchema.parse(parsed.data.jsonResume),
+                instruction,
+                jdText: jd,
+                sessionKey: `ats-improve-${ctx.user.id}`,
+                signal: job.controller.signal,
+              }),
+            };
+          }
+          const text = sanitizeText(parsed.data.resumeText || "", LIMITS.resume);
+          if (!text) throw new Error("jsonResume or resumeText required");
+          return {
+            kind: "improve" as const,
+            out: await improveResumeText({
+              resumeText: text,
+              instruction,
+              jdText: jd,
+              sessionKey: `ats-improve-${ctx.user.id}`,
+              signal: job.controller.signal,
+            }),
+          };
+        }
+        return {
+          kind: "tailor" as const,
+          out: await tailorJsonResume({
+            jsonResume: JsonResumeSchema.parse(parsed.data.jsonResume),
+            jdText: jd,
+            sessionKey: `ats-tailor-json-${ctx.user.id}`,
+            signal: job.controller.signal,
+          }),
+        };
+      },
     });
-    let saved = null;
-    if (parsed.data.saveAsResume !== false) {
-      saved = createResume(
-        formatResumeDisplayName("tailored-resume.json"),
-        out.markdown,
-        ctx.user.id,
-      );
+    if (!recovery.result) {
+      return jsonOk({ recoveryJobId: recovery.job.id, status: recovery.job.status, checkpoint: recovery.job.checkpoint }, 202);
     }
-    return jsonOk({ ...out, resume: saved });
+    const { kind, out } = recovery.result;
+    const filename = kind === "structure"
+      ? "structured-resume.json"
+      : kind === "improve"
+        ? "improved-resume.json"
+        : "tailored-resume.json";
+    const saved = parsed.data.saveAsResume !== false
+      ? createResume(formatResumeDisplayName(filename), out.markdown, ctx.user.id)
+      : null;
+    const response = { ...out, resume: saved, recoveryJobId: recovery.job.id };
+    saveMemorySnapshot({
+      userId: ctx.user.id,
+      resourceId: recovery.job.id,
+      kind: `ats.${kind}`,
+      summary: out.markdown,
+      sourceCursor: recovery.job.id,
+    });
+    return jsonOk(response);
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     console.error(`[ats/structure ${requestId}] HTTP 502: ${msg}`);

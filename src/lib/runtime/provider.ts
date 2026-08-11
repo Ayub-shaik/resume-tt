@@ -1,0 +1,54 @@
+import { assertSafeInternalBaseUrl } from "@/lib/security/validate";
+import type { ChatMessage, RuntimeResult } from "./types";
+
+/**
+ * Provider-neutral OpenAI-compatible chat endpoint.
+ *
+ * OpenClaw remains the default for the hosted deployment, but open-source
+ * users can point the app at any compatible gateway without changing code.
+ */
+export async function runConfiguredAi(
+  messages: ChatMessage[],
+  opts?: { sessionKey?: string; signal?: AbortSignal },
+): Promise<RuntimeResult> {
+  const baseUrl =
+    process.env.AI_BASE_URL?.trim() ||
+    process.env.OPENCLAW_BASE_URL?.trim() ||
+    "http://127.0.0.1:18789/v1";
+  const parsed = assertSafeInternalBaseUrl(baseUrl.replace(/\/$/, ""));
+  const endpoint = `${parsed.origin}${parsed.pathname.replace(/\/$/, "")}/chat/completions`;
+  const apiKey =
+    process.env.AI_API_KEY?.trim() || process.env.OPENCLAW_GATEWAY_TOKEN?.trim();
+  if (!apiKey) throw new Error("AI_API_KEY or OPENCLAW_GATEWAY_TOKEN is not set");
+
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+      ...(opts?.sessionKey
+        ? { "x-openclaw-session-key": opts.sessionKey }
+        : {}),
+    },
+    body: JSON.stringify({
+      model:
+        process.env.AI_MODEL?.trim() ||
+        process.env.OPENCLAW_MODEL?.trim() ||
+        "openclaw/default",
+      messages,
+      temperature: 0.4,
+      user: opts?.sessionKey ? `tt:${opts.sessionKey}` : undefined,
+    }),
+    signal: opts?.signal,
+  });
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(`AI provider HTTP ${response.status}: ${body.slice(0, 300)}`);
+  }
+  const data = (await response.json()) as {
+    choices?: Array<{ message?: { content?: string } }>;
+  };
+  const text = data.choices?.[0]?.message?.content?.trim();
+  if (!text) throw new Error("AI provider returned empty content");
+  return { text, runtime: "openclaw" };
+}

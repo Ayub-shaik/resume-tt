@@ -1,5 +1,5 @@
 import type { ChatMessage, RuntimeResult } from "./types";
-import { assertSafeInternalBaseUrl } from "@/lib/security/validate";
+import { runConfiguredAi } from "./provider";
 
 async function sleep(ms: number) {
   await new Promise((r) => setTimeout(r, ms));
@@ -18,75 +18,12 @@ export async function runOpenClaw(
   messages: ChatMessage[],
   opts?: { sessionKey?: string; signal?: AbortSignal },
 ): Promise<RuntimeResult> {
-  const rawBase =
-    process.env.OPENCLAW_BASE_URL?.replace(/\/$/, "") ||
-    "http://127.0.0.1:18789/v1";
-  const parsed = assertSafeInternalBaseUrl(rawBase);
-  const endpoint = `${parsed.origin}${parsed.pathname.replace(/\/$/, "")}/chat/completions`;
-
-  const token = process.env.OPENCLAW_GATEWAY_TOKEN?.trim();
-  if (!token) {
-    throw new Error("OPENCLAW_GATEWAY_TOKEN is not set");
-  }
-  if (token.length < 16) {
-    throw new Error("OPENCLAW_GATEWAY_TOKEN looks invalid");
-  }
-
-  const model = process.env.OPENCLAW_MODEL || "openclaw/default";
-  const sessionKey = opts?.sessionKey?.trim() || undefined;
   const maxAttempts = 3;
   let lastErr: unknown;
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    const controller = new AbortController();
-    const abortFromCaller = () => controller.abort();
-    if (opts?.signal?.aborted) controller.abort();
-    opts?.signal?.addEventListener("abort", abortFromCaller, { once: true });
-    const timeout = setTimeout(() => controller.abort(), 170_000);
     try {
-      const res = await fetch(endpoint, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-          ...(sessionKey ? { "x-openclaw-session-key": sessionKey } : {}),
-        },
-        body: JSON.stringify({
-          model,
-          // Distinct user ids help some gateways isolate lanes
-          user: sessionKey ? `mpi:${sessionKey}` : undefined,
-          temperature: 0.4,
-          messages: messages.map((m) => ({
-            role: m.role,
-            content: m.content,
-          })),
-        }),
-        signal: controller.signal,
-      });
-
-      if (!res.ok) {
-        const body = await res.text();
-        const err = new Error(
-          `OpenClaw HTTP ${res.status}: ${body.slice(0, 200)}`,
-        ) as Error & { status?: number };
-        err.status = res.status;
-        if (
-          attempt < maxAttempts &&
-          isRetryableStatus(res.status)
-        ) {
-          lastErr = err;
-          await sleep(350 * attempt * attempt);
-          continue;
-        }
-        throw err;
-      }
-
-      const data = (await res.json()) as {
-        choices?: Array<{ message?: { content?: string } }>;
-      };
-      const text = data.choices?.[0]?.message?.content ?? "";
-      if (!text) throw new Error("OpenClaw returned empty content");
-      return { text, runtime: "openclaw" };
+      return await runConfiguredAi(messages, opts);
     } catch (err) {
       lastErr = err;
       const status =
@@ -99,9 +36,6 @@ export async function runOpenClaw(
         throw err;
       }
       await sleep(350 * attempt * attempt);
-    } finally {
-      clearTimeout(timeout);
-      opts?.signal?.removeEventListener("abort", abortFromCaller);
     }
   }
 

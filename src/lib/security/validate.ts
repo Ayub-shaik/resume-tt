@@ -87,9 +87,9 @@ export function assertSafeInternalBaseUrl(raw: string): URL {
     host === "127.0.0.1" ||
     host === "::1" ||
     host.endsWith(".localhost");
-  if (!allowed) {
+  if (!allowed && process.env.AI_ALLOW_REMOTE !== "true") {
     throw new Error(
-      "OPENCLAW_BASE_URL host must be localhost/127.0.0.1 (refusing remote)",
+      "AI endpoint must be localhost by default; set AI_ALLOW_REMOTE=true only for an explicitly trusted endpoint",
     );
   }
   return parsed;

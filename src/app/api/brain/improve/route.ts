@@ -15,6 +15,7 @@ import {
   getUserAiJob,
   releaseUserAiJob,
 } from "@/lib/security/rateLimit";
+import { runRecoveryJob, saveMemorySnapshot } from "@/lib/recovery/store";
 
 export const runtime = "nodejs";
 
@@ -74,59 +75,86 @@ export async function POST(req: Request) {
     try {
       if (action === "chain") {
         const targetVersion = (body.targetVersion || 1) as ResumeVersion;
-        const chain = await brainImproveChain({
-          masterResume: master,
-          jdText,
-          targetRole,
-          targetVersion,
-          focus: body.focus,
-          matchScore,
-          signal: job.controller.signal,
+        const recovery = await runRecoveryJob({
+          userId: ctx.user.id,
+          action: "brain.improve.chain",
+          idempotencyKey: req.headers.get("x-idempotency-key") || requestId,
+          request: body,
+          provider: process.env.AI_PROVIDER || "openclaw",
+          execute: async () => {
+            const chain = await brainImproveChain({
+              masterResume: master, jdText, targetRole, targetVersion,
+              focus: body.focus, matchScore, signal: job.controller.signal,
+            });
+            return {
+              chain,
+              benchmark: await Promise.all(
+                chain.versions.map((v) => benchmarkTriple(v.resumeMd, jdText, v.scores)),
+              ),
+            };
+          },
         });
-        return NextResponse.json({
-          chain,
-          benchmark: await Promise.all(
-            chain.versions.map((v) => benchmarkTriple(v.resumeMd, jdText, v.scores)),
-          ),
-        });
+        if (!recovery.result) {
+          return NextResponse.json({ recoveryJobId: recovery.job.id, status: recovery.job.status, checkpoint: recovery.job.checkpoint }, { status: 202 });
+        }
+        saveMemorySnapshot({ userId: ctx.user.id, resourceId: recovery.job.id, kind: "brain.improve.chain", summary: JSON.stringify(recovery.result), sourceCursor: recovery.job.id });
+        return NextResponse.json({ ...recovery.result, recoveryJobId: recovery.job.id });
       }
 
       if (action === "more") {
         const current = String(body.currentResume || master).trim();
         const currentVersion = (body.currentVersion || 1) as ResumeVersion;
-        const pass = await brainImproveMore({
-          masterResume: master,
-          currentResume: current,
-          currentVersion,
-          jdText,
-          targetRole,
-          matchScore,
-          focus: body.focus,
-          signal: job.controller.signal,
+        const recovery = await runRecoveryJob({
+          userId: ctx.user.id,
+          action: "brain.improve.more",
+          idempotencyKey: req.headers.get("x-idempotency-key") || requestId,
+          request: body,
+          provider: process.env.AI_PROVIDER || "openclaw",
+          execute: async () => {
+            const pass = await brainImproveMore({
+              masterResume: master, currentResume: current, currentVersion,
+              jdText, targetRole, matchScore, focus: body.focus,
+              signal: job.controller.signal,
+            });
+            return {
+              pass,
+              benchmark: await benchmarkTriple(pass.resumeMd, jdText, pass.scores),
+            };
+          },
         });
-        return NextResponse.json({
-          pass,
-          benchmark: await benchmarkTriple(pass.resumeMd, jdText, pass.scores),
-        });
+        if (!recovery.result) {
+          return NextResponse.json({ recoveryJobId: recovery.job.id, status: recovery.job.status, checkpoint: recovery.job.checkpoint }, { status: 202 });
+        }
+        saveMemorySnapshot({ userId: ctx.user.id, resourceId: recovery.job.id, kind: "brain.improve.more", summary: recovery.result.pass.resumeMd, sourceCursor: recovery.job.id });
+        return NextResponse.json({ ...recovery.result, recoveryJobId: recovery.job.id });
       }
 
       const current = String(body.currentResume || master).trim();
       const version = (body.currentVersion || 1) as ResumeVersion;
-      const pass = await brainImprovePass({
-        masterResume: master,
-        currentResume: current,
-        jdText,
-        targetRole,
-        version,
-        focus: body.focus || "balanced",
-        matchScore,
-        signal: job.controller.signal,
+      const recovery = await runRecoveryJob({
+        userId: ctx.user.id,
+        action: "brain.improve.pass",
+        idempotencyKey: req.headers.get("x-idempotency-key") || requestId,
+        request: body,
+        provider: process.env.AI_PROVIDER || "openclaw",
+        execute: async () => {
+          const pass = await brainImprovePass({
+            masterResume: master, currentResume: current, jdText, targetRole,
+            version, focus: body.focus || "balanced", matchScore,
+            signal: job.controller.signal,
+          });
+          return {
+            pass,
+            preScores: scoreTriple(current, jdText, targetRole),
+            benchmark: await benchmarkTriple(pass.resumeMd, jdText, pass.scores),
+          };
+        },
       });
-      return NextResponse.json({
-        pass,
-        preScores: scoreTriple(current, jdText, targetRole),
-        benchmark: await benchmarkTriple(pass.resumeMd, jdText, pass.scores),
-      });
+      if (!recovery.result) {
+        return NextResponse.json({ recoveryJobId: recovery.job.id, status: recovery.job.status, checkpoint: recovery.job.checkpoint }, { status: 202 });
+      }
+      saveMemorySnapshot({ userId: ctx.user.id, resourceId: recovery.job.id, kind: "brain.improve.pass", summary: recovery.result.pass.resumeMd, sourceCursor: recovery.job.id });
+      return NextResponse.json({ ...recovery.result, recoveryJobId: recovery.job.id });
     } finally {
       releaseUserAiJob(ctx.user.id, job.token);
     }

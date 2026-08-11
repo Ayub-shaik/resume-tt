@@ -5,6 +5,7 @@ import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFact
 import kotlinx.serialization.json.Json
 import okhttp3.Dns
 import okhttp3.Interceptor
+import okio.Buffer
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -15,6 +16,7 @@ import java.net.InetSocketAddress
 import java.net.Socket
 import java.util.concurrent.TimeUnit
 import javax.net.SocketFactory
+import java.security.MessageDigest
 
 val appJson = Json { ignoreUnknownKeys = true; isLenient = true; encodeDefaults = true }
 
@@ -30,10 +32,25 @@ fun buildOkHttp(tokenProvider: () -> String?): OkHttpClient {
         level = if (BuildConfig.DEBUG) HttpLoggingInterceptor.Level.BODY
         else HttpLoggingInterceptor.Level.BASIC
     }
+    val idempotency = Interceptor { chain ->
+        val request = chain.request()
+        if (request.method == "POST" && request.body != null &&
+            request.header("x-idempotency-key") == null) {
+            val buffer = Buffer()
+            request.body!!.writeTo(buffer)
+            val digest = MessageDigest.getInstance("SHA-256")
+                .digest(buffer.readByteArray())
+                .joinToString("") { "%02x".format(it) }
+            chain.proceed(request.newBuilder().header("x-idempotency-key", digest).build())
+        } else {
+            chain.proceed(request)
+        }
+    }
     return OkHttpClient.Builder()
         .dns(PreferIpv4Dns)
         .socketFactory(Ipv4SocketFactory)
         .addInterceptor(auth)
+        .addInterceptor(idempotency)
         .addInterceptor(log)
         .connectTimeout(60, TimeUnit.SECONDS)
         .readTimeout(240, TimeUnit.SECONDS)

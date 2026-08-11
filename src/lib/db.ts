@@ -22,7 +22,8 @@ import type {
 import { computeContextFingerprint } from "./context";
 
 const DATA_DIR = path.join(process.cwd(), "data");
-const DB_PATH = path.join(DATA_DIR, "resume-tt.sqlite");
+const DB_PATH =
+  process.env.TT_DB_PATH || path.join(DATA_DIR, "resume-tt.sqlite");
 
 let db: Database.Database | null = null;
 
@@ -123,6 +124,35 @@ function getDb() {
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS recovery_jobs (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      resource_id TEXT,
+      action TEXT NOT NULL,
+      idempotency_key TEXT NOT NULL,
+      request_hash TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'queued',
+      checkpoint TEXT NOT NULL DEFAULT 'accepted',
+      provider TEXT,
+      attempt_count INTEGER NOT NULL DEFAULT 0,
+      request_json TEXT NOT NULL,
+      result_json TEXT,
+      error TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      UNIQUE(user_id, idempotency_key)
+    );
+
+    CREATE TABLE IF NOT EXISTS memory_snapshots (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      resource_id TEXT NOT NULL,
+      kind TEXT NOT NULL,
+      summary TEXT NOT NULL,
+      source_cursor TEXT,
+      created_at TEXT NOT NULL
+    );
   `);
 
   ensureColumn(db, "interviews", "interviewer_role", "interviewer_role TEXT");
@@ -165,6 +195,10 @@ function getDb() {
   );
 
   return db;
+}
+
+export function withDatabase<T>(fn: (database: Database.Database) => T): T {
+  return fn(getDb());
 }
 
 function mapResume(row: Record<string, unknown>): Resume {

@@ -11,6 +11,7 @@ import {
   releaseUserAiJob,
 } from "@/lib/security/rateLimit";
 import { LIMITS, sanitizeText } from "@/lib/security/validate";
+import { runRecoveryJob, saveMemorySnapshot } from "@/lib/recovery/store";
 import { z } from "zod";
 
 export const runtime = "nodejs";
@@ -104,17 +105,52 @@ export async function POST(req: Request) {
   }
 
   try {
-    const analysis = await withTimeout(
-      analyzeResumeVsJd({
-        resumeText: sanitizeText(parsed.data.resumeText, LIMITS.resume),
-        jdText: sanitizeText(parsed.data.jdText || "", LIMITS.jd),
-        sessionKey: ephemeralOpenClawSession("ats-analyze", [ctx.user.id]),
-        signal: job.controller.signal,
+    const request = {
+      resumeText: sanitizeText(parsed.data.resumeText, LIMITS.resume),
+      jdText: sanitizeText(parsed.data.jdText || "", LIMITS.jd),
+    };
+    const idempotencyKey =
+      req.headers.get("x-idempotency-key") || requestId;
+    const recovery = await runRecoveryJob({
+      userId: ctx.user.id,
+      action: "ats.analyze",
+      idempotencyKey,
+      request,
+      provider: process.env.AI_PROVIDER || "openclaw",
+      execute: async () =>
+        withTimeout(
+          analyzeResumeVsJd({
+            ...request,
+            sessionKey: ephemeralOpenClawSession("ats-analyze", [ctx.user.id]),
+            signal: job.controller.signal,
+          }),
+          ANALYZE_TIMEOUT_MS,
+          "ATS analyze",
+        ),
+    });
+    if (!recovery.result) {
+      return jsonOk(
+        {
+          recoveryJobId: recovery.job.id,
+          status: recovery.job.status,
+          checkpoint: recovery.job.checkpoint,
+        },
+        202,
+      );
+    }
+    saveMemorySnapshot({
+      userId: ctx.user.id,
+      resourceId: recovery.job.id,
+      kind: "ats.analyze",
+      summary: JSON.stringify({
+        action: "analyze",
+        analysis: recovery.result,
+        resumeChars: request.resumeText.length,
+        jdChars: request.jdText.length,
       }),
-      ANALYZE_TIMEOUT_MS,
-      "ATS analyze",
-    );
-    return jsonOk({ analysis });
+      sourceCursor: recovery.job.id,
+    });
+    return jsonOk({ analysis: recovery.result, recoveryJobId: recovery.job.id });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Analyze failed";
     const status = /timed out|timeout|aborted|abort/i.test(msg) ? 504 : 502;

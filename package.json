@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start -H 127.0.0.1 -p 3060",
     "start:prod": "next start -H 127.0.0.1 -p 3060",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:recovery": "TT_DB_PATH=/tmp/resume-tt-recovery-test.sqlite vitest run tests/recovery.test.ts"
   },
   "dependencies": {
     "@cursor/sdk": "^1.0.26",
@@ -35,7 +36,8 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.12",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.10"
   },
   "allowScripts": {
     "better-sqlite3@13.0.2": true

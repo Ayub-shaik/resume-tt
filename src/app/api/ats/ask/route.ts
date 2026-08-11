@@ -11,6 +11,7 @@ import {
   releaseUserAiJob,
 } from "@/lib/security/rateLimit";
 import { LIMITS, neutralizeForPrompt, sanitizeText } from "@/lib/security/validate";
+import { runRecoveryJob, saveMemorySnapshot } from "@/lib/recovery/store";
 import { z } from "zod";
 
 export const runtime = "nodejs";
@@ -66,8 +67,15 @@ export async function POST(req: Request) {
   }
 
   try {
-    const result = await runOpenClaw(
-      [
+    const request = { question, context, resumeText, jdText };
+    const recovery = await runRecoveryJob({
+      userId: ctx.user.id,
+      action: "ats.ask",
+      idempotencyKey: req.headers.get("x-idempotency-key") || requestId,
+      request,
+      provider: process.env.AI_PROVIDER || "openclaw",
+      execute: async () => runOpenClaw(
+        [
         {
           role: "system",
           content: `You are an ATS resume coach inside MPI.
@@ -89,13 +97,28 @@ If the user asks to rewrite a line, offer one improved version that stays factua
             .filter(Boolean)
             .join("\n"),
         },
-      ],
-      {
-        sessionKey: ephemeralOpenClawSession("ats-ask", [ctx.user.id]),
-        signal: job.controller.signal,
-      },
-    );
-    return jsonOk({ reply: result.text.trim() || "No reply." });
+        ],
+        {
+          sessionKey: ephemeralOpenClawSession("ats-ask", [ctx.user.id]),
+          signal: job.controller.signal,
+        },
+      ),
+    });
+    if (!recovery.result) {
+      return jsonOk(
+        { recoveryJobId: recovery.job.id, status: recovery.job.status, checkpoint: recovery.job.checkpoint },
+        202,
+      );
+    }
+    const response = { reply: recovery.result.text.trim() || "No reply.", recoveryJobId: recovery.job.id };
+    saveMemorySnapshot({
+      userId: ctx.user.id,
+      resourceId: recovery.job.id,
+      kind: "ats.ask",
+      summary: `${question}\n\n${response.reply}`,
+      sourceCursor: recovery.job.id,
+    });
+    return jsonOk(response);
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     console.error(`[ats/ask ${requestId}] HTTP 502: ${msg}`);
