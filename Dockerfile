@@ -25,5 +25,5 @@ COPY --from=builder /app/public ./public
 COPY --from=builder /app/src ./src
 COPY --from=builder /app/next.config.ts ./
 RUN mkdir -p /app/data
-EXPOSE 3000
+EXPOSE 3060
 CMD ["npm", "run", "start"]

@@ -1,22 +1,30 @@
 services:
-  mpi:
+  resume:
     build: .
     ports:
-      - "3000:3000"
+      - "3060:3060"
     environment:
-      - AUTH_SECRET=${AUTH_SECRET}
+      - NODE_ENV=production
+      - AUTH_SECRET=${AUTH_SECRET:?AUTH_SECRET is required}
       - AUTH_DEV_LOGIN=${AUTH_DEV_LOGIN:-0}
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
-      - GOOGLE_DRIVE_REFRESH_TOKEN=${GOOGLE_DRIVE_REFRESH_TOKEN:-}
-      - NEXTAUTH_URL=${NEXTAUTH_URL:-https://mpi.tomorrowtools.dev}
-      - CURSOR_API_KEY=${CURSOR_API_KEY:-}
-      - OPENCLAW_BASE_URL=${OPENCLAW_BASE_URL:-}
+      - NEXTAUTH_URL=${NEXTAUTH_URL:-http://127.0.0.1:3060}
+      - OPENCLAW_BASE_URL=${OPENCLAW_BASE_URL:-http://127.0.0.1:18789/v1}
       - OPENCLAW_GATEWAY_TOKEN=${OPENCLAW_GATEWAY_TOKEN:-}
-      - AI_RUNTIME=${AI_RUNTIME:-auto}
+      - AI_BASE_URL=${AI_BASE_URL:-}
+      - AI_API_KEY=${AI_API_KEY:-}
+      - AI_MODEL=${AI_MODEL:-}
+      - AI_PROVIDER=${AI_PROVIDER:-openclaw}
+      - AI_ALLOW_REMOTE=${AI_ALLOW_REMOTE:-false}
+      - AI_ALLOW_CURSOR_FALLBACK=${AI_ALLOW_CURSOR_FALLBACK:-false}
+      - AI_RUNTIME=${AI_RUNTIME:-openclaw}
+      - CURSOR_API_KEY=${CURSOR_API_KEY:-}
+      - NEXT_PUBLIC_MPI_URL=${NEXT_PUBLIC_MPI_URL:-https://mpi.tomorrowtools.dev}
+      - NEXT_PUBLIC_RESUME_URL=${NEXT_PUBLIC_RESUME_URL:-https://resume.tomorrowtools.dev}
     volumes:
-      - mpi-data:/app/data
+      - resume-data:/app/data
     restart: unless-stopped
 
 volumes:
-  mpi-data:
+  resume-data:

@@ -34,9 +34,10 @@ fun buildOkHttp(tokenProvider: () -> String?): OkHttpClient {
         } else chain.request()
         chain.proceed(req)
     }
+    // Release: never BODY-log (tokens / resume / JD). Debug may BODY-log locally.
     val log = HttpLoggingInterceptor { msg -> Log.d("ResumeHttp", msg) }.apply {
         level = if (BuildConfig.DEBUG) HttpLoggingInterceptor.Level.BODY
-        else HttpLoggingInterceptor.Level.BASIC
+        else HttpLoggingInterceptor.Level.NONE
     }
     val idempotency = Interceptor { chain ->
         val request = chain.request()

@@ -1,4 +1,5 @@
 import { createHmac, timingSafeEqual } from "crypto";
+import { resolveAuthSecret } from "@/lib/auth/secret";
 
 export type MobileTokenPayload = {
   email: string;
@@ -8,11 +9,7 @@ export type MobileTokenPayload = {
 };
 
 function secret() {
-  return (
-    process.env.AUTH_SECRET ||
-    process.env.NEXTAUTH_SECRET ||
-    "mpi-dev-secret-change-me"
-  );
+  return resolveAuthSecret();
 }
 
 function b64url(input: Buffer | string) {

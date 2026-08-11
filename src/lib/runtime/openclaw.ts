@@ -1,5 +1,5 @@
 import type { ChatMessage, RuntimeResult } from "./types";
-import { runConfiguredAi } from "./provider";
+import { AiHttpError, runConfiguredAi } from "./provider";
 
 async function sleep(ms: number) {
   await new Promise((r) => setTimeout(r, ms));
@@ -7,6 +7,14 @@ async function sleep(ms: number) {
 
 function isRetryableStatus(status: number) {
   return status === 429 || status === 502 || status === 503 || status === 504;
+}
+
+function statusFromError(err: unknown): number {
+  if (err instanceof AiHttpError) return err.status;
+  if (err && typeof err === "object" && "status" in err) {
+    return Number((err as { status?: number }).status) || 0;
+  }
+  return 0;
 }
 
 /**
@@ -26,10 +34,7 @@ export async function runOpenClaw(
       return await runConfiguredAi(messages, opts);
     } catch (err) {
       lastErr = err;
-      const status =
-        err && typeof err === "object" && "status" in err
-          ? Number((err as { status?: number }).status)
-          : 0;
+      const status = statusFromError(err);
       const abort =
         err instanceof Error && /aborted|AbortError|timeout/i.test(err.message);
       if (abort || attempt >= maxAttempts || !isRetryableStatus(status)) {

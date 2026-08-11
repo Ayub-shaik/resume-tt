@@ -26,10 +26,29 @@ See `deploy/resume.tomorrowtools.dev.md`.
 
 The app calls one OpenAI-compatible endpoint. OpenClaw is the default local
 choice, but an operator can set `AI_BASE_URL`, `AI_API_KEY`, `AI_MODEL`, and
-`AI_PROVIDER` to use another compatible gateway. Long requests are journaled
-with an idempotency key and can be inspected at `/api/recovery/jobs/:id`.
+`AI_PROVIDER` to use another compatible gateway. Set `AI_ALLOW_REMOTE=true`
+only for a trusted hosted endpoint.
+
+Long requests are **journaled** with an idempotency key and can be polled at
+`/api/recovery/jobs/:id`. Clients automatically poll HTTP 202 responses.
+After a process restart, stale queued/running jobs are marked **`uncertain`**
+(not auto-completed). This is duplicate-safe journaling + status, not a
+guarantee that work finishes after the server dies mid-provider call.
+
 SQLite stores recovery state and bounded memory snapshots; do not commit
 production secrets or user data.
+
+**Scores** shown in the studio are coaching heuristics / relative indicators
+for revision — not validated predictions of ATS passage or hiring outcomes.
+
+## Docker (self-host smoke)
+
+```bash
+cp .env.example .env
+# set AUTH_SECRET and OPENCLAW_GATEWAY_TOKEN (or AI_API_KEY)
+docker compose up --build
+# app: http://127.0.0.1:3060  (OpenClaw on host: 18789)
+```
 
 ## Env
 

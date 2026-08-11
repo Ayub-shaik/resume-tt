@@ -1,6 +1,16 @@
 import { assertSafeInternalBaseUrl } from "@/lib/security/validate";
 import type { ChatMessage, RuntimeResult } from "./types";
 
+/** HTTP failure from an OpenAI-compatible provider — status is typed for retries. */
+export class AiHttpError extends Error {
+  readonly status: number;
+  constructor(status: number, body: string) {
+    super(`AI provider HTTP ${status}: ${body.slice(0, 300)}`);
+    this.name = "AiHttpError";
+    this.status = status;
+  }
+}
+
 /**
  * Provider-neutral OpenAI-compatible chat endpoint.
  *
@@ -32,7 +42,7 @@ export async function runConfiguredAi(
   });
   if (!response.ok) {
     const body = await response.text();
-    throw new Error(`AI provider HTTP ${response.status}: ${body.slice(0, 300)}`);
+    throw new AiHttpError(response.status, body);
   }
   const data = (await response.json()) as {
     choices?: Array<{ message?: { content?: string } }>;

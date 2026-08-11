@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { withDatabase } from "@/lib/db";
 import {
   beginRecoveryJob,
@@ -9,7 +9,9 @@ import {
   saveMemorySnapshot,
   updateRecoveryJob,
 } from "@/lib/recovery/store";
-import { resolveAiConfig } from "@/lib/runtime/provider";
+import { AiHttpError, resolveAiConfig } from "@/lib/runtime/provider";
+import { runOpenClaw } from "@/lib/runtime/openclaw";
+import { resolveAuthSecret } from "@/lib/auth/secret";
 
 beforeEach(() => {
   withDatabase((db) => {
@@ -98,6 +100,49 @@ describe("durable recovery store", () => {
     process.env.AI_BASE_URL = "https://example.com/v1";
     process.env.AI_ALLOW_REMOTE = "false";
     expect(() => resolveAiConfig()).toThrow("AI endpoint must be localhost");
+    process.env = previous;
+  });
+});
+
+describe("provider retries and auth secret", () => {
+  it("AiHttpError exposes typed status for retries", () => {
+    const err = new AiHttpError(429, "rate limited");
+    expect(err.status).toBe(429);
+    expect(err.message).toContain("429");
+  });
+
+  it("retries transient 503 then succeeds", async () => {
+    const previous = { ...process.env };
+    process.env.AI_BASE_URL = "http://127.0.0.1:9999/v1";
+    process.env.AI_API_KEY = "test-key";
+    process.env.AI_MODEL = "test-model";
+    let calls = 0;
+    const fetchMock = vi.fn(async () => {
+      calls += 1;
+      if (calls === 1) {
+        return new Response("busy", { status: 503 });
+      }
+      return new Response(
+        JSON.stringify({ choices: [{ message: { content: "ok" } }] }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      );
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const result = await runOpenClaw([{ role: "user", content: "hi" }]);
+    expect(result.text).toBe("ok");
+    expect(calls).toBe(2);
+    vi.unstubAllGlobals();
+    process.env = previous;
+  });
+
+  it("fail-closes auth secret in production", () => {
+    const previous = { ...process.env };
+    delete process.env.AUTH_SECRET;
+    delete process.env.NEXTAUTH_SECRET;
+    process.env.NODE_ENV = "production";
+    expect(() => resolveAuthSecret()).toThrow(/must be set in production/);
+    process.env.NODE_ENV = "development";
+    expect(resolveAuthSecret()).toBe("mpi-dev-secret-change-me");
     process.env = previous;
   });
 });

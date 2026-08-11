@@ -1734,6 +1734,9 @@ export function AtsStudio() {
                           {analysis.overallScore}
                         </p>
                         <p className="text-xs text-[var(--muted)]">/ 100 · tap</p>
+                        <p className="mt-1 max-w-[8rem] text-[10px] leading-snug text-[var(--muted)]">
+                          Coaching heuristic — not an ATS pass guarantee
+                        </p>
                       </button>
                       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                         {(analysis.dimensions || []).slice(0, 9).map((d) => (
@@ -1779,7 +1782,8 @@ export function AtsStudio() {
                         </div>
                         <p className="mb-3 text-xs text-[var(--muted)]">
                           Each row tailors your current working draft. After ATS
-                          passes, Overall uses the updated resume.
+                          passes, Overall uses the updated resume. Meters are
+                          relative revision indicators, not hire/ATS predictions.
                         </p>
                         <ImproveSpeedometers
                           masterScores={masterScores}

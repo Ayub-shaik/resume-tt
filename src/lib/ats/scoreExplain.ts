@@ -16,8 +16,8 @@ export function buildScoreExplanation(
     return {
       title: `Readiness ${analysis.overallScore}/100`,
       body: [
-        "Readiness is the full ATS review score from your analyse pass (LLM + heuristics).",
-        "It weighs parser clarity, role coverage, evidence, seniority fit, and section health.",
+        "Readiness is a coaching heuristic from your analyse pass (LLM + local rules) — not a validated prediction that an ATS will pass or reject you.",
+        "It weighs parser clarity, role coverage, evidence, seniority fit, and section health for relative revision guidance.",
         tailor
           ? `Tailor meters use a faster local scorer: ATS ${tailor.ats}, ${
               jdPresent ? `JD ${tailor.jd}, ` : ""

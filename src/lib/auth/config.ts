@@ -8,6 +8,7 @@ import {
   upsertUserFromGoogle,
   verifyUserPassword,
 } from "@/lib/auth/store";
+import { resolveAuthSecret } from "@/lib/auth/secret";
 
 const ADMIN_EMAIL = "ayubshaik642@gmail.com";
 
@@ -64,7 +65,7 @@ if (process.env.AUTH_DEV_LOGIN === "1" || !process.env.GOOGLE_CLIENT_ID) {
 }
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || "mpi-dev-secret-change-me",
+  secret: resolveAuthSecret(),
   trustHost: true,
   providers,
   pages: {
