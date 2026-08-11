@@ -15,7 +15,7 @@ import {
   getUserAiJob,
   releaseUserAiJob,
 } from "@/lib/security/rateLimit";
-import { getMemoryContext, runRecoveryJob, saveMemorySnapshot } from "@/lib/recovery/store";
+import { getMemoryContext, runRecoveryJob, saveMemorySnapshot, updateRecoveryJob } from "@/lib/recovery/store";
 
 export const runtime = "nodejs";
 
@@ -98,8 +98,10 @@ export async function POST(req: Request) {
         if (!recovery.result) {
           return NextResponse.json({ recoveryJobId: recovery.job.id, status: recovery.job.status, checkpoint: recovery.job.checkpoint }, { status: 202 });
         }
+        const response = { ...recovery.result, recoveryJobId: recovery.job.id };
+        updateRecoveryJob(recovery.job.id, { result: response });
         saveMemorySnapshot({ userId: ctx.user.id, resourceId: `resume:${ctx.user.id}`, kind: "brain.improve.chain", summary: JSON.stringify(recovery.result), sourceCursor: recovery.job.id });
-        return NextResponse.json({ ...recovery.result, recoveryJobId: recovery.job.id });
+        return NextResponse.json(response);
       }
 
       if (action === "more") {
@@ -126,8 +128,10 @@ export async function POST(req: Request) {
         if (!recovery.result) {
           return NextResponse.json({ recoveryJobId: recovery.job.id, status: recovery.job.status, checkpoint: recovery.job.checkpoint }, { status: 202 });
         }
+        const response = { ...recovery.result, recoveryJobId: recovery.job.id };
+        updateRecoveryJob(recovery.job.id, { result: response });
         saveMemorySnapshot({ userId: ctx.user.id, resourceId: `resume:${ctx.user.id}`, kind: "brain.improve.more", summary: recovery.result.pass.resumeMd, sourceCursor: recovery.job.id });
-        return NextResponse.json({ ...recovery.result, recoveryJobId: recovery.job.id });
+        return NextResponse.json(response);
       }
 
       const current = String(body.currentResume || master).trim();
@@ -154,8 +158,10 @@ export async function POST(req: Request) {
       if (!recovery.result) {
         return NextResponse.json({ recoveryJobId: recovery.job.id, status: recovery.job.status, checkpoint: recovery.job.checkpoint }, { status: 202 });
       }
+      const response = { ...recovery.result, recoveryJobId: recovery.job.id };
+      updateRecoveryJob(recovery.job.id, { result: response });
       saveMemorySnapshot({ userId: ctx.user.id, resourceId: `resume:${ctx.user.id}`, kind: "brain.improve.pass", summary: recovery.result.pass.resumeMd, sourceCursor: recovery.job.id });
-      return NextResponse.json({ ...recovery.result, recoveryJobId: recovery.job.id });
+      return NextResponse.json(response);
     } finally {
       releaseUserAiJob(ctx.user.id, job.token);
     }

@@ -11,7 +11,7 @@ import {
   releaseUserAiJob,
 } from "@/lib/security/rateLimit";
 import { LIMITS, neutralizeForPrompt, sanitizeText } from "@/lib/security/validate";
-import { getMemoryContext, runRecoveryJob, saveMemorySnapshot } from "@/lib/recovery/store";
+import { getMemoryContext, runRecoveryJob, saveMemorySnapshot, updateRecoveryJob } from "@/lib/recovery/store";
 import { z } from "zod";
 
 export const runtime = "nodejs";
@@ -114,6 +114,7 @@ If the user asks to rewrite a line, offer one improved version that stays factua
       );
     }
     const response = { reply: recovery.result.text.trim() || "No reply.", recoveryJobId: recovery.job.id };
+    updateRecoveryJob(recovery.job.id, { result: response });
     saveMemorySnapshot({
       userId: ctx.user.id,
       resourceId: `resume:${ctx.user.id}`,

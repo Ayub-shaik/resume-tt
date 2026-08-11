@@ -11,7 +11,7 @@ import {
   releaseUserAiJob,
 } from "@/lib/security/rateLimit";
 import { LIMITS, sanitizeText } from "@/lib/security/validate";
-import { getMemoryContext, runRecoveryJob, saveMemorySnapshot } from "@/lib/recovery/store";
+import { getMemoryContext, runRecoveryJob, saveMemorySnapshot, updateRecoveryJob } from "@/lib/recovery/store";
 import { z } from "zod";
 
 export const runtime = "nodejs";
@@ -139,6 +139,8 @@ export async function POST(req: Request) {
         202,
       );
     }
+    const response = { analysis: recovery.result, recoveryJobId: recovery.job.id };
+    updateRecoveryJob(recovery.job.id, { result: response });
     saveMemorySnapshot({
       userId: ctx.user.id,
       resourceId: `resume:${ctx.user.id}`,
@@ -151,7 +153,7 @@ export async function POST(req: Request) {
       }),
       sourceCursor: recovery.job.id,
     });
-    return jsonOk({ analysis: recovery.result, recoveryJobId: recovery.job.id });
+    return jsonOk(response);
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Analyze failed";
     const status = /timed out|timeout|aborted|abort/i.test(msg) ? 504 : 502;

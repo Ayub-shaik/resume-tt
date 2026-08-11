@@ -19,7 +19,7 @@ import {
   releaseUserAiJob,
 } from "@/lib/security/rateLimit";
 import { LIMITS, sanitizeText } from "@/lib/security/validate";
-import { getMemoryContext, runRecoveryJob, saveMemorySnapshot } from "@/lib/recovery/store";
+import { getMemoryContext, runRecoveryJob, saveMemorySnapshot, updateRecoveryJob } from "@/lib/recovery/store";
 import { z } from "zod";
 
 export const runtime = "nodejs";
@@ -151,6 +151,7 @@ export async function POST(req: Request) {
       ? createResume(formatResumeDisplayName(filename), out.markdown, ctx.user.id)
       : null;
     const response = { ...out, resume: saved, recoveryJobId: recovery.job.id };
+    updateRecoveryJob(recovery.job.id, { result: response });
     saveMemorySnapshot({
       userId: ctx.user.id,
       resourceId: `resume:${ctx.user.id}`,
