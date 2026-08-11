@@ -1,0 +1,32 @@
+{
+  "updatedAt": "2026-08-11T09:35:00Z",
+  "apps": [
+    {
+      "id": "manager",
+      "name": "TomorrowTools Manager",
+      "packageName": "dev.tomorrowtools.manager",
+      "versionCode": 2,
+      "versionName": "1.0.1-download-perf",
+      "apkUrl": "https://resume.tomorrowtools.dev/downloads/manager-debug.apk",
+      "description": "Install and update TomorrowTools Android apps from one place."
+    },
+    {
+      "id": "resume",
+      "name": "Resume ATS",
+      "packageName": "dev.tomorrowtools.resume",
+      "versionCode": 9,
+      "versionName": "1.0.5-api-resilience",
+      "apkUrl": "https://resume.tomorrowtools.dev/downloads/resume-ats-debug.apk",
+      "description": "Resume analysis, job description matching, and ATS-focused editing."
+    },
+    {
+      "id": "mpi",
+      "name": "MPI Interview Prep",
+      "packageName": "dev.tomorrowtools.mpi",
+      "versionCode": 7,
+      "versionName": "1.0.3-api-resilience",
+      "apkUrl": "https://mpi.tomorrowtools.dev/downloads/mpi-debug.apk",
+      "description": "Mock interview practice with coaching turns and session history."
+    }
+  ]
+}

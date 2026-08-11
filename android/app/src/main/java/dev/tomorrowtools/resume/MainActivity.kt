@@ -17,6 +17,8 @@ class MainActivity : ComponentActivity() {
     private val vm: ResumeStudioVm by viewModels { ResumeStudioVm.factory(application) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Prefer IPv4 before any OkHttp traffic (emulator dual-stack quirks).
+        System.setProperty("java.net.preferIPv4Stack", "true")
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {

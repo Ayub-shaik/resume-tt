@@ -1,3 +1,5 @@
+import { randomUUID } from "crypto";
+
 type Bucket = { count: number; resetAt: number };
 
 const buckets = new Map<string, Bucket>();
@@ -55,4 +57,32 @@ export function acquireInterviewLock(
 
 export function releaseInterviewLock(interviewId: string) {
   locks.delete(interviewId);
+}
+
+/** Prevent overlapping long AI jobs for same user. */
+type UserAiLock = { token: string; until: number };
+
+const userLocks = new Map<string, UserAiLock>();
+
+/**
+ * Returns an ownership token so an expired request cannot release a newer
+ * request's lock. The TTL is only a recovery guard; normal requests release
+ * in finally blocks.
+ */
+export function acquireUserAiLock(
+  userId: string,
+  ttlMs = 240_000,
+): string | null {
+  const now = Date.now();
+  const current = userLocks.get(userId);
+  if (current && current.until > now) return null;
+  const token = randomUUID();
+  userLocks.set(userId, { token, until: now + ttlMs });
+  return token;
+}
+
+export function releaseUserAiLock(userId: string, token: string) {
+  if (userLocks.get(userId)?.token === token) {
+    userLocks.delete(userId);
+  }
 }

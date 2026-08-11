@@ -20,6 +20,7 @@ import dev.tomorrowtools.resume.buildRetrofit
 import dev.tomorrowtools.resume.data.*
 import dev.tomorrowtools.resume.startGoogleBrowserLogin
 import dev.tomorrowtools.resume.util.assessResumeInput
+import dev.tomorrowtools.resume.util.extractErrorDetail
 import dev.tomorrowtools.resume.util.isDestructiveSuggestion
 import dev.tomorrowtools.resume.util.parseExtensionAllowed
 import dev.tomorrowtools.resume.util.parseScoreView
@@ -48,6 +49,7 @@ class ResumeStudioVm(app: Application) : AndroidViewModel(app) {
 
     var email by mutableStateOf<String?>(null); private set
     var busy by mutableStateOf(false); private set
+    var busyMessage by mutableStateOf<String?>(null); private set
     var error by mutableStateOf<String?>(null); private set
     var gateWarning by mutableStateOf<String?>(null); private set
     var tab by mutableStateOf(ResumeTab.Prepare); private set
@@ -71,6 +73,7 @@ class ResumeStudioVm(app: Application) : AndroidViewModel(app) {
     var originalText by mutableStateOf<String?>(null); private set
     var originalScores by mutableStateOf<ScoreView?>(null); private set
     var queuedMissing by mutableStateOf<List<String>>(emptyList()); private set
+    var appliedSuggestionKeys by mutableStateOf<Set<String>>(emptySet()); private set
     var askQuestion by mutableStateOf(""); private set
     var askAnswer by mutableStateOf<String?>(null); private set
 
@@ -96,7 +99,8 @@ class ResumeStudioVm(app: Application) : AndroidViewModel(app) {
             email = store.email.first()
             if (token != null) {
                 refreshProfile()
-                restoreLatestSession()
+                // Do NOT auto-apply latest session — that preloaded old Emirates JDs into Prepare.
+                // User can continue explicitly from Profile / "Continue last session".
             }
         }
     }
@@ -128,6 +132,7 @@ class ResumeStudioVm(app: Application) : AndroidViewModel(app) {
         )
         originalText = null; originalScores = null
         queuedMissing = emptyList(); askAnswer = null; askQuestion = ""
+        appliedSuggestionKeys = emptySet()
         tailoredMd = null; versions = emptyList()
         brandKit = null; linkedinPaste = ""; targetRole = ""
         jsonResume = null; pdfPath = null; sessionId = null
@@ -136,13 +141,14 @@ class ResumeStudioVm(app: Application) : AndroidViewModel(app) {
         tab = ResumeTab.Prepare
     }
 
-    fun signInWithPassword() = launchBusy {
+    fun signInWithPassword() = launchBusy("Signing in. Please wait for LLM to process.") {
         val res = api.passwordAuth(PasswordAuthRequest(emailInput.trim(), passwordInput))
         token = res.token
         store.save(res.token, res.user.email)
         email = res.user.email
         clearStudioState()
-        refreshProfile(); restoreLatestSession()
+        refreshProfile()
+        // Leave Prepare empty — user starts a new package or taps Continue last session
     }
 
     fun applyOAuthToken(tok: String, em: String?) = viewModelScope.launch {
@@ -150,7 +156,7 @@ class ResumeStudioVm(app: Application) : AndroidViewModel(app) {
         store.save(tok, em.orEmpty())
         email = em
         clearStudioState()
-        refreshProfile(); restoreLatestSession()
+        refreshProfile()
     }
 
     fun startGoogleBrowser(ctx: Context) {
@@ -179,7 +185,18 @@ class ResumeStudioVm(app: Application) : AndroidViewModel(app) {
         } catch (_: Exception) {}
     }
 
-    fun loadSession(id: String) = launchBusy {
+    /** Explicitly continue the most recent saved package (opt-in). */
+    fun continueLastSession() = launchBusy("Loading session. Please wait for LLM to process.") {
+        restoreLatestSession()
+        if (sessionId == null) error = "No saved sessions yet"
+    }
+
+    fun startFreshPackage() {
+        clearStudioState()
+        tab = ResumeTab.Prepare
+    }
+
+    fun loadSession(id: String) = launchBusy("Opening session. Please wait for LLM to process.") {
         val s = api.getSession(id).session
         applySession(s)
     }
@@ -188,11 +205,19 @@ class ResumeStudioVm(app: Application) : AndroidViewModel(app) {
         sessionId = s.id
         resumeText = s.resumeText.orEmpty()
         jdText = s.jdText.orEmpty()
+        jdUrl = ""
         originalText = s.originalText
         tailoredMd = s.improvedText
         if (!s.improvedText.isNullOrBlank()) resumeText = s.improvedText
-        analysisRaw = s.analysis
-        scores = parseScoreView(s.analysis)
+        analysisRaw = s.analysis ?: s.analysisJson?.let {
+            try {
+                appJson.parseToJsonElement(it)
+            } catch (_: Exception) {
+                null
+            }
+        }
+        scores = parseScoreView(analysisRaw)
+        appliedSuggestionKeys = emptySet()
         selectedTemplate = s.templateId ?: "classic"
         tab = when (s.step) {
             "analyze", "improve" -> ResumeTab.Analyse
@@ -234,13 +259,13 @@ class ResumeStudioVm(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    fun fetchJd() = launchBusy {
+    fun fetchJd() = launchBusy("Fetching job description. Please wait for LLM to process.") {
         val res = api.fetchJd(JdRequest(jdUrl.trim()))
         if (res.text.isNullOrBlank()) error = "Empty JD from URL — paste the description manually."
         else jdText = res.text
     }
 
-    fun parseResumeUri(ctx: Context, uri: Uri) = launchBusy {
+    fun parseResumeUri(ctx: Context, uri: Uri) = launchBusy("Parsing resume. Please wait for LLM to process.") {
         val resolver = ctx.contentResolver
         var displayName = "resume.pdf"
         resolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { c ->
@@ -279,34 +304,95 @@ class ResumeStudioVm(app: Application) : AndroidViewModel(app) {
         if (res.text.isNullOrBlank()) {
             error = "Could not extract text from file (scanned PDFs need OCR and may fail server-side)"
         } else {
+            // New upload = new package: don't keep a previous session's Emirates JD.
+            sessionId = null
+            jdText = ""
+            jdUrl = ""
+            analysisRaw = null
+            scores = ScoreView(
+                null, null, null, emptyList(), emptyList(), emptyList(), emptyList(),
+                emptyList(), emptyList(), emptyList(), emptyList(),
+            )
+            originalText = null
+            originalScores = null
+            tailoredMd = null
             updateResume(res.text)
+            tab = ResumeTab.Prepare
         }
         tmp.delete()
     }
 
-    fun analyse() = launchBusy {
-        val gate = assessResumeInput(resumeText)
+    fun analyse() = launchBusy("Analyzing. Please wait for LLM to process.") {
+        val text = resumeText.trim()
+        var jd = jdText.trim()
+        if (text.isEmpty()) {
+            error = "Resume text is empty — paste or upload a resume first."
+            return@launchBusy
+        }
+        // Parity with web flow: if JD URL is present and JD box is empty, fetch automatically.
+        if (jd.isBlank() && jdUrl.trim().isNotBlank()) {
+            val fetched = api.fetchJd(JdRequest(jdUrl.trim())).text.orEmpty().trim()
+            if (fetched.isBlank()) {
+                error = "Empty JD from URL — paste the description manually."
+                return@launchBusy
+            }
+            jdText = fetched
+            jd = fetched
+        }
+        val gate = assessResumeInput(text)
         gateWarning = gate.warning
         if (gate.block) {
             error = gate.blockMessage
             return@launchBusy
         }
-        val res = api.analyze(AnalyzeRequest(resumeText, jdText.ifBlank { null }))
-        analysisRaw = res.analysis
-        scores = parseScoreView(res.analysis)
+        // API now expects a string for jdText; send empty string when JD is absent.
+        val analyzed = analyzeResumeText(text = text, jd = jd)
+        analysisRaw = analyzed.analysis
+        scores = analyzed.scores
+        appliedSuggestionKeys = emptySet()
         scoresArePreImprove = false
         if (originalText == null) {
-            originalText = resumeText
+            originalText = text
             originalScores = scores
         }
+        // Keep local field in sync with what we scored
+        resumeText = text
         tab = ResumeTab.Analyse
-        // Session save must not fail the Analyse path
         viewModelScope.launch {
             try {
                 persistSession("analyze")
             } catch (_: Exception) {
             }
         }
+    }
+
+    private data class AnalyzeResult(val analysis: JsonElement?, val scores: ScoreView)
+
+    private suspend fun analyzeResumeText(text: String, jd: String): AnalyzeResult {
+        // Encode explicitly so the wire body always includes resumeText (avoids empty Retrofit bodies).
+        val payload = AnalyzeRequest(resumeText = text, jdText = jd)
+        val bodyJson = appJson.encodeToString(AnalyzeRequest.serializer(), payload)
+        val req = Request.Builder()
+            .url(BuildConfig.API_BASE_URL.trimEnd('/') + "/api/ats/analyze")
+            .header("Authorization", "Bearer ${token.orEmpty()}")
+            .header("Content-Type", "application/json")
+            .post(bodyJson.toRequestBody("application/json".toMediaType()))
+            .build()
+        val raw = withContext(Dispatchers.IO) {
+            http.newCall(req).execute().use { resp ->
+                val respBody = resp.body?.string().orEmpty()
+                if (!resp.isSuccessful) {
+                    val detail = extractErrorDetail(respBody) ?: respBody.take(280)
+                    error("HTTP ${resp.code}${if (detail.isNotBlank()) ": $detail" else ""}")
+                }
+                respBody
+            }
+        }
+        val parsed = appJson.decodeFromString(AnalyzePayload.serializer(), raw)
+        return AnalyzeResult(
+            analysis = parsed.analysis,
+            scores = parseScoreView(parsed.analysis),
+        )
     }
 
     fun toggleMissing(kw: String) {
@@ -324,6 +410,7 @@ class ResumeStudioVm(app: Application) : AndroidViewModel(app) {
         } else {
             resumeText = (resumeText.trimEnd() + "\n\n" + s.suggested).trim()
         }
+        appliedSuggestionKeys = appliedSuggestionKeys + suggestionKey(s)
         originalText = null; originalScores = null
         scoresArePreImprove = true
     }
@@ -332,13 +419,27 @@ class ResumeStudioVm(app: Application) : AndroidViewModel(app) {
         val list = scores.suggestions.filterNot {
             isDestructiveSuggestion(it.suggested) || isDestructiveSuggestion(it.why)
         }
-        if (list.isEmpty()) {
-            error = "No non-destructive suggestions to apply"
+        val pending = list.filterNot { isSuggestionApplied(it) }
+        if (pending.isEmpty()) {
+            error = "All suggestions already applied"
             return
         }
-        list.forEach { s ->
+        pending.forEach { s ->
             applySuggestion(s, replace = s.current.isNotBlank() && resumeText.contains(s.current))
         }
+    }
+
+    fun isSuggestionApplied(s: RewriteSuggestion): Boolean = appliedSuggestionKeys.contains(suggestionKey(s))
+
+    fun allSuggestionsApplied(): Boolean {
+        val safe = scores.suggestions.filterNot {
+            isDestructiveSuggestion(it.suggested) || isDestructiveSuggestion(it.why)
+        }
+        return safe.isNotEmpty() && safe.all { isSuggestionApplied(it) }
+    }
+
+    private fun suggestionKey(s: RewriteSuggestion): String {
+        return "${s.area.trim()}|${s.suggested.trim()}|${s.current.trim()}"
     }
 
     fun tailorSuggestion(s: RewriteSuggestion) {
@@ -362,12 +463,12 @@ class ResumeStudioVm(app: Application) : AndroidViewModel(app) {
         tailor()
     }
 
-    fun askAts() = launchBusy {
+    fun askAts() = launchBusy("Asking ATS coach. Please wait for LLM to process.") {
         val res = api.ask(AskRequest(askQuestion, resumeText, jdText))
         askAnswer = res.answer ?: res.text ?: res.toString()
     }
 
-    fun tailor() = launchBusy {
+    fun tailor() = launchBusy("Improving. Please wait for LLM to process.") {
         if (jdText.isBlank()) error("Job description required for tailor")
         // Keep jdText as the JD body the API expects; put focus/missing as prefix context in jdText
         // only when needed — server requires resumeText + jdText (route: POST api/ats/tailor).
@@ -389,6 +490,16 @@ class ResumeStudioVm(app: Application) : AndroidViewModel(app) {
         tailoredMd = md
         resumeText = md
         scoresArePreImprove = true
+        // Web parity: refresh scorecards after Improve so ATS/JD/Overall are not stale.
+        try {
+            val reScored = analyzeResumeText(text = resumeText.trim(), jd = jdText.trim())
+            analysisRaw = reScored.analysis
+            scores = reScored.scores
+            scoresArePreImprove = false
+        } catch (e: Exception) {
+            // Keep tailored text even if re-score fails; show actionable warning.
+            gateWarning = "Improved text saved, but re-score failed. Tap Re-score after tailor."
+        }
         tab = ResumeTab.Tailor
         viewModelScope.launch {
             try {
@@ -398,13 +509,18 @@ class ResumeStudioVm(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    fun improveWithFocus(focusId: String) {
+        updateFocus(focusId)
+        tailor()
+    }
+
     fun restoreVersion(snap: VersionSnap) {
         resumeText = snap.text
         tailoredMd = snap.text
         focus = snap.focus
     }
 
-    fun loadBrand() = launchBusy {
+    fun loadBrand() = launchBusy("Generating brand kit. Please wait for LLM to process.") {
         brandKit = api.careerBrand(BrandRequest(resumeText, linkedinPaste.ifBlank { null }, targetRole.ifBlank { null })).kit
         tab = ResumeTab.Brand
         saveSession("brand")
@@ -414,7 +530,7 @@ class ResumeStudioVm(app: Application) : AndroidViewModel(app) {
         try { templates = api.templates().templates } catch (e: Exception) { error = e.message }
     }
 
-    fun structureForBuilder() = launchBusy {
+    fun structureForBuilder() = launchBusy("Building template data. Please wait for LLM to process.") {
         val res = api.structure(StructureRequest(action = "structure", resumeText = resumeText, jdText = jdText.ifBlank { null }))
         jsonResume = res.jsonResume
         if (templates.isEmpty()) templates = api.templates().templates
@@ -422,7 +538,7 @@ class ResumeStudioVm(app: Application) : AndroidViewModel(app) {
         saveSession("builder")
     }
 
-    fun exportPdf(ctx: Context) = launchBusy {
+    fun exportPdf(ctx: Context) = launchBusy("Exporting PDF. Please wait for LLM to process.") {
         val md = tailoredMd ?: resumeText
         if (jsonResume != null) {
             // prefer template render when structured
@@ -471,15 +587,21 @@ class ResumeStudioVm(app: Application) : AndroidViewModel(app) {
         tab = ResumeTab.Prepare
     }
 
-    private fun launchBusy(block: suspend () -> Unit) {
+    private fun launchBusy(message: String, block: suspend () -> Unit) {
+        // Set the guard before launching so rapid taps cannot enqueue a second
+        // request during the coroutine dispatch window.
+        if (busy) return
+        busy = true
+        error = null
+        busyMessage = message
         viewModelScope.launch {
-            busy = true; error = null
             try {
                 block()
             } catch (e: Exception) {
                 error = e.toUserMessage()
             } finally {
                 busy = false
+                busyMessage = null
             }
         }
     }

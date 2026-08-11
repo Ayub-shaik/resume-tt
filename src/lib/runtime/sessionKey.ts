@@ -14,7 +14,7 @@ export function ephemeralOpenClawSession(
   const safe = parts
     .filter(Boolean)
     .map((p) => String(p).replace(/[^a-zA-Z0-9:_-]/g, "").slice(0, 64));
-  return ["mpi", kind, ...safe, randomUUID().slice(0, 8)].join(":");
+  return ["tt", kind, ...safe, randomUUID().slice(0, 8)].join(":");
 }
 
 /** Stable per interview only for optional continuity; prefer ephemeral for JSON turns. */

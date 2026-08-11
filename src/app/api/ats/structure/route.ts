@@ -1,3 +1,4 @@
+import { randomUUID } from "crypto";
 import { requireSession } from "@/lib/auth/session";
 import {
   improveJsonResume,
@@ -10,7 +11,11 @@ import { createResume } from "@/lib/db";
 import { formatResumeDisplayName } from "@/lib/context";
 import { ephemeralOpenClawSession } from "@/lib/runtime/sessionKey";
 import { jsonError, jsonOk, readJsonBody } from "@/lib/api";
-import { clientKey, rateLimit } from "@/lib/security/rateLimit";
+import {
+  acquireUserAiLock,
+  rateLimit,
+  releaseUserAiLock,
+} from "@/lib/security/rateLimit";
 import { LIMITS, sanitizeText } from "@/lib/security/validate";
 import { z } from "zod";
 
@@ -20,9 +25,10 @@ export const maxDuration = 180;
 export async function POST(req: Request) {
   const ctx = await requireSession();
   if (!ctx) return jsonError("Unauthorized", 401);
+  const requestId = req.headers.get("x-request-id") || randomUUID();
 
   const rl = rateLimit({
-    key: clientKey(req, "ats:structure"),
+    key: `${ctx.user.id}:ats:structure`,
     limit: 12,
     windowMs: 60_000,
   });
@@ -46,6 +52,12 @@ export async function POST(req: Request) {
     })
     .safeParse(body.data);
   if (!parsed.success) return jsonError("Invalid body", 400);
+
+  const lockToken = acquireUserAiLock(ctx.user.id);
+  if (!lockToken) {
+    console.warn(`[ats/structure ${requestId}] rejected overlapping request`);
+    return jsonError("Another analyze/improve request is already in progress. Please wait.", 409);
+  }
 
   try {
     if (parsed.data.action === "structure") {
@@ -121,6 +133,10 @@ export async function POST(req: Request) {
     }
     return jsonOk({ ...out, resume: saved });
   } catch (e) {
-    return jsonError(e instanceof Error ? e.message : String(e), 502);
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error(`[ats/structure ${requestId}] HTTP 502: ${msg}`);
+    return jsonError(msg, 502);
+  } finally {
+    releaseUserAiLock(ctx.user.id, lockToken);
   }
 }

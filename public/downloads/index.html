@@ -7,17 +7,20 @@
   <style>
     body { font-family: system-ui, sans-serif; max-width: 40rem; margin: 2rem auto; padding: 0 1rem; line-height: 1.5; }
     a.btn { display: block; margin: 0.75rem 0; padding: 0.9rem 1rem; background: #111; color: #fff; text-decoration: none; border-radius: 8px; text-align: center; }
+    a.btn.primary { background: #2EBD59; color: #000; font-weight: 600; }
     p, li { color: #444; }
   </style>
 </head>
 <body>
-  <h1>TomorrowTools Android (v0.3)</h1>
-  <p>These apps open the <strong>live web products</strong> (full features). Uninstall any older APK first if Android won’t update.</p>
+  <h1>TomorrowTools Android</h1>
+  <p>Start with the <strong>App Manager</strong> — it shows installed vs latest versions and can install or update Resume ATS and MPI.</p>
+  <a class="btn primary" href="/downloads/manager-debug.apk">Download TomorrowTools Manager</a>
   <a class="btn" href="/downloads/resume-ats-debug.apk">Download Resume ATS</a>
   <a class="btn" href="/downloads/mpi-debug.apk">Download MPI</a>
   <ul>
-    <li>Sign in inside the app the same way as the website.</li>
-    <li>Menu → <strong>Clear data &amp; sign out</strong> wipes cookies/cache if you see old drafts.</li>
+    <li>Allow install from this browser / Files when prompted.</li>
+    <li>In the Manager, tap Refresh to reload versions from the server.</li>
+    <li>Manifest: <a href="/downloads/apps-manifest.json">apps-manifest.json</a></li>
   </ul>
 </body>
 </html>

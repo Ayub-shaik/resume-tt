@@ -5,6 +5,15 @@ plugins {
     id("org.jetbrains.kotlin.plugin.serialization")
 }
 
+import java.util.Properties
+
+fun loadLocalApiBase(key: String, fallback: String): String {
+    val props = Properties()
+    val file = rootProject.file("local.properties")
+    if (file.exists()) file.inputStream().use { props.load(it) }
+    return props.getProperty(key)?.trim()?.takeIf { it.isNotEmpty() } ?: fallback
+}
+
 android {
     namespace = "dev.tomorrowtools.resume"
     compileSdk = 35
@@ -13,9 +22,14 @@ android {
         applicationId = "dev.tomorrowtools.resume"
         minSdk = 26
         targetSdk = 35
-        versionCode = 6
-        versionName = "1.0.2-anydoc-types"
-        buildConfigField("String", "API_BASE_URL", "\"https://resume.tomorrowtools.dev\"")
+        versionCode = 9
+        versionName = "1.0.5-api-resilience"
+        // Override in android/local.properties: resume.api.baseUrl=https://...
+        buildConfigField(
+            "String",
+            "API_BASE_URL",
+            "\"${loadLocalApiBase("resume.api.baseUrl", "https://resume.tomorrowtools.dev")}\"",
+        )
         buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"829272773483-upav25kf2gn900ard260gucsro46430h.apps.googleusercontent.com\"")
         buildConfigField("String", "SIBLING_APP_URL", "\"https://mpi.tomorrowtools.dev\"")
     }

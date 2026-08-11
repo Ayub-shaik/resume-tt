@@ -20,13 +20,21 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.FactCheck
+import androidx.compose.material.icons.filled.AutoFixHigh
+import androidx.compose.material.icons.filled.UploadFile
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -61,22 +69,25 @@ import java.io.File
 fun StudioScreen(vm: ResumeStudioVm) {
     val ctx = LocalContext.current
     var moreOpen by remember { mutableStateOf(false) }
+    var hideMpiPrompt by remember { mutableStateOf(false) }
+    val canOpenMpi = vm.analysisRaw != null
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("Resume ATS") },
                 actions = {
-                    TextButton(onClick = {
-                        openSiblingOrWeb(ctx, "ttmpi://open", BuildConfig.SIBLING_APP_URL)
-                    }) { Text("MPI") }
-                    TextButton(onClick = { moreOpen = true }) { Text("More") }
+                    if (canOpenMpi) {
+                        TextButton(onClick = { openMpiWithResumeContext(ctx, vm) }, enabled = !vm.busy) { Text("MPI") }
+                    }
+                    TextButton(onClick = { vm.selectTab(ResumeTab.Builder) }, enabled = !vm.busy) { Text("Templates") }
+                    TextButton(onClick = { moreOpen = true }, enabled = !vm.busy) { Text("More") }
                     DropdownMenu(expanded = moreOpen, onDismissRequest = { moreOpen = false }) {
                         DropdownMenuItem(
                             text = { Text("Career Brand") },
                             onClick = { moreOpen = false; vm.selectTab(ResumeTab.Brand) },
                         )
                         DropdownMenuItem(
-                            text = { Text("Builder / PDF") },
+                            text = { Text("Templates / PDF") },
                             onClick = { moreOpen = false; vm.selectTab(ResumeTab.Builder) },
                         )
                         DropdownMenuItem(
@@ -104,20 +115,23 @@ fun StudioScreen(vm: ResumeStudioVm) {
             NavigationBar {
                 NavigationBarItem(
                     selected = vm.tab == ResumeTab.Prepare,
-                    onClick = { vm.selectTab(ResumeTab.Prepare) },
-                    icon = { Text("1") },
+                    onClick = { if (!vm.busy) vm.selectTab(ResumeTab.Prepare) },
+                    enabled = !vm.busy,
+                    icon = { Icon(Icons.Filled.UploadFile, contentDescription = "Prepare") },
                     label = { Text("Prepare") },
                 )
                 NavigationBarItem(
                     selected = vm.tab == ResumeTab.Analyse || vm.tab == ResumeTab.Brand || vm.tab == ResumeTab.Profile || vm.tab == ResumeTab.Builder,
-                    onClick = { vm.selectTab(ResumeTab.Analyse) },
-                    icon = { Text("2") },
+                    onClick = { if (!vm.busy) vm.selectTab(ResumeTab.Analyse) },
+                    enabled = !vm.busy,
+                    icon = { Icon(Icons.AutoMirrored.Filled.FactCheck, contentDescription = "Results") },
                     label = { Text("Results") },
                 )
                 NavigationBarItem(
                     selected = vm.tab == ResumeTab.Tailor,
-                    onClick = { vm.selectTab(ResumeTab.Tailor) },
-                    icon = { Text("3") },
+                    onClick = { if (!vm.busy) vm.selectTab(ResumeTab.Tailor) },
+                    enabled = !vm.busy,
+                    icon = { Icon(Icons.Filled.AutoFixHigh, contentDescription = "Improve") },
                     label = { Text("Improve") },
                 )
             }
@@ -125,11 +139,28 @@ fun StudioScreen(vm: ResumeStudioVm) {
     ) { pad ->
         Column(Modifier.padding(pad).fillMaxSize()) {
             if (vm.busy) LinearProgressIndicator(Modifier.fillMaxWidth())
+            vm.busyMessage?.let {
+                Text(it, color = MaterialTheme.colorScheme.tertiary, modifier = Modifier.padding(8.dp))
+            }
             vm.error?.let {
                 Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(8.dp))
             }
             vm.gateWarning?.let {
                 Text(it, color = MaterialTheme.colorScheme.tertiary, modifier = Modifier.padding(8.dp))
+            }
+            if (canOpenMpi && !hideMpiPrompt) {
+                Card(modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        Text(
+                            "help me prepare for this job with a mock interview",
+                            modifier = Modifier.weight(1f).clickable { openMpiWithResumeContext(ctx, vm) },
+                        )
+                        TextButton(onClick = { hideMpiPrompt = true }) { Text("X") }
+                    }
+                }
             }
             when (vm.tab) {
                 ResumeTab.Prepare -> PrepareTab(vm)
@@ -141,6 +172,20 @@ fun StudioScreen(vm: ResumeStudioVm) {
             }
         }
     }
+}
+
+private fun openMpiWithResumeContext(ctx: android.content.Context, vm: ResumeStudioVm) {
+    val resumePayload = vm.resumeText.trim().take(6000)
+    val jdPayload = vm.jdText.trim().take(6000)
+    val appUri = Uri.Builder()
+        .scheme("ttmpi")
+        .authority("open")
+        .appendQueryParameter("source", "resume")
+        .appendQueryParameter("resumeText", resumePayload)
+        .appendQueryParameter("jdText", jdPayload)
+        .build()
+        .toString()
+    openSiblingOrWeb(ctx, appUri, BuildConfig.SIBLING_APP_URL)
 }
 
 @Composable
@@ -158,6 +203,13 @@ private fun PrepareTab(vm: ResumeStudioVm) {
     ) {
         Text("Prepare", style = MaterialTheme.typography.titleLarge)
         Text("Paste or upload (.txt/.md/.pdf/.doc/.docx/.pptx/.xlsx/…). Scanned PDFs need OCR on server.")
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            OutlinedButton(onClick = { vm.startFreshPackage() }, enabled = !vm.busy) { Text("Fresh package") }
+            OutlinedButton(
+                onClick = { vm.continueLastSession() },
+                enabled = !vm.busy,
+            ) { Text("Continue last session") }
+        }
         OutlinedTextField(
             value = vm.resumeText,
             onValueChange = vm::updateResume,
@@ -165,10 +217,10 @@ private fun PrepareTab(vm: ResumeStudioVm) {
             modifier = Modifier.fillMaxWidth().height(220.dp),
         )
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedButton(onClick = { pick.launch(PARSE_MIME_TYPES) }) {
+            OutlinedButton(onClick = { pick.launch(PARSE_MIME_TYPES) }, enabled = !vm.busy) {
                 Text("Upload resume file")
             }
-            OutlinedButton(onClick = { vm.saveSession("prepare") }) { Text("Save draft") }
+            OutlinedButton(onClick = { vm.saveSession("prepare") }, enabled = !vm.busy) { Text("Save draft") }
         }
         OutlinedTextField(
             value = vm.jdUrl,
@@ -177,7 +229,7 @@ private fun PrepareTab(vm: ResumeStudioVm) {
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
         )
-        OutlinedButton(onClick = { vm.fetchJd() }, enabled = vm.jdUrl.isNotBlank()) {
+        OutlinedButton(onClick = { vm.fetchJd() }, enabled = vm.jdUrl.isNotBlank() && !vm.busy) {
             Text("Fetch JD from URL")
         }
         OutlinedTextField(
@@ -191,12 +243,16 @@ private fun PrepareTab(vm: ResumeStudioVm) {
             enabled = !vm.busy && vm.resumeText.isNotBlank(),
             modifier = Modifier.fillMaxWidth(),
         ) { Text("Analyse") }
+        OutlinedButton(onClick = { vm.selectTab(ResumeTab.Builder) }, enabled = !vm.busy, modifier = Modifier.fillMaxWidth()) {
+            Text("Go to Templates")
+        }
     }
 }
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun AnalyseTab(vm: ResumeStudioVm) {
+    var dimDialog by remember { mutableStateOf<Pair<String, String>?>(null) }
     Column(
         Modifier
             .fillMaxSize()
@@ -213,6 +269,20 @@ private fun AnalyseTab(vm: ResumeStudioVm) {
             )
         }
         Speedometers(vm.scores.overall, vm.scores.ats, vm.scores.keyword)
+        Text("Improve")
+        Row(
+            Modifier.horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            listOf("ats", "jd", "balanced").forEach { f ->
+                FilterChip(
+                    selected = vm.focus == f,
+                    onClick = { if (!vm.busy) vm.improveWithFocus(f) },
+                    enabled = !vm.busy,
+                    label = { Text("Improve $f") },
+                )
+            }
+        }
         vm.originalScores?.let {
             Text("As-is / Before", style = MaterialTheme.typography.titleMedium)
             Speedometers(it.overall, it.ats, it.keyword)
@@ -220,7 +290,13 @@ private fun AnalyseTab(vm: ResumeStudioVm) {
         if (vm.scores.dimensions.isNotEmpty()) {
             Text("Dimensions", style = MaterialTheme.typography.titleMedium)
             vm.scores.dimensions.forEach { d ->
-                Column(Modifier.padding(vertical = 4.dp)) {
+                Column(
+                    Modifier
+                        .padding(vertical = 4.dp)
+                        .clickable {
+                            dimDialog = d.label to explainDimension(d.id, d.label, d.note)
+                        },
+                ) {
                     Text("${d.label}: ${d.score ?: "—"}")
                     d.score?.let {
                         LinearProgressIndicator(
@@ -261,20 +337,26 @@ private fun AnalyseTab(vm: ResumeStudioVm) {
             }
         }
         if (vm.queuedMissing.isNotEmpty()) {
-            OutlinedButton(onClick = { vm.accommodateMissing() }, modifier = Modifier.fillMaxWidth()) {
+            OutlinedButton(onClick = { vm.accommodateMissing() }, enabled = !vm.busy, modifier = Modifier.fillMaxWidth()) {
                 Text("Accommodate missing (${vm.queuedMissing.size})")
             }
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text("Workbench", style = MaterialTheme.typography.titleMedium)
-            TextButton(onClick = { vm.applyAllSuggestions() }) { Text("Apply all") }
+            TextButton(
+                onClick = { vm.applyAllSuggestions() },
+                enabled = !vm.allSuggestionsApplied() && !vm.busy,
+            ) {
+                Text(if (vm.allSuggestionsApplied()) "Applied all" else "Apply all")
+            }
         }
         vm.scores.suggestions.forEach { s ->
             SuggestionCard(
                 s = s,
+                applied = vm.isSuggestionApplied(s),
                 onAdd = { vm.applySuggestion(s, replace = false) },
                 onReplace = { vm.applySuggestion(s, replace = true) },
-                onTailor = { vm.tailorSuggestion(s) },
+                onTailor = { if (!vm.busy) vm.tailorSuggestion(s) },
             )
         }
         OutlinedTextField(
@@ -283,22 +365,33 @@ private fun AnalyseTab(vm: ResumeStudioVm) {
             label = { Text("Ask ATS") },
             modifier = Modifier.fillMaxWidth(),
         )
-        OutlinedButton(onClick = { vm.askAts() }, enabled = vm.askQuestion.isNotBlank()) {
+        OutlinedButton(onClick = { vm.askAts() }, enabled = vm.askQuestion.isNotBlank() && !vm.busy) {
             Text("Ask")
         }
         vm.askAnswer?.let { Text(it) }
-        Button(onClick = { vm.selectTab(ResumeTab.Tailor) }, modifier = Modifier.fillMaxWidth()) {
-            Text("Continue to Improve")
+        OutlinedButton(onClick = { vm.analyse() }, enabled = !vm.busy, modifier = Modifier.fillMaxWidth()) {
+            Text("Re-analyze with added improvements")
         }
-        OutlinedButton(onClick = { vm.analyse() }, modifier = Modifier.fillMaxWidth()) {
-            Text("Re-analyse")
+        Button(onClick = { vm.selectTab(ResumeTab.Builder) }, enabled = !vm.busy, modifier = Modifier.fillMaxWidth()) {
+            Text("Continue to Templates")
         }
+    }
+    dimDialog?.let { (title, body) ->
+        AlertDialog(
+            onDismissRequest = { dimDialog = null },
+            title = { Text(title) },
+            text = { Text(body) },
+            confirmButton = {
+                TextButton(onClick = { dimDialog = null }) { Text("OK") }
+            },
+        )
     }
 }
 
 @Composable
 private fun SuggestionCard(
     s: RewriteSuggestion,
+    applied: Boolean,
     onAdd: () -> Unit,
     onReplace: () -> Unit,
     onTailor: () -> Unit,
@@ -314,9 +407,11 @@ private fun SuggestionCard(
         }
         Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             if (s.current.isNotBlank()) {
-                TextButton(onClick = onReplace) { Text("Replace") }
+                TextButton(onClick = onReplace, enabled = !applied) {
+                    Text(if (applied) "Applied" else "Replace")
+                }
             }
-            TextButton(onClick = onAdd) { Text("Apply") }
+            TextButton(onClick = onAdd, enabled = !applied) { Text(if (applied) "Applied" else "Apply") }
             TextButton(onClick = onTailor) { Text("Tailor") }
         }
     }
@@ -330,7 +425,7 @@ private fun Speedometers(overall: Int?, ats: Int?, keyword: Int?) {
     ) {
         Gauge("Overall", overall)
         Gauge("ATS", ats)
-        Gauge("Keywords", keyword)
+        Gauge("JD", keyword)
     }
 }
 
@@ -377,6 +472,7 @@ private fun TailorTab(vm: ResumeStudioVm) {
                 FilterChip(
                     selected = vm.focus == f,
                     onClick = { vm.updateFocus(f) },
+                    enabled = !vm.busy,
                     label = { Text(f) },
                 )
             }
@@ -399,8 +495,11 @@ private fun TailorTab(vm: ResumeStudioVm) {
                 }
             }
         }
-        OutlinedButton(onClick = { vm.analyse() }, modifier = Modifier.fillMaxWidth()) {
+        OutlinedButton(onClick = { vm.analyse() }, enabled = !vm.busy, modifier = Modifier.fillMaxWidth()) {
             Text("Re-score after tailor")
+        }
+        Button(onClick = { vm.selectTab(ResumeTab.Builder) }, enabled = !vm.busy, modifier = Modifier.fillMaxWidth()) {
+            Text("Continue to Templates")
         }
     }
 }
@@ -451,10 +550,37 @@ private fun BuilderTab(vm: ResumeStudioVm) {
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Text("Builder / export", style = MaterialTheme.typography.titleLarge)
-        Button(onClick = { vm.structureForBuilder() }, enabled = !vm.busy) {
-            Text("Structure for templates")
+        Text("Template Studio", style = MaterialTheme.typography.titleLarge)
+        Text(
+            "Ultra premium templates for ATS-safe exports. Pick your style, then generate and export.",
+            style = MaterialTheme.typography.bodyMedium,
+        )
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+        ) {
+            Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text("Featured template", style = MaterialTheme.typography.labelMedium)
+                val selected = vm.templates.firstOrNull { it.id == vm.selectedTemplate }
+                Text(
+                    selected?.name ?: "Classic",
+                    style = MaterialTheme.typography.titleMedium,
+                )
+                Text(
+                    selected?.blurb ?: "Polished hierarchy, clean typography, ATS-first structure.",
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                Button(
+                    onClick = { vm.structureForBuilder() },
+                    enabled = !vm.busy,
+                    modifier = Modifier.fillMaxWidth(),
+                ) { Text("Generate Premium Preview") }
+            }
         }
+        Text("Choose template", style = MaterialTheme.typography.titleMedium)
         vm.templates.forEach { t ->
             FilterChip(
                 selected = vm.selectedTemplate == t.id,
@@ -462,7 +588,9 @@ private fun BuilderTab(vm: ResumeStudioVm) {
                 label = { Text(t.name) },
             )
         }
-        Button(onClick = { vm.exportPdf(ctx) }, enabled = !vm.busy) { Text("Export PDF") }
+        Button(onClick = { vm.exportPdf(ctx) }, enabled = !vm.busy, modifier = Modifier.fillMaxWidth()) {
+            Text("Export Premium PDF")
+        }
         vm.pdfPath?.let { path ->
             Text("Saved: $path")
             OutlinedButton(onClick = {
@@ -478,6 +606,31 @@ private fun BuilderTab(vm: ResumeStudioVm) {
             }) { Text("Share PDF") }
         }
     }
+}
+
+private fun explainDimension(id: String, label: String, note: String?): String {
+    val key = id.lowercase()
+    val byId = when {
+        key.contains("parse") || key.contains("clarity") ->
+            "Parser clarity measures how reliably ATS can parse your resume structure, headings, and bullet formatting."
+        key.contains("coverage") || key.contains("jd") ->
+            "Role coverage measures how well your resume matches responsibilities and required skills from the job description."
+        key.contains("impact") || key.contains("evidence") || key.contains("density") ->
+            "Evidence density checks whether achievements have clear outcomes, metrics, and concrete proof of impact."
+        key.contains("seniority") || key.contains("level") || key.contains("fit") ->
+            "Level fit estimates whether wording and scope match the seniority expected for the target role."
+        key.contains("complete") || key.contains("section") || key.contains("health") ->
+            "Section health checks whether key resume sections are present and balanced for ATS readability."
+        key.contains("contact") ->
+            "Contact hygiene checks whether contact details are complete, professional, and ATS-safe."
+        key.contains("signal") || key.contains("fluff") ->
+            "Signal vs fluff estimates how much of the content is concrete value versus vague filler language."
+        key.contains("edit") || key.contains("readiness") ->
+            "Edit readiness measures how close the resume is to being submission-ready with minimal additional fixes."
+        else ->
+            "This dimension explains one part of your score and highlights where to improve next."
+    }
+    return listOfNotNull(byId, note?.takeIf { it.isNotBlank() }).joinToString("\n\n")
 }
 
 @Composable

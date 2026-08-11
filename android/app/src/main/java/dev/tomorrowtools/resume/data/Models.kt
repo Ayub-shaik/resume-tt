@@ -54,6 +54,8 @@ import kotlinx.serialization.json.JsonObject
     val improvedText: String? = null,
     val templateId: String? = null,
     val analysis: JsonElement? = null,
+    /** Server list/get sessions return analysisJson (stringified), not analysis. */
+    val analysisJson: String? = null,
 )
 @Serializable data class SessionsPayload(val sessions: List<SessionRow> = emptyList())
 @Serializable data class SessionPayload(val session: SessionRow)

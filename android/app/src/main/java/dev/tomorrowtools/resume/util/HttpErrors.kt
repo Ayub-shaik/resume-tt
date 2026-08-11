@@ -15,10 +15,22 @@ fun Throwable.toUserMessage(tag: String = "ResumeApi"): String {
                 null
             }
             val detail = extractErrorDetail(raw)
-            if (detail != null) "HTTP ${code()}: $detail"
-            else "HTTP ${code()}${raw?.take(200)?.let { ": $it" } ?: ""}"
+            when (code()) {
+                409 -> "An earlier ATS request is still finishing. Please wait a moment before trying again."
+                502, 503, 504 ->
+                    "ATS service is busy or the model timed out. Your previous request may still be finishing; wait briefly, then retry once."
+                else -> if (detail != null) "HTTP ${code()}: $detail"
+                else "HTTP ${code()}${raw?.take(200)?.let { ": $it" } ?: ""}"
+            }
         }
-        is IOException -> "Network error: ${message ?: "connection failed"}"
+        is IOException -> {
+            val msg = message ?: "connection failed"
+            if (msg.contains("Software caused connection abort", ignoreCase = true)) {
+                "Network error: connection aborted while waiting for ATS response. Please retry Re-analyze."
+            } else {
+                "Network error: $msg"
+            }
+        }
         else -> message ?: toString()
     }
 }

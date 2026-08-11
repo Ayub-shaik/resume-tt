@@ -64,6 +64,31 @@ const ROLE_PACKS = [
             "aws",
         ],
     },
+    {
+        match: /\bbusiness\s*analyst\b|\bba\b|\banalyst\b/i,
+        terms: [
+            "business analysis",
+            "requirements gathering",
+            "stakeholder management",
+            "user stories",
+            "process mapping",
+            "gap analysis",
+            "BRD",
+            "FRD",
+            "use cases",
+            "UAT",
+            "acceptance criteria",
+            "Jira",
+            "Confluence",
+            "data analysis",
+            "SQL",
+            "dashboards",
+            "KPIs",
+            "workshop facilitation",
+            "as-is to-be",
+            "functional specifications",
+        ],
+    },
 ];
 function normalize(s) {
     return s

@@ -297,17 +297,50 @@ export async function fetchJobDescriptionFromUrl(
   const ac = new AbortController();
   const timer = setTimeout(() => ac.abort(), FETCH_TIMEOUT_MS);
   try {
-    const res = await fetch(url, {
+    const browserHeaders: Record<string, string> = {
+      Accept:
+        "text/html,application/xhtml+xml,application/xml;q=0.9,text/plain;q=0.8,*/*;q=0.7",
+      "User-Agent":
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+      "Accept-Language": "en-US,en;q=0.9",
+      "Cache-Control": "no-cache",
+      "Upgrade-Insecure-Requests": "1",
+    };
+
+    let res = await fetch(url, {
       signal: ac.signal,
       redirect: "follow",
-      headers: {
-        Accept:
-          "text/html,application/xhtml+xml,application/xml;q=0.9,text/plain;q=0.8,*/*;q=0.7",
-        "User-Agent":
-          "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-        "Accept-Language": "en-US,en;q=0.9",
-      },
+      headers: browserHeaders,
     });
+
+    // Many ATS hosts (Indeed, LinkedIn, Greenhouse) block datacenter IPs with 403.
+    // Fall back to Jina reader which returns extractable plain text.
+    if (res.status === 403 || res.status === 401 || res.status === 429) {
+      const jinaUrl = `https://r.jina.ai/${parsed.toString()}`;
+      const jina = await fetch(jinaUrl, {
+        signal: ac.signal,
+        redirect: "follow",
+        headers: {
+          Accept: "text/plain,text/markdown,text/html;q=0.9,*/*;q=0.8",
+          "User-Agent": browserHeaders["User-Agent"],
+        },
+      });
+      if (jina.ok) {
+        const raw = await readLimitedBody(jina);
+        const text = sanitizeText(dedupeParagraphs(stripHtml(raw)), LIMITS.jd);
+        if (text.length >= 120) {
+          return {
+            text,
+            title: undefined,
+            sourceUrl: parsed.toString(),
+          };
+        }
+      }
+      throw new Error(
+        `Could not fetch job page (HTTP ${res.status}). That site blocks automated downloads — open the posting, copy the full description, and paste it into Job description.`,
+      );
+    }
+
     if (!res.ok) {
       throw new Error(`Could not fetch job page (HTTP ${res.status})`);
     }
