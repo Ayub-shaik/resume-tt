@@ -22,8 +22,8 @@ android {
         applicationId = "dev.tomorrowtools.resume"
         minSdk = 26
         targetSdk = 35
-        versionCode = 9
-        versionName = "1.0.5-api-resilience"
+        versionCode = 10
+        versionName = "1.0.6-busy-offline"
         // Override in android/local.properties: resume.api.baseUrl=https://...
         buildConfigField(
             "String",
