@@ -87,7 +87,14 @@ export function LandingPage({
   return (
     <div className="landing">
       <div className="landing__bar">
-        <span className="landing__bar-mark">Private · Invite-only</span>
+        <a
+          className="landing__bar-mark"
+          href="https://tomorrowtools.dev"
+          target="_blank"
+          rel="noreferrer"
+        >
+          TomorrowTools
+        </a>
         <div className="landing__bar-links">
           <a className="landing__bar-link" href={MPI_URL}>
             Personal Interviewer
