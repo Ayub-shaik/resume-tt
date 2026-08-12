@@ -40,6 +40,8 @@ export function ImproveResumeViewer({
       return;
     }
     let cancelled = false;
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 45_000);
     setBusy(true);
     setErr(null);
     void (async () => {
@@ -53,6 +55,7 @@ export function ImproveResumeViewer({
             resume: jsonResume,
             format: "images",
           }),
+          signal: controller.signal,
         });
         if (!imgRes.ok) {
           const data = await imgRes.json().catch(() => ({}));
@@ -68,15 +71,24 @@ export function ImproveResumeViewer({
         setPages(data.pages);
       } catch (e) {
         if (!cancelled) {
-          setErr(e instanceof Error ? e.message : String(e));
+          setErr(
+            e instanceof DOMException && e.name === "AbortError"
+              ? "Preview timed out. Retry or choose another template."
+              : e instanceof Error
+                ? e.message
+                : String(e),
+          );
           setPages([]);
         }
       } finally {
+        window.clearTimeout(timeout);
         if (!cancelled) setBusy(false);
       }
     })();
     return () => {
       cancelled = true;
+      controller.abort();
+      window.clearTimeout(timeout);
     };
   }, [mode, jsonResume, templateId]);
 

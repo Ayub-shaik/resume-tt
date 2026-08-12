@@ -7,6 +7,7 @@ import type { ResumeChangeLine } from "@/lib/ats/resumeLineDiff";
 export type TailorScoreVersion = {
   label: string; // Original | v1 | v2…
   scores: TripleScores;
+  resumeText?: string;
 };
 
 export type TailorRowState = {
@@ -207,6 +208,7 @@ export function ImproveSpeedometers({
   onImprove,
   onExplainTailor,
   onShowChanges,
+  onVersionClick,
 }: {
   masterScores: TripleScores;
   jdPresent: boolean;
@@ -215,6 +217,10 @@ export function ImproveSpeedometers({
   onImprove: (focus: ImproveFocus) => void;
   onExplainTailor: (metric: "ats" | "jd" | "overall") => void;
   onShowChanges: (focus: ImproveFocus) => void;
+  onVersionClick?: (
+    focus: ImproveFocus,
+    version: TailorScoreVersion,
+  ) => void;
 }) {
   const allRows: Array<{ key: ImproveFocus; title: string }> = [
     { key: "ats", title: "ATS score" },
@@ -317,6 +323,12 @@ export function ImproveSpeedometers({
                     label={h.label}
                     value={scoreForRow(row.key, h.scores)}
                     compact
+                    clickable={Boolean(onVersionClick && h.resumeText)}
+                    onClick={
+                      onVersionClick && h.resumeText
+                        ? () => onVersionClick(row.key, h)
+                        : undefined
+                    }
                   />
                 ))}
               </div>

@@ -13,6 +13,7 @@ import {
   ResumeAsIsPreview,
 } from "@/components/ResumeAsIsPreview";
 import { ImproveSpeedometers, type TailorRowState } from "@/components/ImproveSpeedometers";
+import { VersionPreviewModal } from "@/components/VersionPreviewModal";
 import { diffResumeLines } from "@/lib/ats/resumeLineDiff";
 import {
   buildScoreExplanation,
@@ -180,6 +181,11 @@ export function AtsStudio() {
   const [analyzeVersions, setAnalyzeVersions] = useState<AnalyzeVersionSnap[]>(
     [],
   );
+  const [versionPreview, setVersionPreview] = useState<{
+    focus: ImproveFocus;
+    label: string;
+    resumeText: string;
+  } | null>(null);
   const [activeAnalyzeVersion, setActiveAnalyzeVersion] = useState<
     string | null
   >(null);
@@ -877,15 +883,15 @@ export function AtsStudio() {
         nextRows = {
           ats: {
             ...emptyTailorRow(),
-            history: [{ label: "Original", scores: baselineScores }],
+            history: [{ label: "Original", scores: baselineScores, resumeText: baseline }],
           },
           jd: {
             ...emptyTailorRow(),
-            history: [{ label: "Original", scores: baselineScores }],
+            history: [{ label: "Original", scores: baselineScores, resumeText: baseline }],
           },
           balanced: {
             ...emptyTailorRow(),
-            history: [{ label: "Original", scores: baselineScores }],
+            history: [{ label: "Original", scores: baselineScores, resumeText: baseline }],
           },
         };
         setTailorRows(nextRows);
@@ -1114,7 +1120,7 @@ export function AtsStudio() {
             feedActive: true,
             history: [
               ...baseHistory.filter((h) => h.label !== `v${nextVer}`),
-              { label: `v${nextVer}`, scores: afterLocal },
+              { label: `v${nextVer}`, scores: afterLocal, resumeText: pass.resumeMd },
             ].slice(0, 5),
           },
         };
@@ -1826,6 +1832,14 @@ export function AtsStudio() {
                               }));
                             }
                           }}
+                          onVersionClick={(focus, version) => {
+                            if (!version.resumeText) return;
+                            setVersionPreview({
+                              focus,
+                              label: version.label,
+                              resumeText: version.resumeText,
+                            });
+                          }}
                         />
                       </section>
                     ) : null}
@@ -1986,6 +2000,23 @@ export function AtsStudio() {
             </div>
           </div>
         </div>
+      )}
+
+      {versionPreview && (
+        <VersionPreviewModal
+          label={versionPreview.label}
+          resumeText={versionPreview.resumeText}
+          originalText={originalText.trim() || resumeText}
+          templateId={selectedTemplate}
+          onClose={() => setVersionPreview(null)}
+          onLoad={() => {
+            setResumeText(versionPreview.resumeText);
+            setImprovedText(versionPreview.resumeText);
+            setVersionPreview(null);
+            setTab("analyze");
+            markDirty();
+          }}
+        />
       )}
 
       {showPdfPreview && pdfPreviewPages.length > 0 && (
