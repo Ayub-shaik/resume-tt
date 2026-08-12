@@ -728,7 +728,20 @@ private fun BuilderTab(vm: ResumeStudioVm) {
                     enabled = !vm.busy,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    ActionButtonLabel(vm, "Building template data", "Generate Premium Preview")
+                    ActionButtonLabel(vm, "Building template data", "Build section preview")
+                }
+                OutlinedButton(
+                    onClick = {
+                        ctx.startActivity(
+                            Intent(
+                                Intent.ACTION_VIEW,
+                                Uri.parse("${BuildConfig.API_BASE_URL.trimEnd('/')}/app"),
+                            ),
+                        )
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text("Open full section editor and exports")
                 }
             }
         }
@@ -747,18 +760,23 @@ private fun BuilderTab(vm: ResumeStudioVm) {
                     elevation = CardDefaults.cardElevation(defaultElevation = if (selected) 6.dp else 1.dp),
                 ) {
                     Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Box(
+                        Column(
                             Modifier
                                 .fillMaxWidth()
-                                .height(56.dp)
-                                .background(accent, shape = MaterialTheme.shapes.small),
+                                .height(86.dp)
+                                .background(Color.White, shape = MaterialTheme.shapes.small)
+                                .padding(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(5.dp),
                         ) {
-                            Text(
-                                t.name.take(1),
-                                modifier = Modifier.align(Alignment.Center),
-                                color = Color.White,
-                                style = MaterialTheme.typography.titleLarge,
+                            Box(
+                                Modifier.fillMaxWidth().height(13.dp)
+                                    .background(accent, shape = MaterialTheme.shapes.extraSmall),
                             )
+                            Text("Name / title", style = MaterialTheme.typography.labelSmall)
+                            Box(Modifier.fillMaxWidth(0.78f).height(4.dp).background(Color.LightGray))
+                            Text("Summary", style = MaterialTheme.typography.labelSmall)
+                            Box(Modifier.fillMaxWidth(0.92f).height(4.dp).background(Color.LightGray))
+                            Box(Modifier.fillMaxWidth(0.62f).height(4.dp).background(Color.LightGray))
                         }
                         Text(t.name, style = MaterialTheme.typography.labelLarge, maxLines = 2)
                         Text(

@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-08-12T11:54:58Z",
+  "updatedAt": "2026-08-12T11:59:34Z",
   "policy": "Debug APKs are for developer sideload only. Prefer release APKs/AABs for product installs. Manager requires sha256.",
   "apps": [
     {
@@ -19,14 +19,14 @@
       "id": "resume",
       "name": "Resume ATS",
       "packageName": "dev.tomorrowtools.resume",
-      "versionCode": 17,
-      "versionName": "1.0.13-native-analysis",
+      "versionCode": 18,
+      "versionName": "1.0.14-native-parity",
       "apkUrl": "https://resume.tomorrowtools.dev/downloads/resume-release.apk",
-      "sha256": "7fc5b7ac73bc32a552fb043a648415948fceb30f71b72b52ec335ed179c9c3fe",
+      "sha256": "086d39281a6029487ff5fcff2a11c38dde788444f9c95fbfb8c74e410fc925c8",
       "description": "Resume analysis, job description matching, and ATS-focused editing.",
-      "sizeBytes": 12763646,
+      "sizeBytes": 12763642,
       "minSdk": 26,
-      "changelog": "Native ATS-only row without JD; native score row ordering and RocketAI labels."
+      "changelog": "Native parity: ATS-only score row without JD, ATS/JD/Overall rows with JD, RocketAI recommendations, structured section preview, and web handoff for full exports."
     },
     {
       "id": "mpi",
