@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-08-12T11:40:22Z",
+  "updatedAt": "2026-08-12T11:46:02Z",
   "policy": "Debug APKs are for developer sideload only. Prefer release APKs/AABs for product installs. Manager requires sha256.",
   "apps": [
     {
@@ -19,27 +19,27 @@
       "id": "resume",
       "name": "Resume ATS",
       "packageName": "dev.tomorrowtools.resume",
-      "versionCode": 16,
-      "versionName": "1.0.12-icons",
+      "versionCode": 17,
+      "versionName": "1.0.13-native-analysis",
       "apkUrl": "https://resume.tomorrowtools.dev/downloads/resume-release.apk",
-      "sha256": "f2f65dde9aa9a95c23d73aaa6de8ef9515210bc7141c42d6ca40e763aef9efc6",
+      "sha256": "7fc5b7ac73bc32a552fb043a648415948fceb30f71b72b52ec335ed179c9c3fe",
       "description": "Resume analysis, job description matching, and ATS-focused editing.",
-      "sizeBytes": 12763634,
+      "sizeBytes": 12763646,
       "minSdk": 26,
-      "changelog": "App-specific Resume ATS launcher icon."
+      "changelog": "Native ATS-only row without JD; native score row ordering and RocketAI labels."
     },
     {
       "id": "mpi",
       "name": "MPI Interview Prep",
       "packageName": "dev.tomorrowtools.mpi",
-      "versionCode": 17,
-      "versionName": "1.0.13-icons",
+      "versionCode": 18,
+      "versionName": "1.0.14-voice-answer-fix",
       "apkUrl": "https://mpi.tomorrowtools.dev/downloads/mpi-release.apk",
-      "sha256": "8fce2ef60cd021d563288addda9f33dd8bba37666d4d38d540fa4e6c312d5f43",
+      "sha256": "34753d877bca1952a9cb6c5aefefb9bd7d87218e52f077303b7515ee4ed687ca",
       "description": "Mock interview practice with coaching turns and session history.",
-      "sizeBytes": 12730498,
+      "sizeBytes": 12730510,
       "minSdk": 26,
-      "changelog": "App-specific MPI launcher icon; US English voice and stable context handling retained."
+      "changelog": "Stopped repeated voice nudges; restored en-US voice selection; answer payload accepts empty codeAnswer."
     }
   ]
 }
