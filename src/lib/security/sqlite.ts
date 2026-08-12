@@ -60,12 +60,13 @@ export function openEncryptedDatabase(filePath: string): SqliteDatabase {
 
   try {
     if (plaintext) {
-      // Checkpoint WAL before converting a live plaintext DB.
+      // rekey is unsupported in WAL mode — checkpoint + DELETE first
       try {
         db.pragma("wal_checkpoint(TRUNCATE)");
       } catch {
         // ignore on new DB
       }
+      db.pragma("journal_mode = DELETE");
       db.rekey(key);
       db.prepare("SELECT 1").get();
     } else {
