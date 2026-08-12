@@ -1,26 +1,32 @@
 {
-  "updatedAt": "2026-08-12T04:36:15Z",
+  "updatedAt": "2026-08-12T06:28:00Z",
   "policy": "Debug APKs are for developer sideload only. Prefer release APKs/AABs for product installs. Manager requires sha256.",
   "apps": [
     {
       "id": "manager",
       "name": "TomorrowTools Manager",
       "packageName": "dev.tomorrowtools.manager",
-      "versionCode": 2,
-      "versionName": "1.0.1-download-perf",
+      "versionCode": 3,
+      "versionName": "1.0.2-manifest-refresh",
       "apkUrl": "https://resume.tomorrowtools.dev/downloads/manager-debug.apk",
-      "sha256": "45f2478616be939f4e4a095c735d3c1fd978951523a8a34aa0a5f6816de0a66e",
-      "description": "Install and update TomorrowTools Android apps from one place."
+      "sha256": "1ccd2262bc5ba1d12484920f7a35dd5327e2e25a942c5cf41539d3425083f816",
+      "description": "Install and update TomorrowTools Android apps from one place.",
+      "sizeBytes": 16427421,
+      "minSdk": 26,
+      "changelog": "Refresh the manifest on every app open so Manager shows current Resume ATS and MPI releases."
     },
     {
       "id": "resume",
       "name": "Resume ATS",
       "packageName": "dev.tomorrowtools.resume",
-      "versionCode": 10,
-      "versionName": "1.0.6-busy-offline",
-      "apkUrl": "https://resume.tomorrowtools.dev/downloads/resume-ats-debug.apk",
-      "sha256": "4d6044f9fc230f057f07c695691b33744618df2a8b2d97e9d440e79b5f454243",
-      "description": "Resume analysis, job description matching, and ATS-focused editing."
+      "versionCode": 14,
+      "versionName": "1.0.10-security",
+      "apkUrl": "https://resume.tomorrowtools.dev/downloads/resume-release.apk",
+      "sha256": "bf1e7a22585f6a90d955553910670048a1f6280e495a344eaec7576323adc194",
+      "description": "Resume analysis, job description matching, and ATS-focused editing.",
+      "sizeBytes": 12746098,
+      "minSdk": 26,
+      "changelog": "Encrypted session storage and SQLite at-rest protection; refreshed Android landing link to TomorrowTools."
     },
     {
       "id": "mpi",
