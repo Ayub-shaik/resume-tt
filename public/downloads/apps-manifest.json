@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-08-12T08:07:48Z",
+  "updatedAt": "2026-08-12T08:50:21Z",
   "policy": "Debug APKs are for developer sideload only. Prefer release APKs/AABs for product installs. Manager requires sha256.",
   "apps": [
     {
@@ -32,14 +32,14 @@
       "id": "mpi",
       "name": "MPI Interview Prep",
       "packageName": "dev.tomorrowtools.mpi",
-      "versionCode": 15,
-      "versionName": "1.0.11-session-stability",
+      "versionCode": 16,
+      "versionName": "1.0.12-us-voice",
       "apkUrl": "https://mpi.tomorrowtools.dev/downloads/mpi-release.apk",
-      "sha256": "0aef31d465dbc2e4aa43dcc3f4ccb7676de95f9a92b266f9f7a2e5b393b13f99",
+      "sha256": "dd991324bcc611218a59f5d2d1b81a34b31454baa7ba17a05bb7568c30189c24",
       "description": "Mock interview practice with coaching turns and session history.",
-      "sizeBytes": 12729302,
+      "sizeBytes": 12729298,
       "minSdk": 26,
-      "changelog": "Stable Android session restore; concrete string context payloads avoid null validation errors; role and skills cards retained."
+      "changelog": "US English voice selection and speech recognition; stable session restore and concrete context payloads."
     }
   ]
 }

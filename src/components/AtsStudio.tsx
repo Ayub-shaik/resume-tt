@@ -1307,6 +1307,40 @@ export function AtsStudio() {
     }
   }
 
+  async function exportResumeFormat(
+    format: "docx" | "html" | "json" | "portable-json" | "pdf",
+  ) {
+    setError(null);
+    setBusy(`export-${format}`);
+    try {
+      const jr = jsonResume || (await ensureJsonResume());
+      if (!jr) throw new Error("Validate the resume sections before exporting.");
+      const res = await fetch("/api/ats/export", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          format,
+          template: selectedTemplate,
+          resume: jr,
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error((data as { error?: string }).error || "Export failed");
+      }
+      const url = URL.createObjectURL(await res.blob());
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `resume-${format}`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(null);
+    }
+  }
+
   const tabs: [Tab, string][] = [
     ["prepare", "Prepare"],
     ["analyze", "Analyse & improve"],
@@ -1956,6 +1990,7 @@ export function AtsStudio() {
             onStructureFromText={() => void ensureJsonResume({ force: true })}
             onPreviewPdf={() => void renderSelectedPdf("preview")}
             onDownloadPdf={() => void renderSelectedPdf("download")}
+            onExport={(format) => void exportResumeFormat(format)}
           />
         )}
       </div>

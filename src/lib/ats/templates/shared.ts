@@ -52,6 +52,17 @@ export type TemplateId =
   | "copper_serif"
   | "stone_board"
   | "quote_lead"
+  | "harvard_classic"
+  | "consulting_grid"
+  | "impact_masthead"
+  | "research_center"
+  | "left_spine"
+  | "right_spine"
+  | "portfolio_split"
+  | "engineering_mono"
+  | "director_serif"
+  | "one_page_dense"
+  | "minimal_blocks"
   | "cyan_stack"
   | "forest_timeline"
   | "rose_masthead"
@@ -80,6 +91,9 @@ export const TEMPLATE_META: {
   accent: string;
   /** When set, rendered via VariantDocument (not a core hand-tuned file). */
   variant?: VariantOpts;
+  /** Provenance shown to operators; original layouts remain safe to redistribute. */
+  source?: string;
+  license?: string;
 }[] = [
   // —— Classic ——
   {
@@ -465,6 +479,116 @@ export const TEMPLATE_META: {
       font: "Courier",
       fontBold: "Courier-Bold",
     },
+  },
+  {
+    id: "harvard_classic",
+    name: "Harvard classic",
+    blurb: "Research-first centered header with strict academic hierarchy.",
+    category: "Classic",
+    accent: "#374151",
+    variant: { title: "Harvard classic", accent: "#374151", layout: "centered", font: "Times-Roman", fontBold: "Times-Bold" },
+    source: "Original TomorrowTools layout based on public academic CV conventions",
+    license: "Original",
+  },
+  {
+    id: "consulting_grid",
+    name: "Consulting grid",
+    blurb: "Structured consulting profile with visible capability blocks.",
+    category: "Classic",
+    accent: "#1f2937",
+    variant: { title: "Consulting grid", accent: "#1f2937", layout: "grid-projects" },
+    source: "Original TomorrowTools layout",
+    license: "Original",
+  },
+  {
+    id: "impact_masthead",
+    name: "Impact masthead",
+    blurb: "Large impact header followed by measurable experience.",
+    category: "Modern",
+    accent: "#be123c",
+    variant: { title: "Impact masthead", accent: "#be123c", layout: "masthead" },
+    source: "Original TomorrowTools layout",
+    license: "Original",
+  },
+  {
+    id: "research_center",
+    name: "Research center",
+    blurb: "Centered research profile with compact publication-style sections.",
+    category: "Classic",
+    accent: "#475569",
+    variant: { title: "Research center", accent: "#475569", layout: "centered", font: "Times-Roman", fontBold: "Times-Bold" },
+    source: "Original TomorrowTools layout based on public academic CV conventions",
+    license: "Original",
+  },
+  {
+    id: "left_spine",
+    name: "Left date spine",
+    blurb: "Experience-led timeline with dates carrying the scan.",
+    category: "Modern",
+    accent: "#2563eb",
+    variant: { title: "Left date spine", accent: "#2563eb", layout: "timeline" },
+    source: "Original TomorrowTools layout",
+    license: "Original",
+  },
+  {
+    id: "right_spine",
+    name: "Right date spine",
+    blurb: "Reverse timeline for senior experience and career movement.",
+    category: "Modern",
+    accent: "#0369a1",
+    variant: { title: "Right date spine", accent: "#0369a1", layout: "right-rail" },
+    source: "Original TomorrowTools layout",
+    license: "Original",
+  },
+  {
+    id: "portfolio_split",
+    name: "Portfolio split",
+    blurb: "Two-column portfolio narrative with projects beside experience.",
+    category: "Creative",
+    accent: "#9333ea",
+    variant: { title: "Portfolio split", accent: "#9333ea", layout: "split" },
+    source: "Original TomorrowTools layout",
+    license: "Original",
+  },
+  {
+    id: "engineering_mono",
+    name: "Engineering mono",
+    blurb: "Terminal-inspired sections for infrastructure and platform roles.",
+    category: "Tech",
+    accent: "#0f766e",
+    variant: { title: "Engineering mono", accent: "#0f766e", layout: "mono", font: "Courier", fontBold: "Courier-Bold" },
+    source: "Original TomorrowTools layout",
+    license: "Original",
+  },
+  {
+    id: "director_serif",
+    name: "Director serif",
+    blurb: "Leadership narrative with a measured editorial hierarchy.",
+    category: "Executive",
+    accent: "#7c2d12",
+    variant: { title: "Director serif", accent: "#7c2d12", layout: "serif", font: "Times-Roman", fontBold: "Times-Bold" },
+    source: "Original TomorrowTools layout",
+    license: "Original",
+  },
+  {
+    id: "one_page_dense",
+    name: "One-page dense",
+    blurb: "Compact one-page structure for high-signal technical resumes.",
+    category: "Compact",
+    accent: "#334155",
+    variant: { title: "One-page dense", accent: "#334155", layout: "dense" },
+    source: "Original TomorrowTools layout",
+    license: "Original",
+  },
+  {
+    id: "minimal_blocks",
+    name: "Minimal blocks",
+    blurb: "Quiet section blocks with a restrained modern rhythm.",
+    category: "Creative",
+    accent: "#0e7490",
+    variant: { title: "Minimal blocks", accent: "#0e7490", layout: "blocks" },
+    source: "Original TomorrowTools layout",
+    license: "Original",
   },
 ];
 

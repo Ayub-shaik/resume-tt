@@ -23,6 +23,7 @@ export function ResumeBuilder({
   onStructureFromText,
   onPreviewPdf,
   onDownloadPdf,
+  onExport,
 }: {
   jsonResume: JsonResume | null;
   onJsonResumeChange: (jr: JsonResume) => void;
@@ -34,6 +35,7 @@ export function ResumeBuilder({
   onStructureFromText: () => void;
   onPreviewPdf: () => void;
   onDownloadPdf: () => void;
+  onExport: (format: "docx" | "html" | "json" | "portable-json" | "pdf") => void;
 }) {
   const [category, setCategory] = useState("All");
   const [layoutsOpen, setLayoutsOpen] = useState(true);
@@ -104,6 +106,29 @@ export function ResumeBuilder({
             >
               {busy === "download" ? "Downloading…" : "Download PDF"}
             </button>
+            <select
+              className="rounded-xl border border-[var(--line)] bg-white px-3 py-2 text-sm"
+              defaultValue=""
+              disabled={Boolean(busy) || !jsonResume}
+              onChange={(e) => {
+                const format = e.target.value as
+                  | "docx"
+                  | "html"
+                  | "json"
+                  | "portable-json"
+                  | "pdf";
+                if (format) onExport(format);
+                e.currentTarget.value = "";
+              }}
+              aria-label="Export resume format"
+            >
+              <option value="" disabled>Export as…</option>
+              <option value="docx">DOCX</option>
+              <option value="html">HTML</option>
+              <option value="json">JSON Resume</option>
+              <option value="portable-json">Portable sections JSON</option>
+              <option value="pdf">PDF</option>
+            </select>
             <button
               type="button"
               className="rounded-xl border border-[var(--line)] bg-white px-3 py-2 text-sm font-semibold md:hidden"
