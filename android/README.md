@@ -34,19 +34,22 @@ Sign-in → Prepare → Analyse (dimensions, replace workbench) → Tailor (gaug
 
 Debug APKs remain for sideload/Manager only — not for Play production.
 
-## Privacy / backup
+## Privacy / backup / session security
 
 - `android:allowBackup="false"` (tokens must not land in cloud backup).
+- Session bearer tokens use **EncryptedSharedPreferences** (Android Keystore);
+  legacy plaintext DataStore is migrated once then cleared.
 - Public policy: https://resume.tomorrowtools.dev/privacy
 
-## Current debug APK metadata
+## Current build metadata
 
 | Field | Value |
 |-------|-------|
-| versionCode | 11 |
-| versionName | 1.0.7-play-prep |
+| versionCode | 14 |
+| versionName | 1.0.10-security |
 | targetSdk | 36 |
-| Download | https://resume.tomorrowtools.dev/downloads/resume-ats-debug.apk |
+| Download | Prefer **release** APK/AAB for product; debug APKs are for developer sideload only |
 | Manifest | https://resume.tomorrowtools.dev/downloads/apps-manifest.json (includes sha256) |
 
-Publish: bump versions → assemble → copy APK → `sha256sum` into `apps-manifest.json` → deploy web.
+Publish: bump versions → assemble**Release** → copy APK → `sha256sum` into `apps-manifest.json` → deploy web.
+**Debug ≠ product** — Manager should install release builds when available.

@@ -108,6 +108,7 @@ class ResumeStudioVm(app: Application) : AndroidViewModel(app) {
 
     init {
         viewModelScope.launch {
+            store.ensureMigrated()
             token = store.token.first()
             email = store.email.first()
             if (token != null) {

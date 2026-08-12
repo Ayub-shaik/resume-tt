@@ -17,12 +17,13 @@ export default function PrivacyPage() {
       <h1 className="mt-4 font-[family-name:var(--font-display)] text-3xl font-semibold tracking-tight">
         Privacy Policy
       </h1>
-      <p className="mt-2 text-sm text-[var(--muted,#666)]">Last updated: 11 August 2026</p>
+      <p className="mt-2 text-sm text-[var(--muted,#666)]">Last updated: 12 August 2026</p>
 
       <div className="prose mt-8 space-y-4 text-sm leading-relaxed">
         <p>
           TomorrowTools Resume Builder (“we”) is an invite-only product operated for
-          authenticated users. This page describes what we store and how to delete it.
+          authenticated users. This page describes what we store and how to export or
+          delete it.
         </p>
         <h2 className="text-lg font-semibold">What we collect</h2>
         <ul className="list-disc space-y-1 pl-5">
@@ -45,17 +46,36 @@ export default function PrivacyPage() {
           To provide ATS analysis, tailoring, PDF export, and related coaching
           features. Scores are coaching heuristics, not validated hiring predictions.
         </p>
+        <h2 className="text-lg font-semibold">Storage and encryption</h2>
+        <p>
+          Product data is stored in SQLite files encrypted at rest with an operator
+          key (<code>DATA_AT_REST_KEY</code>, SQLCipher-class page encryption). The
+          database file is not readable as plaintext SQLite without that key. Protect
+          the key like a production secret; losing it means losing access to the data.
+          Android session tokens use EncryptedSharedPreferences (Keystore-backed).
+          Content sent to a remote AI provider is subject to that provider’s controls.
+        </p>
         <h2 className="text-lg font-semibold">Retention</h2>
         <p>
-          Data remains until you delete it or an operator purges the host database.
-          There is no separate marketing use of resume content.
+          Default: data remains until you export/delete it or an operator purges the
+          host database. There is no separate marketing use of resume content. Operators
+          may later configure automatic expiry of recovery snapshots; until then,
+          deletion is user- or operator-driven.
         </p>
-        <h2 className="text-lg font-semibold">Your deletion rights</h2>
+        <h2 className="text-lg font-semibold">Export and deletion</h2>
         <p>
-          Signed-in users can erase account-owned product data (including recovery
-          jobs and memory snapshots) from Profile → Settings → Delete account, which
-          calls <code>DELETE /api/account</code>. Browser drafts in local storage
-          must be cleared in the browser separately.
+          Signed-in users can download a ZIP of account-owned product data from Profile →
+          Settings → Export (<code>GET /api/account/export</code>). Password hashes and
+          Drive refresh tokens are omitted from exports. Erasure is available from
+          Profile → Settings → Delete account (<code>DELETE /api/account</code>), which
+          removes resumes, ATS sessions, recovery jobs, and memory snapshots. Browser
+          drafts in local storage must be cleared in the browser separately.
+        </p>
+        <h2 className="text-lg font-semibold">Self-host / zero-egress</h2>
+        <p>
+          When self-hosting, set a local AI base URL and keep{" "}
+          <code>AI_ALLOW_REMOTE=false</code> so prompts stay on your network. Use your
+          own <code>AUTH_SECRET</code> and provider keys (BYOK). See the project README.
         </p>
         <h2 className="text-lg font-semibold">Contact</h2>
         <p>

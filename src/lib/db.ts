@@ -1,4 +1,4 @@
-import Database from "better-sqlite3";
+import type Database from "better-sqlite3-multiple-ciphers";
 import fs from "fs";
 import path from "path";
 import { randomUUID } from "crypto";
@@ -20,6 +20,7 @@ import type {
   EvalDimensionScore,
 } from "./types";
 import { computeContextFingerprint } from "./context";
+import { openEncryptedDatabase } from "@/lib/security/sqlite";
 
 const DATA_DIR = path.join(process.cwd(), "data");
 const DB_PATH =
@@ -44,8 +45,7 @@ function ensureColumn(
 function getDb() {
   if (db) return db;
   fs.mkdirSync(DATA_DIR, { recursive: true });
-  db = new Database(DB_PATH);
-  db.pragma("journal_mode = WAL");
+  db = openEncryptedDatabase(DB_PATH);
   db.exec(`
     CREATE TABLE IF NOT EXISTS resumes (
       id TEXT PRIMARY KEY,
@@ -941,6 +941,76 @@ export function deleteAtsSession(id: string, userId?: string): boolean {
   if (userId && current.userId !== userId) return false;
   getDb().prepare("DELETE FROM ats_sessions WHERE id = ?").run(id);
   return true;
+}
+
+/** Portable export of product data owned by a user (no password hashes / Drive refresh tokens). */
+export function exportAllUserOwnedData(userId: string): {
+  resumes: unknown[];
+  atsSessions: unknown[];
+  interviews: unknown[];
+  turns: unknown[];
+  reviewPacks: unknown[];
+  coachAsks: unknown[];
+  recoveryJobs: unknown[];
+  memorySnapshots: unknown[];
+} {
+  const database = getDb();
+  const interviewIds = (
+    database
+      .prepare("SELECT id FROM interviews WHERE user_id = ?")
+      .all(userId) as Array<{ id: string }>
+  ).map((r) => r.id);
+
+  const turns: unknown[] = [];
+  const reviewPacks: unknown[] = [];
+  const coachAsks: unknown[] = [];
+  for (const id of interviewIds) {
+    turns.push(
+      ...database.prepare("SELECT * FROM turns WHERE interview_id = ?").all(id),
+    );
+    reviewPacks.push(
+      ...database
+        .prepare("SELECT * FROM review_packs WHERE interview_id = ?")
+        .all(id),
+    );
+    coachAsks.push(
+      ...database
+        .prepare("SELECT * FROM coach_asks WHERE interview_id = ?")
+        .all(id),
+    );
+  }
+
+  const recoveryJobs = (
+    database
+      .prepare("SELECT * FROM recovery_jobs WHERE user_id = ?")
+      .all(userId) as Array<Record<string, unknown>>
+  ).map((row) => {
+    const copy = { ...row };
+    // Keep metadata; strip large request blobs that may contain secrets if any
+    if (typeof copy.request_json === "string" && copy.request_json.length > 200_000) {
+      copy.request_json = "[truncated for export size]";
+    }
+    return copy;
+  });
+
+  return {
+    resumes: database
+      .prepare("SELECT * FROM resumes WHERE user_id = ?")
+      .all(userId),
+    atsSessions: database
+      .prepare("SELECT * FROM ats_sessions WHERE user_id = ?")
+      .all(userId),
+    interviews: database
+      .prepare("SELECT * FROM interviews WHERE user_id = ?")
+      .all(userId),
+    turns,
+    reviewPacks,
+    coachAsks,
+    recoveryJobs,
+    memorySnapshots: database
+      .prepare("SELECT * FROM memory_snapshots WHERE user_id = ?")
+      .all(userId),
+  };
 }
 
 /** Cascading erase of product data owned by a user (Play / privacy deletion). */

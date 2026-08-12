@@ -35,11 +35,22 @@ After a process restart, stale queued/running jobs are marked **`uncertain`**
 (not auto-completed). This is duplicate-safe journaling + status, not a
 guarantee that work finishes after the server dies mid-provider call.
 
-SQLite stores recovery state and bounded memory snapshots; do not commit
-production secrets or user data.
+SQLite stores recovery state and bounded memory snapshots; files are **encrypted
+at rest** with `DATA_AT_REST_KEY` (required in production). Do not commit
+production secrets or user data. Losing the key loses DB access — back it up
+offline. Account export: `GET /api/account/export` (ZIP).
 
 **Scores** shown in the studio are coaching heuristics / relative indicators
 for revision — not validated predictions of ATS passage or hiring outcomes.
+
+## Self-host / zero-egress
+
+For a laptop-only AI path:
+
+- Keep `AI_ALLOW_REMOTE=false` (default in Compose).
+- Point `AI_BASE_URL` at your local OpenClaw (or other) gateway.
+- Set a strong `AUTH_SECRET`; never reuse the dev fallback in production.
+- BYOK: put provider keys in env (`AI_API_KEY` / `OPENCLAW_GATEWAY_TOKEN`), not in the DB.
 
 ## Docker (self-host smoke)
 

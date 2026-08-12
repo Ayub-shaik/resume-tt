@@ -1,5 +1,6 @@
 {
-  "updatedAt": "2026-08-11T15:30:00Z",
+  "updatedAt": "2026-08-12T03:30:00Z",
+  "policy": "Debug APKs are for developer sideload only. Prefer release APKs/AABs for product installs. Manager requires sha256.",
   "apps": [
     {
       "id": "manager",

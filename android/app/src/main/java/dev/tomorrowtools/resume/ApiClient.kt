@@ -39,8 +39,10 @@ fun buildOkHttp(tokenProvider: () -> String?): OkHttpClient {
         } else chain.request()
         chain.proceed(req)
     }
-    // Release: never BODY-log (tokens / resume / JD). Debug may BODY-log locally.
-    val log = HttpLoggingInterceptor { msg -> Log.d("ResumeHttp", msg) }.apply {
+    // Release: never BODY-log. Debug may BODY-log locally but redacts bearer/tokens.
+    val log = HttpLoggingInterceptor { msg ->
+        Log.d("ResumeHttp", redactHttpLog(msg))
+    }.apply {
         level = if (BuildConfig.DEBUG) HttpLoggingInterceptor.Level.BODY
         else HttpLoggingInterceptor.Level.NONE
     }
@@ -176,3 +178,11 @@ fun buildRetrofit(baseUrl: String, client: OkHttpClient): Retrofit {
         .addConverterFactory(appJson.asConverterFactory(contentType))
         .build()
 }
+
+/** Redact bearer tokens from OkHttp debug logs (release still uses Level.NONE). */
+internal fun redactHttpLog(msg: String): String =
+    msg
+        .replace(Regex("""(?i)Authorization:\s*Bearer\s+\S+"""), "Authorization: Bearer [redacted]")
+        .replace(Regex("""(?i)"token"\s*:\s*"[^"]+""""), """"token":"[redacted]"""")
+        .replace(Regex("""(?i)"password"\s*:\s*"[^"]+""""), """"password":"[redacted]"""")
+

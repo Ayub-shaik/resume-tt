@@ -1,6 +1,7 @@
-import Database from "better-sqlite3";
+import type Database from "better-sqlite3-multiple-ciphers";
 import fs from "fs";
 import path from "path";
+import { openEncryptedDatabase } from "@/lib/security/sqlite";
 
 const DATA_DIR = path.join(process.cwd(), "data");
 const DB_PATH = path.join(DATA_DIR, "interviewprep.sqlite");
@@ -17,8 +18,7 @@ let db: Database.Database | null = null;
 function getDb() {
   if (db) return db;
   fs.mkdirSync(DATA_DIR, { recursive: true });
-  db = new Database(DB_PATH);
-  db.pragma("journal_mode = WAL");
+  db = openEncryptedDatabase(DB_PATH);
   db.exec(`
     CREATE TABLE IF NOT EXISTS user_drive_tokens (
       user_id TEXT PRIMARY KEY,

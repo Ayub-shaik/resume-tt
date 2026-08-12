@@ -171,3 +171,57 @@ describe("account cascading delete", () => {
     expect(getMemoryContext("del-user", "r1")).toBe("");
   });
 });
+
+describe("account export", () => {
+  it("includes recovery metadata and builds a valid ZIP magic", async () => {
+    const { exportAllUserOwnedData } = await import("@/lib/db");
+    const { buildZipStore } = await import("@/lib/security/zipStore");
+    beginRecoveryJob({
+      userId: "exp-user",
+      action: "test",
+      idempotencyKey: "exp-1",
+      request: { v: 1 },
+    });
+    saveMemorySnapshot({
+      userId: "exp-user",
+      resourceId: "r-exp",
+      kind: "session",
+      summary: "export-note",
+    });
+    const data = exportAllUserOwnedData("exp-user");
+    expect(data.recoveryJobs.length).toBeGreaterThanOrEqual(1);
+    expect(data.memorySnapshots.length).toBeGreaterThanOrEqual(1);
+    const zip = buildZipStore([
+      { name: "manifest.json", body: '{"ok":true}' },
+      { name: "data.json", body: JSON.stringify(data) },
+    ]);
+    expect(zip.subarray(0, 4).toString("binary")).toBe("PK\u0003\u0004");
+    expect(zip.length).toBeGreaterThan(40);
+  });
+});
+
+describe("sqlite at-rest encryption", () => {
+  it("stores an encrypted file header (not plaintext SQLite magic)", async () => {
+    const fs = await import("fs");
+    const path = process.env.TT_DB_PATH;
+    expect(path).toBeTruthy();
+    withDatabase((db) => {
+      db.prepare("SELECT 1").get();
+    });
+    const fd = fs.openSync(path!, "r");
+    const buf = Buffer.alloc(16);
+    fs.readSync(fd, buf, 0, 16, 0);
+    fs.closeSync(fd);
+    expect(buf.subarray(0, 15).toString("utf8")).not.toBe("SQLite format 3");
+  });
+
+  it("fail-closes DATA_AT_REST_KEY in production", async () => {
+    const { resolveDataAtRestKey } = await import("@/lib/security/sqlite");
+    const previous = { ...process.env };
+    delete process.env.DATA_AT_REST_KEY;
+    delete process.env.SQLITE_ENCRYPTION_KEY;
+    process.env.NODE_ENV = "production";
+    expect(() => resolveDataAtRestKey()).toThrow(/DATA_AT_REST_KEY/);
+    process.env = previous;
+  });
+});

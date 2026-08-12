@@ -110,6 +110,33 @@ export function ProfileClient() {
     }
   }
 
+  async function exportAccount() {
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/account/export");
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        throw new Error(
+          (json as { error?: string }).error || "Export failed",
+        );
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "tomorrowtools-resume-export.zip";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function deleteAccount() {
     if (
       !window.confirm(
@@ -455,6 +482,26 @@ export function ProfileClient() {
           >
             Open Resume Studio
           </Link>
+        </div>
+        <div className="mt-4 space-y-2 border-t border-[var(--line)] pt-4">
+          <h3 className="text-sm font-semibold">Export my data</h3>
+          <p className="text-sm text-[var(--muted)]">
+            Download a ZIP of resumes, ATS sessions, recovery job metadata, and
+            memory snapshots. Password hashes and Drive refresh tokens are not
+            included. See{" "}
+            <Link href="/privacy" className="underline underline-offset-2">
+              Privacy
+            </Link>
+            .
+          </p>
+          <button
+            type="button"
+            disabled={busy}
+            className="rounded-lg border border-[var(--line)] px-3 py-2 text-sm font-semibold"
+            onClick={() => void exportAccount()}
+          >
+            Download export ZIP
+          </button>
         </div>
         <div className="mt-4 space-y-2 border-t border-[var(--line)] pt-4">
           <h3 className="text-sm font-semibold text-[var(--danger)]">Delete account</h3>

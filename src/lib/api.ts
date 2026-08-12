@@ -55,13 +55,29 @@ export function logApi(
   route: string,
   meta: Record<string, unknown>,
 ) {
-  const safe = { ...meta };
-  for (const key of Object.keys(safe)) {
-    if (/token|key|secret|password|authorization/i.test(key)) {
-      safe[key] = "[redacted]";
-    }
-  }
+  const safe = redactLogMeta({ ...meta });
   console.info(`[api] ${route}`, JSON.stringify(safe));
+}
+
+function redactLogMeta(meta: Record<string, unknown>): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(meta)) {
+    if (/token|key|secret|password|authorization|bearer|cookie/i.test(key)) {
+      out[key] = "[redacted]";
+      continue;
+    }
+    if (typeof value === "string") {
+      out[key] = value
+        .replace(/(Bearer\s+)[^\s]+/gi, "$1[redacted]")
+        .replace(
+          /\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/g,
+          "[redacted-jwt]",
+        );
+      continue;
+    }
+    out[key] = value;
+  }
+  return out;
 }
 
 export function publicError(err: unknown, fallback = "Request failed"): string {

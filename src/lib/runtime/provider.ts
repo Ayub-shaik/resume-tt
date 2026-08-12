@@ -5,9 +5,11 @@ import type { ChatMessage, RuntimeResult } from "./types";
 export class AiHttpError extends Error {
   readonly status: number;
   constructor(status: number, body: string) {
-    super(`AI provider HTTP ${status}: ${body.slice(0, 300)}`);
+    // Do not embed provider body (may contain secrets/PII) in the Error message.
+    super(`AI provider HTTP ${status}`);
     this.name = "AiHttpError";
     this.status = status;
+    void body; // retained for callers that may inspect via instanceof + status only
   }
 }
 
