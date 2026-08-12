@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-08-12T03:30:00Z",
+  "updatedAt": "2026-08-12T04:18:33Z",
   "policy": "Debug APKs are for developer sideload only. Prefer release APKs/AABs for product installs. Manager requires sha256.",
   "apps": [
     {
@@ -26,11 +26,14 @@
       "id": "mpi",
       "name": "MPI Interview Prep",
       "packageName": "dev.tomorrowtools.mpi",
-      "versionCode": 8,
-      "versionName": "1.0.4-busy-ux",
-      "apkUrl": "https://mpi.tomorrowtools.dev/downloads/mpi-debug.apk",
-      "sha256": "cdafa724492ef91dd02f7a22bff3b0d6b5c71472747f64883c47b88b52250d78",
-      "description": "Mock interview practice with coaching turns and session history."
+      "versionCode": 13,
+      "versionName": "1.0.9-context-modes",
+      "apkUrl": "https://mpi.tomorrowtools.dev/downloads/mpi-release.apk",
+      "sha256": "6d78c5356d0504b8a4d2547ca28484af50ac7a5f1e204cf1ec47a22247ec3d3f",
+      "description": "Mock interview practice with coaching turns and session history.",
+      "sizeBytes": 12712914,
+      "minSdk": 26,
+      "changelog": "Context modes (resume+JD / resume-only / JD-only / role&skills), JD URL fetch with LinkedIn paste fallback, fixed header, Android back stack + hamburger, coaching gated until interview starts, denser UI."
     }
   ]
 }
