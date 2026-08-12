@@ -22,8 +22,8 @@ android {
         applicationId = "dev.tomorrowtools.resume"
         minSdk = 26
         targetSdk = 36
-        versionCode = 15
-        versionName = "1.0.11-native-score-rows"
+        versionCode = 16
+        versionName = "1.0.12-icons"
         // Override in android/local.properties: resume.api.baseUrl=https://...
         buildConfigField(
             "String",

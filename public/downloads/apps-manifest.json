@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-08-12T11:29:51Z",
+  "updatedAt": "2026-08-12T11:40:22Z",
   "policy": "Debug APKs are for developer sideload only. Prefer release APKs/AABs for product installs. Manager requires sha256.",
   "apps": [
     {
@@ -7,39 +7,39 @@
       "name": "TomorrowTools Manager",
       "packageName": "dev.tomorrowtools.manager",
       "versionCode": 3,
-      "versionName": "1.0.2-manifest-refresh",
+      "versionName": "1.0.3-icons",
       "apkUrl": "https://resume.tomorrowtools.dev/downloads/manager-debug.apk",
-      "sha256": "1ccd2262bc5ba1d12484920f7a35dd5327e2e25a942c5cf41539d3425083f816",
+      "sha256": "cfe10b2960b04b621f0c0b6a0d2bb5286c128e8ca1d39c622e64bdca25574fa5",
       "description": "Install and update TomorrowTools Android apps from one place.",
-      "sizeBytes": 16427421,
+      "sizeBytes": 16427453,
       "minSdk": 26,
-      "changelog": "Refresh the manifest on every app open so Manager shows current Resume ATS and MPI releases."
+      "changelog": "Manager launcher icon and app-specific identity."
     },
     {
       "id": "resume",
       "name": "Resume ATS",
       "packageName": "dev.tomorrowtools.resume",
-      "versionCode": 15,
-      "versionName": "1.0.11-native-score-rows",
+      "versionCode": 16,
+      "versionName": "1.0.12-icons",
       "apkUrl": "https://resume.tomorrowtools.dev/downloads/resume-release.apk",
-      "sha256": "889bd4133d69a64ca9b24a7f0e8778f6b1cdcddf5e7b3241f16252d64eaf25d0",
+      "sha256": "f2f65dde9aa9a95c23d73aaa6de8ef9515210bc7141c42d6ca40e763aef9efc6",
       "description": "Resume analysis, job description matching, and ATS-focused editing.",
-      "sizeBytes": 12762498,
+      "sizeBytes": 12763634,
       "minSdk": 26,
-      "changelog": "Native Android analysis rows show ATS-only without JD and ATS/JD/Overall with before/improve/after when JD is present; RocketAI label and useful empty states."
+      "changelog": "App-specific Resume ATS launcher icon."
     },
     {
       "id": "mpi",
       "name": "MPI Interview Prep",
       "packageName": "dev.tomorrowtools.mpi",
-      "versionCode": 16,
-      "versionName": "1.0.12-us-voice",
+      "versionCode": 17,
+      "versionName": "1.0.13-icons",
       "apkUrl": "https://mpi.tomorrowtools.dev/downloads/mpi-release.apk",
-      "sha256": "dd991324bcc611218a59f5d2d1b81a34b31454baa7ba17a05bb7568c30189c24",
+      "sha256": "8fce2ef60cd021d563288addda9f33dd8bba37666d4d38d540fa4e6c312d5f43",
       "description": "Mock interview practice with coaching turns and session history.",
-      "sizeBytes": 12729298,
+      "sizeBytes": 12730498,
       "minSdk": 26,
-      "changelog": "US English voice selection and speech recognition; stable session restore and concrete context payloads."
+      "changelog": "App-specific MPI launcher icon; US English voice and stable context handling retained."
     }
   ]
 }
