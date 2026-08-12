@@ -597,12 +597,17 @@ export function AtsStudio() {
 
   async function requestTabChange(next: Tab) {
     if (next === tab) return;
-    if (dirty) {
-      const choice = window.confirm(
-        "Save this ATS flow to history before leaving this step?",
+    const order: Tab[] = ["prepare", "analyze", "brand", "builder"];
+    const goingBack = order.indexOf(next) < order.indexOf(tab);
+    if (busy && goingBack) {
+      const leave = window.confirm(
+        "Navigating back will lose the progress still running. Go back?",
       );
-      if (choice) await saveSession({ nextStep: next });
-      else if (!window.confirm("Discard unsaved changes and continue?")) return;
+      if (!leave) return;
+    } else if (dirty) {
+      // Persist the flow automatically so returning to an earlier step restores
+      // the same resume, JD, scores, recommendations, and selected template.
+      await saveSession({ silent: true, nextStep: next });
     }
     if (next === "analyze") {
       freezeOriginalIfNeeded();
@@ -772,8 +777,10 @@ export function AtsStudio() {
     analyzeAbortRef.current = ac;
     const preserveTailor = Boolean(opts?.preserveTailor);
     setPendingOverride(null);
-    // Always clear stale analysis UI immediately so Prepare→Analyse never flashes old JD results
-    setAnalysis(null);
+    // Keep a completed analysis visible while a re-analysis is running. This
+    // prevents a failed retry from replacing real gauges with nulls.
+    const previousAnalysis = analysis;
+    if (!preserveTailor) setAnalysis(null);
     if (!preserveTailor) {
       setMasterScores(null);
       setTailorRows(defaultTailorRows());
@@ -826,6 +833,9 @@ export function AtsStudio() {
         throw new Error(data.error || "Analyze failed");
       }
       const nextAnalysis = data.analysis || null;
+      if (!nextAnalysis) {
+        throw new Error("Analysis returned no scores. Try again.");
+      }
       const local = scoreTriple(working, usableJd);
       if (nextAnalysis) {
         nextAnalysis.matchedKeywords = usableJd
@@ -900,6 +910,7 @@ export function AtsStudio() {
       setPendingOverride(null);
     } catch (e) {
       if (e instanceof Error && e.name === "AbortError") return;
+      if (preserveTailor && previousAnalysis) setAnalysis(previousAnalysis);
       setError(e instanceof Error ? e.message : String(e));
     } finally {
       if (analyzeAbortRef.current === ac) {
@@ -1220,6 +1231,8 @@ export function AtsStudio() {
 
   async function renderSelectedPdf(mode: "preview" | "download") {
     setError(null);
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 45_000);
     try {
       let jr = jsonResume;
       if (!jr) jr = await ensureJsonResume();
@@ -1238,6 +1251,7 @@ export function AtsStudio() {
             resume: jr,
             format: "images",
           }),
+          signal: controller.signal,
         });
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
@@ -1257,6 +1271,7 @@ export function AtsStudio() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ template: selectedTemplate, resume: jr }),
+        signal: controller.signal,
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -1273,8 +1288,15 @@ export function AtsStudio() {
       a.download = `${(jr.basics?.name || "resume").replace(/\s+/g, "_")}-${selectedTemplate}.pdf`;
       a.click();
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setError(
+        e instanceof DOMException && e.name === "AbortError"
+          ? "Template preview timed out. Try again or choose another template."
+          : e instanceof Error
+            ? e.message
+            : String(e),
+      );
     } finally {
+      window.clearTimeout(timeout);
       setBusy(null);
     }
   }
@@ -1653,6 +1675,7 @@ export function AtsStudio() {
                           void runAnalyze({
                             silentTab: true,
                             preserveTailor: true,
+                            overrideCurrent: true,
                           })
                         }
                       >
@@ -1848,23 +1871,30 @@ export function AtsStudio() {
                       tone="warn"
                       onItemClick={queueMissingKeyword}
                     />
-                    <AnalyzeWorkbench
-                      originalText={originalText.trim() || resumeText}
-                      resumeText={resumeText}
-                      analysis={analysis}
-                      appliedKeys={appliedSuggestionKeys}
-                      onAdd={applySuggestionAdd}
-                      onReplace={applySuggestionReplace}
-                      onAsk={askAts}
-                      onAccommodateMissing={accommodateMissing}
-                      missingKeywords={analysis.missingKeywords}
-                      onMarkApplied={(key) =>
-                        setAppliedSuggestionKeys((prev) => new Set(prev).add(key))
-                      }
-                      onResumeChange={(text) => {
-                        commitWorkingDraft(text);
-                      }}
-                    />
+                    {(analysis.rewriteSuggestions || []).length > 0 ? (
+                      <AnalyzeWorkbench
+                        originalText={originalText.trim() || resumeText}
+                        resumeText={resumeText}
+                        analysis={analysis}
+                        appliedKeys={appliedSuggestionKeys}
+                        onAdd={applySuggestionAdd}
+                        onReplace={applySuggestionReplace}
+                        onAsk={askAts}
+                        onAccommodateMissing={accommodateMissing}
+                        missingKeywords={analysis.missingKeywords}
+                        onMarkApplied={(key) =>
+                          setAppliedSuggestionKeys((prev) => new Set(prev).add(key))
+                        }
+                        onResumeChange={(text) => {
+                          commitWorkingDraft(text);
+                        }}
+                      />
+                    ) : (
+                      <div className="rounded-xl border border-dashed border-[var(--line-strong)] bg-white/60 px-4 py-3 text-sm text-[var(--muted)]">
+                        No pending recommendation changes. Your working draft is
+                        ready for re-analysis or template preview.
+                      </div>
+                    )}
                   </>
                 )}
 

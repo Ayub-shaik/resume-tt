@@ -213,6 +213,14 @@ export function AnalyzeWorkbench({
 
   return (
     <div className="relative space-y-4">
+      <header className="rounded-xl border border-[var(--line)] bg-white/75 px-3 py-3">
+        <h3 className="font-[family-name:var(--font-display)] text-base font-semibold">
+          Ask RocketAI ✨ for improvements
+        </h3>
+        <p className="mt-1 text-xs text-[var(--muted)]">
+          Apply only the changes you agree with, then re-analyse the working draft.
+        </p>
+      </header>
       {paneToggle}
       <div className="grid min-h-0 gap-3 md:grid-cols-2">
         <section

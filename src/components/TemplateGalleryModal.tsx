@@ -131,7 +131,7 @@ export function TemplateGalleryModal({
             className="btn-primary w-full max-w-md px-4 py-3 text-sm sm:text-base"
             onClick={() => onSelect(current.id)}
           >
-            Select template
+            Apply this template
           </button>
         </footer>
       </div>

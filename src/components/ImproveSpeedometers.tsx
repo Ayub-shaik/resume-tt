@@ -218,8 +218,8 @@ export function ImproveSpeedometers({
 }) {
   const allRows: Array<{ key: ImproveFocus; title: string }> = [
     { key: "ats", title: "ATS score" },
-    ...(jdPresent ? [{ key: "jd" as const, title: "JD match" }] : []),
-    ...(jdPresent ? [{ key: "balanced" as const, title: "Overall" }] : []),
+    { key: "jd", title: "JD match" },
+    { key: "balanced", title: "Overall" },
   ];
 
   return (
@@ -231,8 +231,11 @@ export function ImproveSpeedometers({
       ) : null}
       {allRows.map((row) => {
         const state = rows[row.key];
-        const before = scoreForRow(row.key, masterScores);
-        const after = state.afterScores
+        const unavailable = !jdPresent && row.key !== "ats";
+        const before = unavailable ? null : scoreForRow(row.key, masterScores);
+        const after = unavailable
+          ? null
+          : state.afterScores
           ? scoreForRow(row.key, state.afterScores)
           : null;
         const nextVer = state.improveCount + 1;
@@ -248,56 +251,63 @@ export function ImproveSpeedometers({
           <div key={row.key} className="brain-speed-row cardish">
             <p className="brain-speed-title">{row.title}</p>
             <div className="brain-speed-main">
-              <div className="brain-speed-gauges">
-                <Gauge
-                  label="Before"
-                  value={before}
-                  onClick={() =>
-                    onExplainTailor(
-                      row.key === "jd"
-                        ? "jd"
-                        : row.key === "ats"
-                          ? "ats"
-                          : "overall",
-                    )
-                  }
-                  clickable
-                />
-                <Gauge
-                  label="After"
-                  value={after}
-                  empty={after == null}
-                  clickable={after != null}
-                  onClick={
-                    after != null ? () => onShowChanges(row.key) : undefined
-                  }
-                />
-              </div>
+              <Gauge
+                label={unavailable ? "Add JD" : "Before"}
+                value={before}
+                empty={unavailable}
+                onClick={
+                  unavailable
+                    ? undefined
+                    : () =>
+                        onExplainTailor(
+                          row.key === "jd"
+                            ? "jd"
+                            : row.key === "ats"
+                              ? "ats"
+                              : "overall",
+                        )
+                }
+                clickable={!unavailable}
+              />
               <button
                 type="button"
                 className="brain-improve-btn"
                 disabled={
+                  unavailable ||
                   Boolean(busyFocus) ||
                   saturated ||
                   (after != null && after >= 92)
                 }
                 onClick={() => onImprove(row.key)}
                 title={
-                  saturated
-                    ? "Max passes for this row"
-                    : after != null && after >= 92
-                      ? "Already high — re-analyse if JD changed"
-                      : state.improveCount === 0
-                        ? "Tailor this row"
-                        : `Tailor pass ${nextVer}`
+                  unavailable
+                    ? "Add a job description to enable this row"
+                    : saturated
+                      ? "Max passes for this row"
+                      : after != null && after >= 92
+                        ? "Already high — re-analyse if JD changed"
+                        : state.improveCount === 0
+                          ? "Improve this row"
+                          : `Improve pass ${nextVer}`
                 }
               >
                 <TailorIcon />
-                <span className="brain-improve-label">Tailor</span>
+                <span className="brain-improve-label">
+                  {unavailable ? "Add JD" : "Improve"}
+                </span>
                 {state.improveCount > 0 ? (
                   <span className="brain-improve-badge">v{nextVer}</span>
                 ) : null}
               </button>
+              <Gauge
+                label={unavailable ? "Add JD" : "After"}
+                value={after}
+                empty={after == null}
+                clickable={after != null}
+                onClick={
+                  after != null ? () => onShowChanges(row.key) : undefined
+                }
+              />
             </div>
             {history.length > 1 ? (
               <div className="brain-version-gauges" aria-label="Score versions">
