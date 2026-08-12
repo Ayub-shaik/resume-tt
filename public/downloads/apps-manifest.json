@@ -1,19 +1,19 @@
 {
-  "updatedAt": "2026-08-12T11:46:02Z",
+  "updatedAt": "2026-08-12T11:54:58Z",
   "policy": "Debug APKs are for developer sideload only. Prefer release APKs/AABs for product installs. Manager requires sha256.",
   "apps": [
     {
       "id": "manager",
       "name": "TomorrowTools Manager",
       "packageName": "dev.tomorrowtools.manager",
-      "versionCode": 3,
-      "versionName": "1.0.3-icons",
+      "versionCode": 5,
+      "versionName": "1.0.4-rocketcv",
       "apkUrl": "https://resume.tomorrowtools.dev/downloads/manager-debug.apk",
-      "sha256": "cfe10b2960b04b621f0c0b6a0d2bb5286c128e8ca1d39c622e64bdca25574fa5",
+      "sha256": "f0970c6f3c930868f461c63a3a36c83cc871207ebfc6cd7155bace273397e95f",
       "description": "Install and update TomorrowTools Android apps from one place.",
-      "sizeBytes": 16427453,
+      "sizeBytes": 16427445,
       "minSdk": 26,
-      "changelog": "Manager launcher icon and app-specific identity."
+      "changelog": "RocketCV app name and branded launcher identity."
     },
     {
       "id": "resume",
