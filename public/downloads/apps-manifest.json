@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-08-12T04:22:03Z",
+  "updatedAt": "2026-08-12T04:36:15Z",
   "policy": "Debug APKs are for developer sideload only. Prefer release APKs/AABs for product installs. Manager requires sha256.",
   "apps": [
     {
@@ -26,14 +26,14 @@
       "id": "mpi",
       "name": "MPI Interview Prep",
       "packageName": "dev.tomorrowtools.mpi",
-      "versionCode": 13,
-      "versionName": "1.0.9-context-modes",
+      "versionCode": 14,
+      "versionName": "1.0.10-role-cards",
       "apkUrl": "https://mpi.tomorrowtools.dev/downloads/mpi-release.apk",
-      "sha256": "6d78c5356d0504b8a4d2547ca28484af50ac7a5f1e204cf1ec47a22247ec3d3f",
+      "sha256": "f2bdc4867325d8e5a2aae2b3f52470182aed45a24cd153c16489b0b2ba355c89",
       "description": "Mock interview practice with coaching turns and session history.",
-      "sizeBytes": 12712914,
+      "sizeBytes": 12729302,
       "minSdk": 26,
-      "changelog": "Context modes (resume+JD / resume-only / JD-only / role&skills), JD URL fetch with LinkedIn paste fallback, fixed header, Android back stack + hamburger, coaching gated until interview starts, denser UI."
+      "changelog": "Role & skills mode with auto catalog cards and star ratings (same ROLE_PROFILE contract as web); context mode chips; denser Android context UI."
     }
   ]
 }

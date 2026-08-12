@@ -4,6 +4,7 @@ const nextConfig: NextConfig = {
   transpilePackages: ["@tomorrowtools/resume-brain"],
   serverExternalPackages: [
     "better-sqlite3",
+    "better-sqlite3-multiple-ciphers",
     "@cursor/sdk",
     "unpdf",
     "mammoth",
