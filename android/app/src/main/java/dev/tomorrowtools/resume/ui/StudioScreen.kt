@@ -349,64 +349,45 @@ private fun AnalyseTab(vm: ResumeStudioVm) {
                 color = MaterialTheme.colorScheme.tertiary,
             )
         }
-        // As-is baseline row
-        vm.originalScores?.let {
-            Text("As-is", style = compact.labelLarge)
-            Speedometers(
-                overall = if (hasJd) it.overall else null,
-                ats = it.ats,
-                keyword = if (hasJd) it.keyword else null,
-                showOverall = hasJd,
-                showJd = hasJd,
-            )
-        }
-        // Current / after row
-        Text(
-            if (vm.versions.isEmpty()) "Current" else "After (${vm.versions.lastOrNull()?.label ?: "v1"})",
-            style = compact.labelLarge,
-        )
-        Speedometers(
-            overall = if (hasJd) vm.scores.overall else null,
-            ats = vm.scores.ats,
-            keyword = if (hasJd) vm.scores.keyword else null,
-            showOverall = hasJd,
-            showJd = hasJd,
-        )
-        // Version history rows (v1/v2/v3) with their own meters
-        vm.versions.takeLast(3).forEach { snap ->
-            Text("${snap.label} · ${snap.focus}", style = compact.labelMedium)
-            Speedometers(
-                overall = if (hasJd) snap.overall else null,
-                ats = snap.ats,
-                keyword = if (hasJd) snap.keyword else null,
-                showOverall = hasJd,
-                showJd = hasJd,
-            )
-        }
-        Text("Improve", style = compact.labelLarge)
-        Row(
-            Modifier.horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            FilterChip(
-                selected = vm.focus == "ats",
-                onClick = { if (!vm.busy) vm.improveWithFocus("ats") },
+        vm.originalScores?.let { before ->
+            ScoreRow(
+                title = "ATS",
+                before = before.ats,
+                after = vm.scores.ats,
+                version = vm.versions.lastOrNull()?.label,
                 enabled = !vm.busy,
-                label = { ActionButtonLabel(vm, "Improving", "Improve ats") },
+                onImprove = { vm.improveWithFocus("ats") },
             )
             if (hasJd) {
-                FilterChip(
-                    selected = vm.focus == "jd",
-                    onClick = { if (!vm.busy) vm.improveWithFocus("jd") },
+                ScoreRow(
+                    title = "JD",
+                    before = before.keyword,
+                    after = vm.scores.keyword,
+                    version = vm.versions.lastOrNull()?.label,
                     enabled = !vm.busy,
-                    label = { ActionButtonLabel(vm, "Improving", "Improve jd") },
+                    onImprove = { vm.improveWithFocus("jd") },
                 )
-                FilterChip(
-                    selected = vm.focus == "balanced",
-                    onClick = { if (!vm.busy) vm.improveWithFocus("balanced") },
+                ScoreRow(
+                    title = "Overall",
+                    before = before.overall,
+                    after = vm.scores.overall,
+                    version = vm.versions.lastOrNull()?.label,
                     enabled = !vm.busy,
-                    label = { ActionButtonLabel(vm, "Improving", "Improve balance") },
+                    onImprove = { vm.improveWithFocus("balanced") },
                 )
+            }
+        }
+        if (vm.versions.isNotEmpty()) {
+            Text("Versions", style = compact.titleSmall)
+            Row(
+                Modifier.horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                vm.versions.takeLast(4).forEach { snap ->
+                    OutlinedButton(onClick = { vm.restoreVersion(snap) }, enabled = !vm.busy) {
+                        Text("${snap.label} · ${snap.focus}", style = compact.labelSmall)
+                    }
+                }
             }
         }
         if (vm.scores.dimensions.isNotEmpty()) {
@@ -469,28 +450,36 @@ private fun AnalyseTab(vm: ResumeStudioVm) {
                 }
             }
         }
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text("Workbench", style = compact.titleSmall)
-            TextButton(
-                onClick = { vm.applyAllSuggestions() },
-                enabled = !vm.allSuggestionsApplied() && !vm.busy,
-            ) {
-                Text(if (vm.allSuggestionsApplied()) "Applied all" else "Apply all", style = compact.labelMedium)
+        if (vm.scores.suggestions.isNotEmpty()) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text("Ask RocketAI ✨ for improvements", style = compact.titleSmall)
+                TextButton(
+                    onClick = { vm.applyAllSuggestions() },
+                    enabled = !vm.allSuggestionsApplied() && !vm.busy,
+                ) {
+                    Text(if (vm.allSuggestionsApplied()) "Applied all" else "Apply all", style = compact.labelMedium)
+                }
             }
-        }
-        vm.scores.suggestions.forEach { s ->
-            SuggestionCard(
-                s = s,
-                applied = vm.isSuggestionApplied(s),
-                onAdd = { vm.applySuggestion(s, replace = false) },
-                onReplace = { vm.applySuggestion(s, replace = true) },
-                onTailor = { if (!vm.busy) vm.tailorSuggestion(s) },
+            vm.scores.suggestions.forEach { s ->
+                SuggestionCard(
+                    s = s,
+                    applied = vm.isSuggestionApplied(s),
+                    onAdd = { vm.applySuggestion(s, replace = false) },
+                    onReplace = { vm.applySuggestion(s, replace = true) },
+                    onTailor = { if (!vm.busy) vm.tailorSuggestion(s) },
+                )
+            }
+        } else {
+            Text(
+                "No pending recommendation changes. Re-analyze after editing the resume.",
+                style = compact.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
         OutlinedTextField(
             value = vm.askQuestion,
             onValueChange = vm::updateAsk,
-            label = { Text("Ask ATS") },
+            label = { Text("Ask RocketAI ✨ for improvements") },
             modifier = Modifier.fillMaxWidth(),
             readOnly = vm.busy,
             textStyle = compact.bodySmall,
@@ -533,6 +522,36 @@ private fun SuggestionCard(
             }
             TextButton(onClick = onAdd, enabled = !applied) { Text(if (applied) "Applied" else "Apply") }
             TextButton(onClick = onTailor) { Text("Tailor") }
+        }
+    }
+}
+
+@Composable
+private fun ScoreRow(
+    title: String,
+    before: Int?,
+    after: Int?,
+    version: String?,
+    enabled: Boolean,
+    onImprove: () -> Unit,
+) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(title, style = MaterialTheme.typography.labelLarge)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Gauge("Before", before)
+                Button(onClick = onImprove, enabled = enabled) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("Improve", style = MaterialTheme.typography.labelSmall)
+                        if (version != null) Text(version, style = MaterialTheme.typography.labelSmall)
+                    }
+                }
+                Gauge("After", after)
+            }
         }
     }
 }
