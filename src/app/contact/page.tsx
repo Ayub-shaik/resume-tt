@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "Contact — Resume Builder",
-  description: "Admin, support, and info contacts for TomorrowTools Resume Builder.",
+  title: "Contact — RocketCV",
+  description: "Admin, support, and info contacts for RocketCV.",
 };
 
 export default function ContactPage() {
@@ -11,7 +11,7 @@ export default function ContactPage() {
     <main className="mx-auto max-w-2xl px-4 py-12 text-[var(--ink,#111)]">
       <p className="text-sm text-[var(--muted,#666)]">
         <Link href="/" className="underline-offset-2 hover:underline">
-          ← Resume Builder
+          ← RocketCV
         </Link>
       </p>
       <h1 className="mt-4 font-[family-name:var(--font-display)] text-3xl font-semibold tracking-tight">

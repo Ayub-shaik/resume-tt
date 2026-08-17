@@ -59,11 +59,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import dev.tomorrowtools.resume.BuildConfig
 import dev.tomorrowtools.resume.data.RewriteSuggestion
 import dev.tomorrowtools.resume.util.PARSE_MIME_TYPES
+import dev.tomorrowtools.resume.util.hasAnyScore
 import dev.tomorrowtools.resume.util.openSiblingOrWeb
 import dev.tomorrowtools.resume.vm.ResumeStudioVm
 import dev.tomorrowtools.resume.vm.ResumeTab
@@ -101,7 +103,7 @@ fun StudioScreen(vm: ResumeStudioVm) {
         Scaffold(
             topBar = {
                 TopAppBar(
-                title = { Text("Resume ATS") },
+                title = { Text("RocketCV") },
                 actions = {
                     if (canOpenMpi) {
                         TextButton(onClick = { openMpiWithResumeContext(ctx, vm) }, enabled = !vm.busy) { Text("MPI") }
@@ -118,7 +120,7 @@ fun StudioScreen(vm: ResumeStudioVm) {
                             onClick = { moreOpen = false; vm.selectTab(ResumeTab.Builder) },
                         )
                         DropdownMenuItem(
-                            text = { Text("Profile / sessions") },
+                            text = { Text("Profile") },
                             onClick = { moreOpen = false; vm.selectTab(ResumeTab.Profile) },
                         )
                         DropdownMenuItem(
@@ -130,16 +132,22 @@ fun StudioScreen(vm: ResumeStudioVm) {
                                 )
                             },
                         )
-                        DropdownMenuItem(
-                            text = { Text("Sign out") },
-                            onClick = { moreOpen = false; vm.signOut() },
-                        )
                     }
                 },
                 )
             },
             bottomBar = {
-                NavigationBar {
+                Column {
+                    Text(
+                        "TomorrowTools",
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 6.dp),
+                        textAlign = TextAlign.Center,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    NavigationBar {
                     NavigationBarItem(
                     selected = vm.tab == ResumeTab.Prepare,
                     onClick = { if (!vm.busy) vm.selectTab(ResumeTab.Prepare) },
@@ -161,6 +169,7 @@ fun StudioScreen(vm: ResumeStudioVm) {
                     icon = { Icon(Icons.Filled.AutoFixHigh, contentDescription = "Templates") },
                     label = { Text("Templates") },
                     )
+                    }
                 }
             },
         ) { pad ->
@@ -348,6 +357,24 @@ private fun AnalyseTab(vm: ResumeStudioVm) {
                 style = compact.bodySmall,
                 color = MaterialTheme.colorScheme.tertiary,
             )
+        }
+        if (vm.scores.hasAnyScore() || vm.analysisRaw != null) {
+            val before = vm.originalScores ?: vm.scores
+            Text("Scores", style = compact.titleSmall)
+            Speedometers(
+                overall = vm.scores.overall ?: before.overall,
+                ats = vm.scores.ats ?: before.ats,
+                keyword = vm.scores.keyword ?: before.keyword,
+                showOverall = hasJd || vm.scores.overall != null || before.overall != null,
+                showJd = hasJd,
+            )
+            if (!vm.scores.hasAnyScore() && vm.analysisRaw != null) {
+                Text(
+                    "Top-line scores unavailable — tap Re-analyse to refresh.",
+                    style = compact.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
         }
         vm.originalScores?.let { before ->
             ScoreRow(
@@ -868,5 +895,9 @@ private fun ProfileTab(vm: ResumeStudioVm) {
         }
         Spacer(Modifier.width(1.dp))
         OutlinedButton(onClick = { vm.saveSession() }) { Text("Save current session") }
+        OutlinedButton(
+            onClick = { vm.signOut() },
+            modifier = Modifier.fillMaxWidth(),
+        ) { Text("Sign out") }
     }
 }

@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { signOut } from "next-auth/react";
 import { MPI_URL } from "@/lib/productUrls";
+import { ProductFooter } from "@/components/ProductFooter";
 
 type ProfileData = {
   user: { email: string; name: string; role: string };
@@ -244,10 +245,10 @@ export function ProfileClient() {
     <div className="profile-shell mx-auto max-w-5xl px-4 py-8">
       <header className="mb-8 flex flex-wrap items-center justify-between gap-4 border-b border-[var(--line)] pb-6">
         <div className="flex items-center gap-3">
-          <Image src="/resume-mark.svg" alt="Resume" width={48} height={48} />
+          <Image src="/rocketcv-mark.svg" alt="RocketCV" width={48} height={48} />
           <div>
             <p className="text-xs font-semibold tracking-[0.16em] text-[var(--accent)] uppercase">
-              TomorrowTools · Profile
+              RocketCV · Profile
             </p>
             <h1 className="font-[family-name:var(--font-display)] text-3xl tracking-tight">
               {data.user.name}
@@ -263,7 +264,7 @@ export function ProfileClient() {
             href="/app"
             className="rounded-xl border border-[var(--line)] bg-[rgba(255,255,255,0.72)] px-3 py-2 text-sm font-semibold"
           >
-            Resume Studio
+            Studio
           </Link>
           <a
             href={MPI_URL}
@@ -273,13 +274,6 @@ export function ProfileClient() {
           >
             MPI Interviews
           </a>
-          <button
-            type="button"
-            className="rounded-xl border border-[var(--line)] bg-[rgba(255,255,255,0.5)] px-3 py-2 text-sm font-semibold"
-            onClick={() => void signOut({ callbackUrl: "/" })}
-          >
-            Sign out
-          </button>
         </div>
       </header>
 
@@ -466,21 +460,27 @@ export function ProfileClient() {
         id="settings"
         className="mt-6 scroll-mt-8 glass-panel rounded-[var(--radius)] p-5"
       >
-        <h2 className="mb-2 font-[family-name:var(--font-display)] text-xl font-semibold tracking-tight">Settings</h2>
+        <h2 className="mb-2 font-[family-name:var(--font-display)] text-xl font-semibold tracking-tight">Account</h2>
         <p className="mb-3 text-sm text-[var(--muted)]">
-          Signed in as {data.user.email}. Use Sign out in the header or nav to
-          switch accounts.
+          Signed in as {data.user.email}.
         </p>
+        <button
+          type="button"
+          className="rounded-lg border border-[var(--line)] px-3 py-2 text-sm font-semibold"
+          onClick={() => void signOut({ callbackUrl: "/" })}
+        >
+          Sign out
+        </button>
         <div className="mt-4 space-y-2 border-t border-[var(--line)] pt-4">
-          <h3 className="text-sm font-semibold">Resume builder</h3>
+          <h3 className="text-sm font-semibold">Studio</h3>
           <p className="text-sm text-[var(--muted)]">
-            Edit layouts, preview PDFs, and download — in Resume Studio.
+            Edit layouts, preview PDFs, and download — in RocketCV Studio.
           </p>
           <Link
             href="/app"
             className="inline-flex text-sm font-semibold text-[var(--accent)] underline-offset-2 hover:underline"
           >
-            Open Resume Studio
+            Open RocketCV Studio
           </Link>
         </div>
         <div className="mt-4 space-y-2 border-t border-[var(--line)] pt-4">
@@ -569,6 +569,9 @@ export function ProfileClient() {
           </ul>
         </section>
       )}
+      <div className="mt-10">
+        <ProductFooter product="RocketCV" />
+      </div>
     </div>
   );
 }

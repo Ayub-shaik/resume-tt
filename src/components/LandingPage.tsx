@@ -4,6 +4,7 @@ import { signIn } from "next-auth/react";
 import { useState } from "react";
 import Image from "next/image";
 import { JOB_SEARCH_URL, MPI_URL } from "@/lib/productUrls";
+import { ProductFooter } from "@/components/ProductFooter";
 
 const COLD_FACTS = [
   {
@@ -118,13 +119,8 @@ export function LandingPage({
   return (
     <div className="landing">
       <div className="landing__bar">
-        <a
-          className="landing__bar-mark"
-          href="https://tomorrowtools.dev"
-          target="_blank"
-          rel="noreferrer"
-        >
-          TomorrowTools
+        <a className="landing__bar-mark" href="/">
+          RocketCV
         </a>
         <div className="landing__bar-links">
           <a className="landing__bar-link" href={MPI_URL}>
@@ -138,10 +134,9 @@ export function LandingPage({
 
       <div className="landing__stage">
         <main className="landing__copy">
-          <p className="landing__eyebrow">TomorrowTools</p>
           <div className="landing__brand-mark">
             <Image
-              src="/resume-mark.svg"
+              src="/rocketcv-mark.svg"
               alt=""
               width={48}
               height={48}
@@ -149,7 +144,7 @@ export function LandingPage({
             />
             <div>
               <span>ATS-first</span>
-              <strong>Resume Builder</strong>
+              <strong>RocketCV</strong>
             </div>
           </div>
           <h1 className="landing__headline">
@@ -433,6 +428,7 @@ export function LandingPage({
               Personal Interviewer →
             </a>
           </p>
+          <ProductFooter product="RocketCV" />
           <p className="mt-2 text-sm">
             <a href="/privacy" className="underline underline-offset-2">
               Privacy

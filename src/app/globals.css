@@ -713,6 +713,24 @@ body {
   font-style: italic;
   font-size: 1.05rem;
 }
+.tt-footer {
+  margin: 12px 0 0;
+  font-family: var(--font-body), system-ui, sans-serif;
+  font-style: normal;
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.tt-footer a {
+  color: var(--ink);
+  font-weight: 650;
+  text-decoration: none;
+}
+.tt-footer a:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
 
 @media (max-width: 900px) {
   .landing__bar {

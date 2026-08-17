@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy — Resume Builder",
-  description: "How TomorrowTools Resume Builder handles account and resume data.",
+  title: "Privacy Policy — RocketCV",
+  description: "How RocketCV handles account and resume data.",
 };
 
 export default function PrivacyPage() {
@@ -11,7 +11,7 @@ export default function PrivacyPage() {
     <main className="mx-auto max-w-2xl px-4 py-12 text-[var(--ink,#111)]">
       <p className="text-sm text-[var(--muted,#666)]">
         <Link href="/" className="underline-offset-2 hover:underline">
-          ← Resume Builder
+          ← RocketCV
         </Link>
       </p>
       <h1 className="mt-4 font-[family-name:var(--font-display)] text-3xl font-semibold tracking-tight">
@@ -21,7 +21,7 @@ export default function PrivacyPage() {
 
       <div className="prose mt-8 space-y-4 text-sm leading-relaxed">
         <p>
-          TomorrowTools Resume Builder (“we”) is an invite-only product operated for
+          RocketCV (“we”) is an invite-only TomorrowTools product operated for
           authenticated users. This page describes what we store and how to export or
           delete it.
         </p>

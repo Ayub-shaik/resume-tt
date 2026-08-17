@@ -1,5 +1,6 @@
 package dev.tomorrowtools.resume.util
 
+import dev.tomorrowtools.resume.appJson
 import dev.tomorrowtools.resume.data.DimensionView
 import dev.tomorrowtools.resume.data.RewriteSuggestion
 import dev.tomorrowtools.resume.data.ScoreView
@@ -58,7 +59,7 @@ private fun parseDimensions(obj: JsonObject): List<DimensionView> {
             id = o.strOf("id") ?: label,
             label = label,
             score = o.intOf("score", "value"),
-            note = o.strOf("notes", "note", "why", "detail"),
+            note = o.strOf("notes", "note", "why", "detail", "rationale"),
         )
     }
 }
@@ -113,24 +114,36 @@ fun parseScoreView(el: JsonElement?): ScoreView {
         null, null, null, emptyList(), emptyList(), emptyList(), emptyList(),
         emptyList(), emptyList(), emptyList(), emptyList(),
     )
-    val obj = el as? JsonObject ?: return empty
-    val scores = obj["scores"] as? JsonObject
-    val heuristic = obj["heuristic"] as? JsonObject
-    val overall = obj.intOf("overallScore", "overall", "score")
+    val root = unwrapAnalysis(el) ?: return empty
+    val scores = root["scores"] as? JsonObject
+    val heuristic = root["heuristic"] as? JsonObject
+    val dimensions = parseDimensions(root)
+    var overall = root.intOf("overallScore", "overall", "score")
         ?: scores?.intOf("overallScore", "overall", "total")
-    val ats = obj.intOf("atsReadability", "ats", "readability")
+    var ats = root.intOf("atsReadability", "ats", "readability")
         ?: scores?.intOf("atsReadability", "ats")
-    // Web/API field is keywordMatchPct (not keywordMatch)
-    val keyword = obj.intOf("keywordMatchPct", "keywordMatch", "keywords", "jdCoverage")
+    var keyword = root.intOf("keywordMatchPct", "keywordMatch", "keywords", "jdCoverage")
         ?: scores?.intOf("keywordMatchPct", "keywordMatch", "keywords")
         ?: heuristic?.intOf("keywordMatchPct", "keywordMatch")
-    val missing = obj.strList("missingKeywords", "missing_keywords", "keywordsMissing")
-    val matched = obj.strList("matchedKeywords", "matched_keywords", "presentKeywords")
-    val strengths = obj.strList("strengths")
-    val gaps = obj.strList("gaps")
-    val skim = obj.strList("hiringSkim", "skim")
-        .ifEmpty { listOfNotNull(obj.strOf("hiringSkim", "skim", "summary")) }
-    val suggestions = parseSuggestions(obj)
+    if (overall == null && dimensions.isNotEmpty()) {
+        val scored = dimensions.mapNotNull { it.score }
+        if (scored.isNotEmpty()) overall = scored.average().toInt()
+    }
+    if (ats == null) {
+        ats = dimensions.find { it.id == "atsParse" || it.label.contains("Parser", ignoreCase = true) }?.score
+            ?: heuristic?.intOf("atsReadability", "ats")
+    }
+    if (keyword == null) {
+        keyword = dimensions.find { it.id == "jdCoverage" || it.label.contains("coverage", ignoreCase = true) }?.score
+            ?: heuristic?.intOf("keywordMatchPct", "keywordMatch")
+    }
+    val missing = root.strList("missingKeywords", "missing_keywords", "keywordsMissing")
+    val matched = root.strList("matchedKeywords", "matched_keywords", "presentKeywords")
+    val strengths = root.strList("strengths")
+    val gaps = root.strList("gaps")
+    val skim = root.strList("hiringSkim", "skim")
+        .ifEmpty { listOfNotNull(root.strOf("hiringSkim", "skim", "summary")) }
+    val suggestions = parseSuggestions(root)
     return ScoreView(
         overall = overall,
         ats = ats,
@@ -141,7 +154,24 @@ fun parseScoreView(el: JsonElement?): ScoreView {
         matched = matched,
         suggestions = suggestions,
         skim = skim,
-        dimensions = parseDimensions(obj),
-        sections = parseSections(obj),
+        dimensions = dimensions,
+        sections = parseSections(root),
     )
 }
+
+/** Accept direct analysis JSON or wrapped `{ "analysis": { ... } }` from recovery/session. */
+private fun unwrapAnalysis(el: JsonElement?): JsonObject? {
+    val obj = el as? JsonObject ?: return null
+    val nested = obj["analysis"]
+    return when (nested) {
+        is JsonObject -> nested
+        is JsonPrimitive -> nested.contentOrNull?.let {
+            runCatching { appJson.parseToJsonElement(it).jsonObject }.getOrNull()
+        } ?: obj
+        else -> obj
+    }
+}
+
+fun ScoreView.hasAnyScore(): Boolean =
+    overall != null || ats != null || keyword != null ||
+        dimensions.any { it.score != null } || sections.any { it.score != null }

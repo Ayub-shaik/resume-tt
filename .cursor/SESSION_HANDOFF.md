@@ -1,28 +1,28 @@
 # Cursor session handoff
 
 ## Updated
-2026-08-07T17:40:00Z
+2026-08-17T19:22:00+05:30
 
 ## Goal
-Unified resume-brain deployed: scoring, v1–v4 tailor, job-search automation, resume-tt speedometer UI.
+RocketCV branding, TomorrowTools footers, Profile merge; push to origin.
 
 ## Status
-done-for-now
+in progress
 
 ## Done
-- Merged `feat/resume-brain-unification` → automation `main` (20ce9a5), resume-tt `master` (8a03d1e); pushed both
-- Services restarted: `resume-tt-web`, `job-search-ayub-daemon` (active)
-- Sync script: `automation/scripts/sync-resume-brain-to-resume-tt.sh`
-- Benchmark: `resume-matcher-style` (55/25/20 weights); optional `RESUME_MATCHER_BENCHMARK_URL`
-- Snapshots preserved: `snapshot/pre-resume-brain-20260807`
+- Web identity is RocketCV + Play-style folded-document mark (`public/rocketcv-mark.svg`).
+- TomorrowTools is in ProductFooter (web) / bottom chrome (Android).
+- Profile is one destination: account, allowlist, Sign out.
+- Public host remains https://resume.tomorrowtools.dev
 
 ## Next steps
-1. Live QA: resume.tomorrowtools.dev → Improve tab → speedometers + v1 improve
-2. Telegram: `/job` on 75+ match → v3 PDF; `/improve_the_resume_more` for v2–v4
-3. After brain edits: run `automation/scripts/sync-resume-brain-to-resume-tt.sh`
-4. Optional: run Resume-Matcher Docker and set `RESUME_MATCHER_BENCHMARK_URL=http://127.0.0.1:3000`
+1. Push this repo to origin/master.
+2. Rename Google OAuth consent screen away from AesthetIQ (Console).
+3. Ship a new Play APK when ready.
 
 ## Gotchas
-- `npm install --include=dev` required when `NODE_ENV=production`
-- resume-tt uses in-repo `packages/resume-brain` copy (not cross-repo symlink)
-- toolfactory = templates/posters only
+- Do not commit `.env.*` or the shared allowlist sqlite.
+- `rocketcv.tomorrowtools.dev` is not live DNS.
+
+## Open decisions
+- Whether to add Cloudflare DNS for rocketcv.tomorrowtools.dev.

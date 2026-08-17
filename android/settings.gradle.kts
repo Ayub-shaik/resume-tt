@@ -12,5 +12,5 @@ dependencyResolutionManagement {
         mavenCentral()
     }
 }
-rootProject.name = "ResumeATS"
+rootProject.name = "RocketCV"
 include(":app")

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AppNav } from "@/components/AppNav";
+import { ProductFooter } from "@/components/ProductFooter";
 import { DriveBrowserModal } from "@/components/DriveBrowserModal";
 import { AnalyzeLoadingPanel } from "@/components/AnalyzeLoadingPanel";
 import { AnalyzeWorkbench, suggestionKey } from "@/components/AnalyzeWorkbench";
@@ -1432,6 +1433,9 @@ export function AtsStudio() {
             )}
           </ul>
         </div>
+        <div className="mt-auto border-t border-[var(--line)] px-3 py-3">
+          <ProductFooter product="RocketCV" />
+        </div>
       </aside>
 
       <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-x-hidden">
@@ -1444,10 +1448,10 @@ export function AtsStudio() {
             >
               Menu
             </button>
-            <img src="/resume-mark.svg" alt="" className="hidden h-8 w-8 sm:block" />
+            <img src="/rocketcv-mark.svg" alt="" className="hidden h-8 w-8 sm:block" />
             <div className="min-w-0">
               <p className="studio-topbar__brand truncate text-base font-semibold text-[var(--ink)]">
-                ATS Resume Builder
+                RocketCV
               </p>
               <p className="truncate text-xs text-[var(--muted)]">
                 Analyze · improve · layouts

@@ -1,4 +1,4 @@
-# Resume ATS Android
+# RocketCV Android
 
 Kotlin + Jetpack Compose client for https://resume.tomorrowtools.dev
 

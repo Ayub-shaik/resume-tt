@@ -25,6 +25,7 @@ import dev.tomorrowtools.resume.util.assessResumeInput
 import dev.tomorrowtools.resume.util.extractErrorDetail
 import dev.tomorrowtools.resume.util.isDestructiveSuggestion
 import dev.tomorrowtools.resume.util.parseExtensionAllowed
+import dev.tomorrowtools.resume.util.hasAnyScore
 import dev.tomorrowtools.resume.util.parseScoreView
 import dev.tomorrowtools.resume.util.isSilentRecoverable
 import dev.tomorrowtools.resume.util.toUserMessage
@@ -236,6 +237,9 @@ class ResumeStudioVm(app: Application) : AndroidViewModel(app) {
             }
         }
         scores = parseScoreView(analysisRaw)
+        if (originalText != null && originalScores == null && scores.hasAnyScore()) {
+            originalScores = scores
+        }
         appliedSuggestionKeys = emptySet()
         selectedTemplate = s.templateId ?: "classic"
         tab = when (s.step) {
@@ -513,7 +517,10 @@ class ResumeStudioVm(app: Application) : AndroidViewModel(app) {
             AskRequest(askQuestion, resumeText, jdText),
             overrideCurrent = if (overrideCurrent) "true" else null,
         )
-        askAnswer = res.answer ?: res.text ?: res.toString()
+        val reply = res.reply?.trim().orEmpty()
+            .ifBlank { res.answer?.trim().orEmpty() }
+            .ifBlank { res.text?.trim().orEmpty() }
+        askAnswer = reply.ifBlank { "No reply from RocketAI. Try again or re-analyse first." }
     }
 
     fun tailor(overrideCurrent: Boolean = false): Unit = launchBusy(

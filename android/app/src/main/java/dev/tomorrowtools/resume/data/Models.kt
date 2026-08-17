@@ -16,7 +16,12 @@ import kotlinx.serialization.json.JsonObject
 @Serializable data class JdRequest(val url: String)
 @Serializable data class JdPayload(val text: String? = null, val title: String? = null, val sourceUrl: String? = null)
 @Serializable data class AskRequest(val question: String, val resumeText: String? = null, val jdText: String? = null, val context: String? = null)
-@Serializable data class AskPayload(val answer: String? = null, val text: String? = null)
+@Serializable data class AskPayload(
+    /** Web `/api/ats/ask` returns `reply`. */
+    val reply: String? = null,
+    val answer: String? = null,
+    val text: String? = null,
+)
 @Serializable data class BrandRequest(val resumeText: String, val linkedinText: String? = null, val targetRole: String? = null)
 @Serializable data class BrandChecklistItem(val id: String, val label: String, val ok: Boolean, val tip: String)
 @Serializable data class BrandKeywords(val present: List<String> = emptyList(), val missing: List<String> = emptyList())

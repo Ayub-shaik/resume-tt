@@ -14,12 +14,12 @@ const body = Manrope({
 });
 
 export const metadata: Metadata = {
-  title: "Resume Builder — TomorrowTools",
+  title: "RocketCV — ATS Resume Builder",
   description:
-    "Most resumes never reach a human. Match yours to the JD you’re targeting — ATS analyse, tailor, and export. Pair with TomorrowTools Job Search.",
+    "Most resumes never reach a human. Match yours to the JD you’re targeting — ATS analyse, tailor, and export.",
   icons: {
-    icon: "/resume-mark.svg",
-    apple: "/resume-mark.svg",
+    icon: "/rocketcv-mark.svg",
+    apple: "/rocketcv-mark.svg",
   },
 };
 

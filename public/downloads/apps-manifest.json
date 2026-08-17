@@ -1,32 +1,32 @@
 {
-  "updatedAt": "2026-08-12T11:59:34Z",
+  "updatedAt": "2026-08-14T07:58:00Z",
   "policy": "Debug APKs are for developer sideload only. Prefer release APKs/AABs for product installs. Manager requires sha256.",
   "apps": [
     {
       "id": "manager",
-      "name": "TomorrowTools Manager",
+      "name": "TT Manager",
       "packageName": "dev.tomorrowtools.manager",
-      "versionCode": 5,
-      "versionName": "1.0.4-rocketcv",
+      "versionCode": 6,
+      "versionName": "1.0.5-tt-manager",
       "apkUrl": "https://resume.tomorrowtools.dev/downloads/manager-debug.apk",
-      "sha256": "f0970c6f3c930868f461c63a3a36c83cc871207ebfc6cd7155bace273397e95f",
+      "sha256": "dd65b54ef40048f055f9bc88b777719f1800a85e859a89d14ad9fc1bfc8b2505",
       "description": "Install and update TomorrowTools Android apps from one place.",
-      "sizeBytes": 16427445,
+      "sizeBytes": 16427441,
       "minSdk": 26,
-      "changelog": "RocketCV app name and branded launcher identity."
+      "changelog": "Launcher and in-app name: TT Manager (was RocketCV)."
     },
     {
       "id": "resume",
-      "name": "Resume ATS",
+      "name": "RocketCV",
       "packageName": "dev.tomorrowtools.resume",
-      "versionCode": 18,
-      "versionName": "1.0.14-native-parity",
+      "versionCode": 20,
+      "versionName": "1.0.16-ask-score-fix",
       "apkUrl": "https://resume.tomorrowtools.dev/downloads/resume-release.apk",
-      "sha256": "086d39281a6029487ff5fcff2a11c38dde788444f9c95fbfb8c74e410fc925c8",
+      "sha256": "4667c3fee60522c7be6578f8f15f58dc8717f0aa0f39d0217201b39e80f97179",
       "description": "Resume analysis, job description matching, and ATS-focused editing.",
       "sizeBytes": 12763642,
       "minSdk": 26,
-      "changelog": "Native parity: ATS-only score row without JD, ATS/JD/Overall rows with JD, RocketAI recommendations, structured section preview, and web handoff for full exports."
+      "changelog": "Fix RocketAI Ask reply parsing; harden score gauge parsing and session restore."
     },
     {
       "id": "mpi",
