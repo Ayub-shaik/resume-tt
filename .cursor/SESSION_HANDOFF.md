@@ -7,18 +7,18 @@
 RocketCV branding, TomorrowTools footers, Profile merge; push to origin.
 
 ## Status
-in progress
+done-for-now
 
 ## Done
 - Web identity is RocketCV + Play-style folded-document mark (`public/rocketcv-mark.svg`).
 - TomorrowTools is in ProductFooter (web) / bottom chrome (Android).
 - Profile is one destination: account, allowlist, Sign out.
 - Public host remains https://resume.tomorrowtools.dev
+- Pushed `4e4efe5` to origin/master.
 
 ## Next steps
-1. Push this repo to origin/master.
-2. Rename Google OAuth consent screen away from AesthetIQ (Console).
-3. Ship a new Play APK when ready.
+1. Rename Google OAuth consent screen away from AesthetIQ (Console).
+2. Ship a new Play APK when ready.
 
 ## Gotchas
 - Do not commit `.env.*` or the shared allowlist sqlite.
