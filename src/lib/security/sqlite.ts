@@ -52,9 +52,12 @@ export function isPlaintextSqliteFile(filePath: string): boolean {
  * Open (or create) a database encrypted with SQLite3MultipleCiphers.
  * Plaintext files are migrated in-place via rekey on first open.
  */
-export function openEncryptedDatabase(filePath: string): SqliteDatabase {
+export function openEncryptedDatabase(
+  filePath: string,
+  options?: { key?: Buffer },
+): SqliteDatabase {
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
-  const key = resolveDataAtRestKey();
+  const key = options?.key ?? resolveDataAtRestKey();
   const plaintext = isPlaintextSqliteFile(filePath);
   const db = new Database(filePath);
 
@@ -86,5 +89,101 @@ export function openEncryptedDatabase(filePath: string): SqliteDatabase {
   }
 
   db.pragma("journal_mode = WAL");
+  db.pragma("busy_timeout = 5000");
   return db;
+}
+
+/** Plain SQLite (no SQLCipher). Used for the shared allowlist so Python can open it. */
+export function openPlainDatabase(filePath: string): SqliteDatabase {
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  const db = new Database(filePath);
+  db.pragma("journal_mode = WAL");
+  db.pragma("busy_timeout = 5000");
+  return db;
+}
+
+/**
+ * If `filePath` is still SQLCipher-encrypted, dump `allowlist` rows into a
+ * new plaintext file (legacy `.enc.bak` kept beside it).
+ */
+export function decryptAllowlistToPlaintext(
+  filePath: string,
+  key: Buffer,
+): void {
+  if (!fs.existsSync(filePath) || fs.statSync(filePath).size < 16) return;
+  if (isPlaintextSqliteFile(filePath)) return;
+
+  const enc = new Database(filePath);
+  let rows: Array<{ email: string; added_by: string | null; created_at: string }> =
+    [];
+  try {
+    enc.key(key);
+    enc.prepare("SELECT 1").get();
+    try {
+      enc.pragma("wal_checkpoint(TRUNCATE)");
+    } catch {
+      // ignore
+    }
+    try {
+      rows = enc
+        .prepare("SELECT email, added_by, created_at FROM allowlist")
+        .all() as Array<{
+        email: string;
+        added_by: string | null;
+        created_at: string;
+      }>;
+    } catch {
+      rows = [];
+    }
+  } catch (err) {
+    try {
+      enc.close();
+    } catch {
+      // ignore
+    }
+    const msg = err instanceof Error ? err.message : String(err);
+    throw new Error(
+      `Failed to decrypt shared allowlist at ${filePath}. Check AUTH_ALLOWLIST_KEY. (${msg})`,
+    );
+  }
+  enc.close();
+
+  const bak = `${filePath}.enc.bak`;
+  const tmp = `${filePath}.plain.tmp`;
+  for (const extra of ["", "-wal", "-shm"]) {
+    const src = `${filePath}${extra}`;
+    if (fs.existsSync(src)) {
+      fs.renameSync(src, `${bak}${extra}`);
+    }
+  }
+  if (fs.existsSync(tmp)) fs.unlinkSync(tmp);
+
+  const plain = new Database(tmp);
+  try {
+    plain.exec(`
+      CREATE TABLE IF NOT EXISTS allowlist (
+        email TEXT PRIMARY KEY,
+        added_by TEXT,
+        created_at TEXT NOT NULL
+      );
+    `);
+    const ins = plain.prepare(
+      `INSERT INTO allowlist (email, added_by, created_at) VALUES (?, ?, ?)
+       ON CONFLICT(email) DO NOTHING`,
+    );
+    const tx = plain.transaction(() => {
+      for (const r of rows) {
+        const email = String(r.email || "")
+          .trim()
+          .toLowerCase();
+        if (!email.includes("@")) continue;
+        ins.run(email, r.added_by || "migrate", r.created_at);
+      }
+    });
+    tx();
+    plain.pragma("journal_mode = DELETE");
+  } finally {
+    plain.close();
+  }
+  fs.renameSync(tmp, filePath);
 }

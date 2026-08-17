@@ -343,6 +343,56 @@ body {
   max-width: 420px;
   animation: fade-up 0.65s ease-out 0.18s both;
 }
+.landing__auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.landing__auth-divider::before,
+.landing__auth-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+.landing__btn-google {
+  display: inline-flex;
+  width: fit-content;
+  max-width: 100%;
+  box-sizing: border-box;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 12px 18px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, transform 0.15s ease;
+}
+.landing__btn-google:hover {
+  border-color: color-mix(in srgb, var(--ink) 28%, var(--line));
+  background: #fff;
+  transform: translateY(-1px);
+}
+.landing__btn-google svg {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+}
+.landing__btn-google--compact {
+  padding: 10px 16px;
+  font-size: 13px;
+}
 .landing__email {
   display: grid;
   gap: 8px;
@@ -404,7 +454,8 @@ body {
   padding: 48px 40px 56px;
   display: flex;
   flex-direction: column;
-  justify-content: flex-end;
+  justify-content: space-between;
+  gap: 32px;
   min-height: calc(100vh - 52px);
   position: relative;
   overflow: hidden;
@@ -468,6 +519,24 @@ body {
 .landing__atmosphere em {
   font-style: italic;
   color: #5eead4;
+}
+.landing__powered {
+  position: relative;
+  z-index: 1;
+  margin: 0;
+  max-width: 38ch;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: rgba(243, 247, 245, 0.62);
+}
+.landing__powered a {
+  color: #5eead4;
+  font-weight: 650;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.landing__powered a:hover {
+  color: #99f6e4;
 }
 @keyframes landing-drift {
   from {

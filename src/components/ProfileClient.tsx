@@ -530,6 +530,11 @@ export function ProfileClient() {
           className="mt-6 scroll-mt-8 glass-panel rounded-[var(--radius)] p-5"
         >
           <h2 className="mb-3 font-[family-name:var(--font-display)] text-xl font-semibold tracking-tight">Allowlist (admin)</h2>
+          <p className="mb-3 text-sm text-[var(--muted)]">
+            Shared with My Personal Interviewer and Commander. An email added
+            here can sign in on resume.tomorrowtools.dev, MPI, and
+            commander.tomorrowtools.dev.
+          </p>
           <div className="mb-3 flex flex-wrap gap-2">
             <input
               className="min-w-[220px] flex-1 rounded-lg border border-[var(--line)] px-3 py-2 text-sm"

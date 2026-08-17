@@ -4,6 +4,22 @@ import path from "path";
 import { randomUUID } from "crypto";
 import { hashPassword, verifyPassword } from "@/lib/auth/password";
 import { openEncryptedDatabase } from "@/lib/security/sqlite";
+import {
+  addAllowlistEmail,
+  importAllowlistRows,
+  isEmailAllowed,
+  listAllowlist,
+  removeAllowlistEmail,
+  type AllowlistRow,
+} from "@/lib/auth/allowlist";
+
+export type { AllowlistRow };
+export {
+  addAllowlistEmail,
+  isEmailAllowed,
+  listAllowlist,
+  removeAllowlistEmail,
+};
 
 const DATA_DIR = path.join(process.cwd(), "data");
 const DB_PATH = path.join(DATA_DIR, "interviewprep.sqlite");
@@ -14,12 +30,6 @@ export type AppUser = {
   name: string;
   image: string | null;
   role: "admin" | "user";
-  createdAt: string;
-};
-
-export type AllowlistRow = {
-  email: string;
-  addedBy: string | null;
   createdAt: string;
 };
 
@@ -56,15 +66,26 @@ function getDb() {
 
 export function ensureAllowlistSeeded(adminEmail: string) {
   const email = adminEmail.toLowerCase();
-  const row = getDb()
-    .prepare("SELECT email FROM allowlist WHERE email = ?")
-    .get(email);
-  if (!row) {
-    getDb()
-      .prepare(
-        "INSERT INTO allowlist (email, added_by, created_at) VALUES (?, ?, ?)",
-      )
-      .run(email, "system", new Date().toISOString());
+  try {
+    const localRows = getDb()
+      .prepare("SELECT email, added_by, created_at FROM allowlist")
+      .all() as Array<{
+      email: string;
+      added_by?: string | null;
+      created_at?: string;
+    }>;
+    importAllowlistRows(
+      localRows.map((r) => ({
+        email: r.email,
+        addedBy: r.added_by ?? null,
+        createdAt: r.created_at,
+      })),
+    );
+  } catch {
+    /* local table may be missing on a fresh DB */
+  }
+  if (!isEmailAllowed(email)) {
+    addAllowlistEmail(email, "system");
   }
   const user = getUserByEmail(email);
   if (!user) {
@@ -107,44 +128,6 @@ export function verifyUserPassword(email: string, password: string): boolean {
   const stored = row?.password_hash;
   if (!stored) return false;
   return verifyPassword(password, stored);
-}
-
-export function isEmailAllowed(email: string): boolean {
-  const row = getDb()
-    .prepare("SELECT email FROM allowlist WHERE email = ?")
-    .get(email.toLowerCase());
-  return Boolean(row);
-}
-
-export function listAllowlist(): AllowlistRow[] {
-  return (
-    getDb()
-      .prepare("SELECT * FROM allowlist ORDER BY created_at ASC")
-      .all() as Array<Record<string, unknown>>
-  ).map((r) => ({
-    email: String(r.email),
-    addedBy: r.added_by ? String(r.added_by) : null,
-    createdAt: String(r.created_at),
-  }));
-}
-
-export function addAllowlistEmail(email: string, addedBy: string) {
-  const normalized = email.trim().toLowerCase();
-  if (!normalized.includes("@")) throw new Error("Invalid email");
-  getDb()
-    .prepare(
-      `INSERT INTO allowlist (email, added_by, created_at) VALUES (?, ?, ?)
-       ON CONFLICT(email) DO NOTHING`,
-    )
-    .run(normalized, addedBy, new Date().toISOString());
-  return listAllowlist();
-}
-
-export function removeAllowlistEmail(email: string) {
-  getDb()
-    .prepare("DELETE FROM allowlist WHERE email = ?")
-    .run(email.toLowerCase());
-  return listAllowlist();
 }
 
 export function getUserByEmail(email: string): AppUser | null {
@@ -214,10 +197,8 @@ export function upsertUserFromGoogle(input: {
 }
 
 export function deleteUserById(userId: string, email: string) {
-  const database = getDb();
-  const tx = database.transaction(() => {
-    database.prepare("DELETE FROM users WHERE id = ?").run(userId);
-    database.prepare("DELETE FROM allowlist WHERE email = ?").run(email.toLowerCase());
-  });
-  tx();
+  getDb()
+    .prepare("DELETE FROM users WHERE id = ?")
+    .run(userId);
+  removeAllowlistEmail(email);
 }
