@@ -1534,8 +1534,26 @@ export function AtsStudio() {
         </header>
 
         {error && (
-          <p className="border-b border-[var(--line)] bg-white px-4 py-2 text-sm text-[var(--danger)]">
+          <p className="border-b border-[var(--line)] bg-white px-4 py-2 text-sm text-[var(--danger)]" role="alert">
             {error}
+          </p>
+        )}
+        {busy && (
+          <p className="border-b border-[var(--line)] bg-[var(--accent-soft)] px-4 py-2 text-xs font-semibold text-[var(--ink)]" role="status">
+            {busy === "analyze"
+              ? "Analysing resume…"
+              : busy === "improve"
+                ? "Improving draft…"
+                : busy === "structure"
+                  ? "Structuring resume for templates…"
+                  : busy === "preview"
+                    ? "Rendering PDF preview…"
+                    : busy === "download"
+                      ? "Preparing download…"
+                      : busy === "save"
+                        ? "Saving…"
+                        : `Working: ${busy}…`}
+            {" "}You can keep reading; navigation may be limited until this finishes.
           </p>
         )}
         {pendingOverride && !busy && (

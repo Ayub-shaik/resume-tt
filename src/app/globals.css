@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* Shared TomorrowTools career-surface tokens (MPI + RocketCV family).
+ * Keep --ink/--accent/--panel aligned across products; diverge only on layout. */
+
 :root {
   --bg: #f3f0e8;
   --paper: #f3f0e8;
