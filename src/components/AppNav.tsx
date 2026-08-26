@@ -48,7 +48,7 @@ export function AppNav({
           onClick={onMobileClose}
         >
           <span className="app-nav__btn-label">Studio</span>
-          <span className="app-nav__btn-hint">Prepare · analyze · builder</span>
+          <span className="app-nav__btn-hint">Prepare · analyse · builder · menu</span>
         </Link>
         <Link
           href="/profile"

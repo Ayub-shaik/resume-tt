@@ -179,6 +179,7 @@ export function AtsStudio() {
   );
   const [jdPromptDismissed, setJdPromptDismissed] = useState(false);
   const [showInlineJd, setShowInlineJd] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
   const [analyzeVersions, setAnalyzeVersions] = useState<AnalyzeVersionSnap[]>(
     [],
   );
@@ -604,14 +605,18 @@ export function AtsStudio() {
 
   async function requestTabChange(next: Tab) {
     if (next === tab) return;
-    const order: Tab[] = ["prepare", "analyze", "brand", "builder"];
-    const goingBack = order.indexOf(next) < order.indexOf(tab);
+    // Brand is Menu-only; keep it out of the primary Prepare → Analyse → Builder order.
+    const order: Tab[] = ["prepare", "analyze", "builder"];
+    const goingBack =
+      order.includes(next) &&
+      order.includes(tab) &&
+      order.indexOf(next) < order.indexOf(tab);
     if (busy && goingBack) {
       const leave = window.confirm(
         "Navigating back will lose the progress still running. Go back?",
       );
       if (!leave) return;
-    } else if (dirty) {
+    } else if (dirty && next !== "brand") {
       // Persist the flow automatically so returning to an earlier step restores
       // the same resume, JD, scores, recommendations, and selected template.
       await saveSession({ silent: true, nextStep: next });
@@ -624,7 +629,8 @@ export function AtsStudio() {
     }
     setTab(next);
     if (next === "builder") {
-      void ensureJsonResume();
+      // Always restructure from the working (improved) draft so templates are not empty/stale.
+      void ensureJsonResume({ force: true });
     }
   }
 
@@ -678,6 +684,8 @@ export function AtsStudio() {
 
   async function ensureStructured(): Promise<JsonResume> {
     if (jsonResume) return jsonResume;
+    const text = (improvedText || resumeText).trim();
+    if (!text) throw new Error("No resume text to structure");
     const { res, data } = await fetchJson<{
       error?: string;
       jsonResume?: JsonResume;
@@ -685,11 +693,14 @@ export function AtsStudio() {
     }>("/api/ats/structure", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "structure", resumeText }),
+      body: JSON.stringify({ action: "structure", resumeText: text }),
     });
     if (!res.ok) throw new Error(data.error || "Structure failed");
     setJsonResume(data.jsonResume || null);
-    if (data.markdown) setResumeText(data.markdown);
+    if (data.markdown) {
+      setResumeText(data.markdown);
+      setImprovedText(data.markdown);
+    }
     markDirty();
     return data.jsonResume as JsonResume;
   }
@@ -899,19 +910,21 @@ export function AtsStudio() {
       }
 
       if (nextAnalysis) {
-        const label = `v${Math.min(4, analyzeVersions.length + 1)}`;
-        const snap: AnalyzeVersionSnap = {
-          id: `${Date.now()}-${label}`,
-          label,
-          resumeText: working,
-          jdText: usableJd,
-          analysis: nextAnalysis,
-          masterScores: baselineScores,
-          tailorRows: nextRows,
-          createdAt: new Date().toISOString(),
-        };
-        setAnalyzeVersions((prev) => [...prev, snap].slice(-4));
-        setActiveAnalyzeVersion(snap.id);
+        const snapId = `analyze-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        setAnalyzeVersions((prev) => {
+          const snap: AnalyzeVersionSnap = {
+            id: snapId,
+            label: `v${prev.length + 1}`,
+            resumeText: working,
+            jdText: usableJd,
+            analysis: nextAnalysis,
+            masterScores: baselineScores,
+            tailorRows: nextRows,
+            createdAt: new Date().toISOString(),
+          };
+          return [...prev, snap].slice(-8);
+        });
+        setActiveAnalyzeVersion(snapId);
       }
       markDirty();
       setPendingOverride(null);
@@ -964,6 +977,8 @@ export function AtsStudio() {
     freezeOriginalIfNeeded();
     setResumeText(next);
     setImprovedText(next);
+    // Invalidate structured resume so Builder / PDF use the improved draft, not a stale structure.
+    setJsonResume(null);
     markDirty();
   }
 
@@ -1202,6 +1217,14 @@ export function AtsStudio() {
                 ...out[key],
                 afterScores: afterLocal,
                 improveCount: Math.max(out[key].improveCount, 1),
+                history: [
+                  ...out[key].history,
+                  {
+                    label: `v${Math.max(out[key].improveCount, 1)}`,
+                    scores: afterLocal,
+                    resumeText: next,
+                  },
+                ].slice(-6),
               };
             }
           }
@@ -1241,8 +1264,9 @@ export function AtsStudio() {
     const controller = new AbortController();
     const timeout = window.setTimeout(() => controller.abort(), 45_000);
     try {
+      // Prefer force-structure when missing so Analyze-step downloads use improved draft.
       let jr = jsonResume;
-      if (!jr) jr = await ensureJsonResume();
+      if (!jr) jr = await ensureJsonResume({ force: true });
       if (!jr) {
         setError("Improve or load a resume first");
         return;
@@ -1342,12 +1366,12 @@ export function AtsStudio() {
     }
   }
 
-  const tabs: [Tab, string][] = [
+  const primaryTabs: [Tab, string][] = [
     ["prepare", "Prepare"],
     ["analyze", "Analyse & improve"],
-    ["brand", "Career Brand"],
     ["builder", "Builder"],
   ];
+  // moreOpen state is declared with other hooks above
 
   return (
     // Desktop: fixed viewport with pane scroll. Mobile: allow page scroll
@@ -1427,8 +1451,8 @@ export function AtsStudio() {
             ))}
             {!sessions.length && (
               <li className="px-2 text-xs text-[var(--muted)]">
-                Save a flow to keep Prepare → Analyse → Career Brand → Builder
-                here.
+                Save a flow to keep Prepare → Analyse → Builder here.
+                Career Brand lives under Menu.
               </li>
             )}
           </ul>
@@ -1458,8 +1482,8 @@ export function AtsStudio() {
               </p>
             </div>
           </div>
-          <div className="flex flex-wrap gap-1 rounded-xl border border-[var(--line)] bg-white/80 p-1 backdrop-blur">
-            {tabs.map(([id, label]) => (
+          <div className="relative flex flex-wrap gap-1 rounded-xl border border-[var(--line)] bg-white/80 p-1 backdrop-blur">
+            {primaryTabs.map(([id, label]) => (
               <button
                 key={id}
                 type="button"
@@ -1473,6 +1497,39 @@ export function AtsStudio() {
                 {label}
               </button>
             ))}
+            <div className="relative">
+              <button
+                type="button"
+                className={`rounded-lg px-3 py-1.5 text-sm font-semibold ${
+                  tab === "brand"
+                    ? "bg-[var(--accent)] text-[var(--accent-ink)]"
+                    : "text-[var(--muted)] hover:text-[var(--ink)]"
+                }`}
+                aria-expanded={moreOpen}
+                aria-haspopup="menu"
+                onClick={() => setMoreOpen((v) => !v)}
+              >
+                Menu
+              </button>
+              {moreOpen ? (
+                <div
+                  role="menu"
+                  className="absolute right-0 z-30 mt-1 min-w-[11rem] rounded-xl border border-[var(--line)] bg-white p-1 shadow-lg"
+                >
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="w-full rounded-lg px-3 py-2 text-left text-sm font-semibold hover:bg-black/[0.04]"
+                    onClick={() => {
+                      setMoreOpen(false);
+                      void requestTabChange("brand");
+                    }}
+                  >
+                    Career Brand
+                  </button>
+                </div>
+              ) : null}
+            </div>
           </div>
         </header>
 
@@ -1744,13 +1801,29 @@ export function AtsStudio() {
                       ))}
                       <button
                         type="button"
+                        className="rounded-xl border border-[var(--line)] bg-white px-2.5 py-2 text-sm font-semibold disabled:opacity-40"
+                        disabled={Boolean(busy) || !resumeText.trim()}
+                        title="Re-analyse the current working draft and add a new version"
+                        aria-label="Re-analyse and add version"
+                        onClick={() =>
+                          void runAnalyze({
+                            silentTab: true,
+                            preserveTailor: true,
+                            overrideCurrent: true,
+                          })
+                        }
+                      >
+                        ↻
+                      </button>
+                      <button
+                        type="button"
                         className="rounded-xl border border-[var(--danger)]/40 bg-white px-2.5 py-2 text-sm text-[var(--danger)] disabled:opacity-40"
                         disabled={Boolean(busy)}
                         title="Restart — clear analyse progress"
                         aria-label="Restart analysis"
                         onClick={() => restartWithDoubleConfirm()}
                       >
-                        ↻
+                        Restart
                       </button>
                     </div>
                     {showJdPrompt ? (
@@ -1959,6 +2032,23 @@ export function AtsStudio() {
                     >
                       Continue to Builder
                     </button>
+                    <button
+                      type="button"
+                      className="rounded-xl border border-[var(--line)] bg-white px-3 py-2 text-sm font-semibold disabled:opacity-40"
+                      disabled={Boolean(busy) || !(improvedText || resumeText).trim()}
+                      onClick={() => void renderSelectedPdf("download")}
+                      title="Download ATS-friendly PDF of the improved working draft"
+                    >
+                      {busy === "download" ? "Downloading…" : "Download improved PDF"}
+                    </button>
+                    <button
+                      type="button"
+                      className="rounded-xl border border-[var(--line)] bg-white px-3 py-2 text-sm font-semibold disabled:opacity-40"
+                      disabled={Boolean(busy) || !(improvedText || resumeText).trim()}
+                      onClick={() => void exportResumeFormat("docx")}
+                    >
+                      Download DOCX
+                    </button>
                   </div>
                 ) : null}
               </div>
@@ -1975,6 +2065,7 @@ export function AtsStudio() {
 
         {tab === "builder" && (
           <ResumeBuilder
+            key={`builder-${(improvedText || resumeText).length}-${selectedTemplate}`}
             jsonResume={jsonResume}
             onJsonResumeChange={(jr) => {
               setJsonResume(jr);

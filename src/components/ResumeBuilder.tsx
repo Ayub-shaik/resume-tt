@@ -12,6 +12,35 @@ import {
   type TemplateId,
 } from "@/lib/ats/templates";
 
+function thumbPreviewFromResume(jr: JsonResume | null) {
+  if (!jr) return null;
+  const basics = jr.basics || {};
+  const work0 = jr.work?.[0];
+  const edu0 = jr.education?.[0];
+  const skills = (jr.skills || [])
+    .flatMap((s) => [s.name, ...(s.keywords || [])].filter(Boolean))
+    .filter(Boolean)
+    .slice(0, 8)
+    .join(" · ");
+  return {
+    name: basics.name || undefined,
+    label: basics.label || undefined,
+    contact: [basics.email, basics.phone, basics.url].filter(Boolean).join(" · ") || undefined,
+    summary: basics.summary || undefined,
+    role: work0
+      ? [work0.position, work0.name].filter(Boolean).join(" — ")
+      : undefined,
+    dates: work0
+      ? [work0.startDate, work0.endDate || "Present"].filter(Boolean).join(" – ")
+      : undefined,
+    bullets: (work0?.highlights || []).slice(0, 3),
+    skills: skills || undefined,
+    edu: edu0
+      ? [edu0.studyType, edu0.area, edu0.institution].filter(Boolean).join(" ")
+      : undefined,
+  };
+}
+
 export function ResumeBuilder({
   jsonResume,
   onJsonResumeChange,
@@ -49,8 +78,9 @@ export function ResumeBuilder({
     if (!jsonResume && resumeText.trim()) {
       onStructureFromText();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- structure once on mount when needed
-  }, []);
+    // Parent passes a stable-enough callback; avoid depending on it to prevent restructure loops.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [jsonResume, resumeText]);
 
   const categories = [
     "All",
@@ -61,6 +91,7 @@ export function ResumeBuilder({
   const visible = TEMPLATE_META.filter(
     (t) => category === "All" || t.category === category,
   );
+  const thumbPreview = thumbPreviewFromResume(jsonResume);
 
   function openGallery(id: TemplateId) {
     setGalleryStart(id);
@@ -211,7 +242,7 @@ export function ResumeBuilder({
                 >
                   <div className="border-b border-[var(--line)] bg-[#ebe7dc] p-2">
                     <div className="mx-auto max-h-28 overflow-hidden rounded-md bg-white shadow-sm">
-                      <TemplateThumb id={t.id} accent={t.accent} />
+                      <TemplateThumb id={t.id} accent={t.accent} preview={thumbPreview} />
                     </div>
                   </div>
                   <div className="px-2 py-1.5">
@@ -281,6 +312,7 @@ export function ResumeBuilder({
       <TemplateGalleryModal
         open={galleryOpen}
         initialId={galleryStart}
+        preview={thumbPreview}
         onClose={() => setGalleryOpen(false)}
         onSelect={(id) => {
           onTemplateChange(id);

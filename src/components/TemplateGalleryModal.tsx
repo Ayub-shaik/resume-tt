@@ -7,6 +7,10 @@ import {
   type TemplateId,
 } from "@/lib/ats/templates";
 
+type ThumbPreview = NonNullable<
+  Parameters<typeof TemplateThumb>[0]["preview"]
+>;
+
 /**
  * Full-page swipeable template gallery.
  * Tap a gallery thumb → open this; swipe all templates; Select template at bottom.
@@ -16,11 +20,13 @@ export function TemplateGalleryModal({
   initialId,
   onClose,
   onSelect,
+  preview,
 }: {
   open: boolean;
   initialId: TemplateId;
   onClose: () => void;
   onSelect: (id: TemplateId) => void;
+  preview?: ThumbPreview | null;
 }) {
   const list = TEMPLATE_META;
   const startIndex = Math.max(
@@ -113,7 +119,7 @@ export function TemplateGalleryModal({
             ‹
           </button>
           <div className="template-gallery-modal__sheet">
-            <TemplateThumb id={current.id} accent={current.accent} fullPage />
+            <TemplateThumb id={current.id} accent={current.accent} fullPage preview={preview} />
           </div>
           <button
             type="button"
