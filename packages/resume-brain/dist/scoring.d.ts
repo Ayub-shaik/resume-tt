@@ -1,18 +1,28 @@
 import type { TripleScores } from "./types.js";
+/** False for empty / placeholder / gibberish JD — hide JD scoring. */
+export declare function isUsableJdText(raw: string): boolean;
+/** Keep only skill-like tokens for missing/matched chips. */
+export declare function isSkillSignalToken(raw: string): boolean;
 export declare function keywordHeuristic(resumeText: string, jdOrRoleText: string): {
     matched: string[];
     missing: string[];
     pct: number;
 };
-/** ATS format score — resume structure only. Independent of JD. */
 export declare function atsFormatHeuristic(resumeText: string): number;
 /** Unified triple score used by resume-tt and job-search. */
 export declare function scoreTriple(resumeText: string, jdText?: string, targetRole?: string): TripleScores;
+export declare function quickScores(resumeText: string, jdText: string): {
+    overall: number;
+    keywordMatchPct: number;
+    atsReadability: number;
+};
 export declare function scoreDelta(before: TripleScores, after: TripleScores): {
     ats: number;
     jd: number;
     overall: number;
 };
+/** Alias used by resume-tt UI */
+export declare const scoreDeltas: typeof scoreDelta;
 export declare function isSaturated(before: TripleScores, after: TripleScores, minGain?: number): boolean;
 export declare function selectModelTier(matchScore: number): "premium" | "standard";
 export declare function deliverVersionForMatch(matchScore: number): 1 | 3;

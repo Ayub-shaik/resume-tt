@@ -3,12 +3,13 @@ export type ModelTier = "premium" | "standard";
 export type TripleScores = {
     ats: number;
     jd: number;
-    jdAvailable?: boolean;
     overall: number;
     keywordMatchPct: number;
     atsReadability: number;
     matchedKeywords: string[];
     missingKeywords: string[];
+    /** Present when JD text was supplied (resume-tt compat) */
+    jdAvailable?: boolean;
 };
 export type FactLedger = {
     years: string[];
@@ -45,6 +46,8 @@ export type ImproveChainResult = {
     modelTier: ModelTier;
 };
 export type ImprovePassInput = {
+    /** Natural-language focus from chat, e.g. "make it Azure DevOps heavy". */
+    extraInstruction?: string;
     masterResume: string;
     currentResume: string;
     jdText?: string;
