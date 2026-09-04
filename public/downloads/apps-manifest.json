@@ -1,45 +1,152 @@
 {
-  "updatedAt": "2026-08-14T07:58:00Z",
-  "policy": "Debug APKs are for developer sideload only. Prefer release APKs/AABs for product installs. Manager requires sha256.",
+  "updatedAt": "2026-09-04T10:51:19Z",
+  "policy": "Debug APKs are for developer sideload via TT Manager. Prefer release when available. Manager requires sha256.",
+  "universeManifestUrl": "https://tomorrowtools.dev/api/universe/manifest.json",
   "apps": [
     {
       "id": "manager",
       "name": "TT Manager",
       "packageName": "dev.tomorrowtools.manager",
-      "versionCode": 6,
-      "versionName": "1.0.5-tt-manager",
+      "versionCode": 10,
+      "versionName": "1.0.9-universe-webview",
       "apkUrl": "https://resume.tomorrowtools.dev/downloads/manager-debug.apk",
-      "sha256": "dd65b54ef40048f055f9bc88b777719f1800a85e859a89d14ad9fc1bfc8b2505",
+      "sha256": "ceeb1ab8b3ab0f2cc2c286825d12e50490249b44d02b5912e263f698c08b1a96",
       "description": "Install and update TomorrowTools Android apps from one place.",
-      "sizeBytes": 16427441,
+      "sizeBytes": 16890201,
       "minSdk": 26,
-      "changelog": "Launcher and in-app name: TT Manager (was RocketCV)."
+      "changelog": "Universe product grid from tomorrowtools.dev; in-app WebView for sites; hybrid apps open natively when installed."
     },
     {
       "id": "resume",
       "name": "RocketCV",
       "packageName": "dev.tomorrowtools.resume",
-      "versionCode": 20,
-      "versionName": "1.0.16-ask-score-fix",
-      "apkUrl": "https://resume.tomorrowtools.dev/downloads/resume-release.apk",
-      "sha256": "4667c3fee60522c7be6578f8f15f58dc8717f0aa0f39d0217201b39e80f97179",
-      "description": "Resume analysis, job description matching, and ATS-focused editing.",
-      "sizeBytes": 12763642,
+      "versionCode": 22,
+      "versionName": "1.0.18-google-signin",
+      "apkUrl": "https://resume.tomorrowtools.dev/downloads/rocketcv-debug-signal.apk",
+      "sha256": "13721aed72bc4c815b278a53b61606bd7d719edbf0a3561b3ea0f92a7a3855ca",
+      "description": "Resume analysis, JD matching, and ATS-focused editing.",
+      "sizeBytes": 19072140,
       "minSdk": 26,
-      "changelog": "Fix RocketAI Ask reply parsing; harden score gauge parsing and session restore."
+      "changelog": "Fix Google sign-in: open mobile bridge (Auth.js CSRF-safe OAuth)."
     },
     {
       "id": "mpi",
       "name": "MPI Interview Prep",
       "packageName": "dev.tomorrowtools.mpi",
-      "versionCode": 18,
-      "versionName": "1.0.14-voice-answer-fix",
-      "apkUrl": "https://mpi.tomorrowtools.dev/downloads/mpi-release.apk",
-      "sha256": "34753d877bca1952a9cb6c5aefefb9bd7d87218e52f077303b7515ee4ed687ca",
+      "versionCode": 24,
+      "versionName": "1.0.20-sec-handoff",
+      "apkUrl": "https://mpi.tomorrowtools.dev/downloads/mpi-debug-signal.apk",
+      "sha256": "f5abd5973faac3b3b1a63660d9f0f2061504be47003e9261c5085bad43698e02",
       "description": "Mock interview practice with coaching turns and session history.",
-      "sizeBytes": 12730510,
+      "sizeBytes": 19071857,
       "minSdk": 26,
-      "changelog": "Stopped repeated voice nudges; restored en-US voice selection; answer payload accepts empty codeAnswer."
+      "changelog": "Security: OAuth bridge scheme whitelist + one-time handoff code; strict interview ownership; SSRF-safe JD fetch; 24h mobile tokens."
+    },
+    {
+      "id": "salahtime",
+      "name": "Salahtime",
+      "packageName": "dev.tomorrowtools.salahtime",
+      "versionCode": 326,
+      "versionName": "3.0.27",
+      "apkUrl": "https://salahtime.tomorrowtools.dev/downloads/salahtime.apk",
+      "sha256": "2f530ddd6a455c8a5327e92f1c3c3ade9727321e60dcd68a29f5d9ef57bef99d",
+      "description": "Mosque discovery, prayer times, and maps for your area.",
+      "sizeBytes": 14905066,
+      "minSdk": 26,
+      "changelog": "Salahtime prod v3.0.27: Friday Jum'ah labels (Adhaan/Khuthbah), schedule picker prefill, freshness after confirm."
+    },
+    {
+      "id": "salahtime-dev",
+      "name": "salahtime-dev",
+      "packageName": "dev.tomorrowtools.salahtime.dev",
+      "versionCode": 326,
+      "versionName": "3.0.27",
+      "apkUrl": "https://salahtime-dev.tomorrowtools.dev/downloads/salahtime-dev.apk",
+      "sha256": "a183d61285c5e1d3c78bcc4b876ac2178517543070d6a0fcabc6817c5188eace",
+      "description": "Dev channel for Salahtime (salahtime-dev.tomorrowtools.dev).",
+      "sizeBytes": 14588934,
+      "minSdk": 26,
+      "changelog": "Dev v3.0.27: Friday Jum'ah labels, picker prefill, and freshness parity with dev web."
+    }
+  ],
+  "sites": [
+    {
+      "id": "tomorrowtools",
+      "hostname": "tomorrowtools.dev",
+      "url": "https://tomorrowtools.dev/",
+      "summary": "TomorrowTools marketing home — product atlas, vision, and architecture."
+    },
+    {
+      "id": "telemetry",
+      "hostname": "telemetry.tomorrowtools.dev",
+      "url": "https://telemetry.tomorrowtools.dev/ops",
+      "summary": "Ops hub: services, automations, and health for the hosted stack."
+    },
+    {
+      "id": "commander",
+      "hostname": "commander.tomorrowtools.dev",
+      "url": "https://commander.tomorrowtools.dev/home",
+      "summary": "Commander agent harness — sessions, routing, and controllable Ask / Act work."
+    },
+    {
+      "id": "resume",
+      "hostname": "resume.tomorrowtools.dev",
+      "url": "https://resume.tomorrowtools.dev/",
+      "summary": "RocketCV web — resume matching, JD tailoring, and Android APK downloads."
+    },
+    {
+      "id": "mpi",
+      "hostname": "mpi.tomorrowtools.dev",
+      "url": "https://mpi.tomorrowtools.dev/",
+      "summary": "MPI interview prep — mock sessions, coaching, and practice history."
+    },
+    {
+      "id": "salahtime",
+      "hostname": "salahtime.tomorrowtools.dev",
+      "url": "https://salahtime.tomorrowtools.dev/",
+      "summary": "Salahtime prod — mosque maps, prayer times, and community schedules."
+    },
+    {
+      "id": "salahtime-dev",
+      "hostname": "salahtime-dev.tomorrowtools.dev",
+      "url": "https://salahtime-dev.tomorrowtools.dev/",
+      "summary": "Salahtime dev channel — latest features before production."
+    },
+    {
+      "id": "learn",
+      "hostname": "learn.tomorrowtools.dev",
+      "url": "https://learn.tomorrowtools.dev/",
+      "summary": "Homelab learning notes — K8s, deploy runbooks, and platform docs."
+    },
+    {
+      "id": "jobsearch",
+      "hostname": "jobsearchautomation.tomorrowtools.dev",
+      "url": "https://jobsearchautomation.tomorrowtools.dev/",
+      "summary": "Job search automation portal — Google sign-in, resume pipeline, bot setup."
+    },
+    {
+      "id": "upskill",
+      "hostname": "upskill.tomorrowtools.dev",
+      "url": "https://upskill.tomorrowtools.dev/",
+      "summary": "Curated upskilling notes and guides."
+    },
+    {
+      "id": "myautomations",
+      "hostname": "myautomations.tomorrowtools.dev",
+      "url": "https://myautomations.tomorrowtools.dev/",
+      "summary": "Personal automation dashboards and run history."
+    },
+    {
+      "id": "inktype",
+      "hostname": "inktype.tomorrowtools.dev",
+      "url": "https://inktype.tomorrowtools.dev/",
+      "summary": "Inktype writing app when the stack is running."
+    },
+    {
+      "id": "jenkins",
+      "hostname": "jenkins.tomorrowtools.dev",
+      "url": "https://jenkins.tomorrowtools.dev/",
+      "summary": "Jenkins CD UI and GitHub webhooks for homelab builds."
     }
   ]
 }
