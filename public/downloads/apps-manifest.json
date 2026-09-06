@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-09-04T10:51:19Z",
+  "updatedAt": "2026-09-06T02:45:35Z",
   "policy": "Debug APKs are for developer sideload via TT Manager. Prefer release when available. Manager requires sha256.",
   "universeManifestUrl": "https://tomorrowtools.dev/api/universe/manifest.json",
   "apps": [
@@ -46,27 +46,27 @@
       "id": "salahtime",
       "name": "Salahtime",
       "packageName": "dev.tomorrowtools.salahtime",
-      "versionCode": 326,
-      "versionName": "3.0.27",
+      "versionCode": 329,
+      "versionName": "3.0.30",
       "apkUrl": "https://salahtime.tomorrowtools.dev/downloads/salahtime.apk",
-      "sha256": "2f530ddd6a455c8a5327e92f1c3c3ade9727321e60dcd68a29f5d9ef57bef99d",
+      "sha256": "5143ba475325119474c9760f57d50635a691fd1dfd9ab369370722de482bb6d5",
       "description": "Mosque discovery, prayer times, and maps for your area.",
       "sizeBytes": 14905066,
       "minSdk": 26,
-      "changelog": "Salahtime prod v3.0.27: Friday Jum'ah labels (Adhaan/Khuthbah), schedule picker prefill, freshness after confirm."
+      "changelog": "Salahtime prod v3.0.30: latest native Android (Jum'ah/Asr display fixes, map stability, account UX)."
     },
     {
       "id": "salahtime-dev",
       "name": "salahtime-dev",
       "packageName": "dev.tomorrowtools.salahtime.dev",
-      "versionCode": 326,
-      "versionName": "3.0.27",
+      "versionCode": 329,
+      "versionName": "3.0.30",
       "apkUrl": "https://salahtime-dev.tomorrowtools.dev/downloads/salahtime-dev.apk",
-      "sha256": "a183d61285c5e1d3c78bcc4b876ac2178517543070d6a0fcabc6817c5188eace",
+      "sha256": "ce38439970715e32a8642e576ed5fb1c62ecf7474563ba291867d2de9f59fa62",
       "description": "Dev channel for Salahtime (salahtime-dev.tomorrowtools.dev).",
       "sizeBytes": 14588934,
       "minSdk": 26,
-      "changelog": "Dev v3.0.27: Friday Jum'ah labels, picker prefill, and freshness parity with dev web."
+      "changelog": "Dev v3.0.30: restore Card-style login screen; fix Google sign-in launch for dev package."
     }
   ],
   "sites": [
