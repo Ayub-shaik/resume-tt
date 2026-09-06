@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-09-06T17:46:17Z",
+  "updatedAt": "2026-09-06T19:01:03Z",
   "policy": "Debug APKs are for developer sideload via TT Manager. Prefer release when available. Manager requires sha256.",
   "universeManifestUrl": "https://tomorrowtools.dev/api/universe/manifest.json",
   "apps": [
@@ -46,8 +46,8 @@
       "id": "salahtime",
       "name": "Salahtime",
       "packageName": "dev.tomorrowtools.salahtime",
-      "versionCode": 331,
-      "versionName": "3.0.32",
+      "versionCode": 332,
+      "versionName": "3.0.33",
       "apkUrl": "https://salahtime.tomorrowtools.dev/downloads/salahtime.apk",
       "sha256": "b08f0c068d3cd0667af5907f3d2b4a48e39c09c3940803910bb3d24bf71f0865",
       "description": "Mosque discovery, prayer times, and maps for your area.",
@@ -59,14 +59,14 @@
       "id": "salahtime-dev",
       "name": "salahtime-dev",
       "packageName": "dev.tomorrowtools.salahtime.dev",
-      "versionCode": 331,
-      "versionName": "3.0.32",
+      "versionCode": 332,
+      "versionName": "3.0.33",
       "apkUrl": "https://salahtime-dev.tomorrowtools.dev/downloads/salahtime-dev.apk",
-      "sha256": "208c63727d1640512097ebf121b901a9b99c97ac45658213466de14e8a15c72c",
+      "sha256": "330e4f4f185e26ecee2c68786ca529f6da2a345f0b296974f6951171f98710c4",
       "description": "Dev channel for Salahtime (salahtime-dev.tomorrowtools.dev).",
-      "sizeBytes": 14588934,
+      "sizeBytes": 14999037,
       "minSdk": 26,
-      "changelog": "Dev v3.0.30: restore Card-style login screen; fix Google sign-in launch for dev package."
+      "changelog": "Dev v3.0.33: notification prefs, salah alarms, mosque sync worker, expandable Account sections."
     }
   ],
   "sites": [
