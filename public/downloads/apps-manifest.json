@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-09-06T16:04:20Z",
+  "updatedAt": "2026-09-06T17:46:17Z",
   "policy": "Debug APKs are for developer sideload via TT Manager. Prefer release when available. Manager requires sha256.",
   "universeManifestUrl": "https://tomorrowtools.dev/api/universe/manifest.json",
   "apps": [
@@ -46,23 +46,23 @@
       "id": "salahtime",
       "name": "Salahtime",
       "packageName": "dev.tomorrowtools.salahtime",
-      "versionCode": 330,
-      "versionName": "3.0.31",
+      "versionCode": 331,
+      "versionName": "3.0.32",
       "apkUrl": "https://salahtime.tomorrowtools.dev/downloads/salahtime.apk",
-      "sha256": "03322c154b6b063b0d473fc4e3cce0184f1e09a47547974d870142244685f176",
+      "sha256": "b08f0c068d3cd0667af5907f3d2b4a48e39c09c3940803910bb3d24bf71f0865",
       "description": "Mosque discovery, prayer times, and maps for your area.",
       "sizeBytes": 14905066,
       "minSdk": 26,
-      "changelog": "Salahtime prod v3.0.31: hide dev-only language preview on prod; keep i18n on dev channel only."
+      "changelog": "Salahtime prod v3.0.32: fix map bell icons clipped on balloons; prod flavor keeps i18n/dev preview off."
     },
     {
       "id": "salahtime-dev",
       "name": "salahtime-dev",
       "packageName": "dev.tomorrowtools.salahtime.dev",
-      "versionCode": 330,
-      "versionName": "3.0.31",
+      "versionCode": 331,
+      "versionName": "3.0.32",
       "apkUrl": "https://salahtime-dev.tomorrowtools.dev/downloads/salahtime-dev.apk",
-      "sha256": "876804de6029decd6753c698acc3754160c3d73b5e639b5cf9836565dc3bd086",
+      "sha256": "208c63727d1640512097ebf121b901a9b99c97ac45658213466de14e8a15c72c",
       "description": "Dev channel for Salahtime (salahtime-dev.tomorrowtools.dev).",
       "sizeBytes": 14588934,
       "minSdk": 26,
