@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-09-07T05:06:47Z",
+  "updatedAt": "2026-09-07T05:34:20Z",
   "policy": "Debug APKs are for developer sideload via TT Manager. Prefer release when available. Manager requires sha256.",
   "universeManifestUrl": "https://tomorrowtools.dev/api/universe/manifest.json",
   "apps": [
@@ -46,27 +46,27 @@
       "id": "salahtime",
       "name": "Salahtime",
       "packageName": "dev.tomorrowtools.salahtime",
-      "versionCode": 341,
-      "versionName": "3.0.41",
+      "versionCode": 342,
+      "versionName": "3.0.42",
       "apkUrl": "https://salahtime.tomorrowtools.dev/downloads/salahtime.apk",
-      "sha256": "68946b0033cd1c440a137f9fc4c917dec4007c468a76a02e13d8263047e1b5fb",
+      "sha256": "a013e7beff9501366be5c8679262cafaa06ceec3205b71731941f3d374e825b5",
       "description": "Mosque discovery, prayer times, and maps for your area.",
       "sizeBytes": 15335105,
       "minSdk": 26,
-      "changelog": "Prod v3.0.41: confirm clears stale markers, map/list UX fixes, placeholder prayer times (no dev UI markers)."
+      "changelog": "Prod v3.0.42: time editor opens correct prayer with current adhan/jama'ah pre-filled."
     },
     {
       "id": "salahtime-dev",
       "name": "salahtime-dev",
       "packageName": "dev.tomorrowtools.salahtime.dev",
-      "versionCode": 341,
-      "versionName": "3.0.41",
+      "versionCode": 342,
+      "versionName": "3.0.42",
       "apkUrl": "https://salahtime-dev.tomorrowtools.dev/downloads/salahtime-dev.apk",
-      "sha256": "45ed5f63adc24033aeb2e22db7f070c7f621a97bb74d58a0fa371e29bac5c811",
+      "sha256": "eda1f6b85b7cbdbcc27bdaf98ae64d5eb6bd74ad2c202a6616ba58ea259c1591",
       "description": "Dev channel for Salahtime (salahtime-dev.tomorrowtools.dev).",
-      "sizeBytes": 15018973,
+      "sizeBytes": 15018977,
       "minSdk": 26,
-      "changelog": "Dev v3.0.41: confirm clears bell/red markers, list/map UX fixes, map balloon restore on tab return."
+      "changelog": "Dev v3.0.42: time editor opens correct prayer with current adhan/jama'ah on wheels."
     }
   ],
   "sites": [
