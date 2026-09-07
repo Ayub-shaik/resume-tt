@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-09-06T19:01:03Z",
+  "updatedAt": "2026-09-07T05:06:47Z",
   "policy": "Debug APKs are for developer sideload via TT Manager. Prefer release when available. Manager requires sha256.",
   "universeManifestUrl": "https://tomorrowtools.dev/api/universe/manifest.json",
   "apps": [
@@ -7,14 +7,14 @@
       "id": "manager",
       "name": "TT Manager",
       "packageName": "dev.tomorrowtools.manager",
-      "versionCode": 10,
-      "versionName": "1.0.9-universe-webview",
+      "versionCode": 11,
+      "versionName": "1.0.10-install-fix",
       "apkUrl": "https://resume.tomorrowtools.dev/downloads/manager-debug.apk",
-      "sha256": "ceeb1ab8b3ab0f2cc2c286825d12e50490249b44d02b5912e263f698c08b1a96",
+      "sha256": "427fc73bdf512564432c68154fbbcbdcc01d56d5c996853b26a241a67f7d9ba2",
       "description": "Install and update TomorrowTools Android apps from one place.",
-      "sizeBytes": 16890201,
+      "sizeBytes": 16923005,
       "minSdk": 26,
-      "changelog": "Universe product grid from tomorrowtools.dev; in-app WebView for sites; hybrid apps open natively when installed."
+      "changelog": "Fix APK install prompt (Activity context); clearer integrity error when server APK is stale."
     },
     {
       "id": "resume",
@@ -46,27 +46,27 @@
       "id": "salahtime",
       "name": "Salahtime",
       "packageName": "dev.tomorrowtools.salahtime",
-      "versionCode": 332,
-      "versionName": "3.0.33",
+      "versionCode": 341,
+      "versionName": "3.0.41",
       "apkUrl": "https://salahtime.tomorrowtools.dev/downloads/salahtime.apk",
-      "sha256": "b08f0c068d3cd0667af5907f3d2b4a48e39c09c3940803910bb3d24bf71f0865",
+      "sha256": "68946b0033cd1c440a137f9fc4c917dec4007c468a76a02e13d8263047e1b5fb",
       "description": "Mosque discovery, prayer times, and maps for your area.",
-      "sizeBytes": 14905066,
+      "sizeBytes": 15335105,
       "minSdk": 26,
-      "changelog": "Salahtime prod v3.0.32: fix map bell icons clipped on balloons; prod flavor keeps i18n/dev preview off."
+      "changelog": "Prod v3.0.41: confirm clears stale markers, map/list UX fixes, placeholder prayer times (no dev UI markers)."
     },
     {
       "id": "salahtime-dev",
       "name": "salahtime-dev",
       "packageName": "dev.tomorrowtools.salahtime.dev",
-      "versionCode": 332,
-      "versionName": "3.0.33",
+      "versionCode": 341,
+      "versionName": "3.0.41",
       "apkUrl": "https://salahtime-dev.tomorrowtools.dev/downloads/salahtime-dev.apk",
-      "sha256": "330e4f4f185e26ecee2c68786ca529f6da2a345f0b296974f6951171f98710c4",
+      "sha256": "45ed5f63adc24033aeb2e22db7f070c7f621a97bb74d58a0fa371e29bac5c811",
       "description": "Dev channel for Salahtime (salahtime-dev.tomorrowtools.dev).",
-      "sizeBytes": 14999037,
+      "sizeBytes": 15018973,
       "minSdk": 26,
-      "changelog": "Dev v3.0.33: notification prefs, salah alarms, mosque sync worker, expandable Account sections."
+      "changelog": "Dev v3.0.41: confirm clears bell/red markers, list/map UX fixes, map balloon restore on tab return."
     }
   ],
   "sites": [
