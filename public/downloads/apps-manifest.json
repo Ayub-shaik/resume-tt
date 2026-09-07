@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-09-07T05:34:20Z",
+  "updatedAt": "2026-09-07T18:15:18Z",
   "policy": "Debug APKs are for developer sideload via TT Manager. Prefer release when available. Manager requires sha256.",
   "universeManifestUrl": "https://tomorrowtools.dev/api/universe/manifest.json",
   "apps": [
@@ -7,14 +7,14 @@
       "id": "manager",
       "name": "TT Manager",
       "packageName": "dev.tomorrowtools.manager",
-      "versionCode": 11,
-      "versionName": "1.0.10-install-fix",
+      "versionCode": 12,
+      "versionName": "1.0.11-download-fix",
       "apkUrl": "https://resume.tomorrowtools.dev/downloads/manager-debug.apk",
-      "sha256": "427fc73bdf512564432c68154fbbcbdcc01d56d5c996853b26a241a67f7d9ba2",
+      "sha256": "b8246b3c77e295a5bb3b219cb09dd35a128a882b261812ef9d50092c734b74c8",
       "description": "Install and update TomorrowTools Android apps from one place.",
       "sizeBytes": 16923005,
       "minSdk": 26,
-      "changelog": "Fix APK install prompt (Activity context); clearer integrity error when server APK is stale."
+      "changelog": "Fix download crash: main-thread progress, URI grants for installer, safer settings handoff."
     },
     {
       "id": "resume",
@@ -46,27 +46,27 @@
       "id": "salahtime",
       "name": "Salahtime",
       "packageName": "dev.tomorrowtools.salahtime",
-      "versionCode": 342,
-      "versionName": "3.0.42",
-      "apkUrl": "https://salahtime.tomorrowtools.dev/downloads/salahtime.apk",
-      "sha256": "a013e7beff9501366be5c8679262cafaa06ceec3205b71731941f3d374e825b5",
+      "versionCode": 348,
+      "versionName": "3.0.48",
+      "apkUrl": "https://salahtime.tomorrowtools.dev/downloads/salahtime.apk?v=3.0.48&sha=1d2f12b2b620",
+      "sha256": "1d2f12b2b620f85e6383f64db298e994809a5344f337c1aa6365c339b8467fe0",
       "description": "Mosque discovery, prayer times, and maps for your area.",
-      "sizeBytes": 15335105,
+      "sizeBytes": 15399345,
       "minSdk": 26,
-      "changelog": "Prod v3.0.42: time editor opens correct prayer with current adhan/jama'ah pre-filled."
+      "changelog": "Prod v3.0.48: homepage layout gap fix, stale favourites filter, collapsible favourites."
     },
     {
       "id": "salahtime-dev",
       "name": "salahtime-dev",
       "packageName": "dev.tomorrowtools.salahtime.dev",
-      "versionCode": 342,
-      "versionName": "3.0.42",
-      "apkUrl": "https://salahtime-dev.tomorrowtools.dev/downloads/salahtime-dev.apk",
-      "sha256": "eda1f6b85b7cbdbcc27bdaf98ae64d5eb6bd74ad2c202a6616ba58ea259c1591",
+      "versionCode": 348,
+      "versionName": "3.0.48",
+      "apkUrl": "https://salahtime-dev.tomorrowtools.dev/downloads/salahtime-dev.apk?v=3.0.48&sha=aca12fd61a9d",
+      "sha256": "aca12fd61a9d6c0c7c33862aa65983b842957b0308a296cde0b29a56f8b7e339",
       "description": "Dev channel for Salahtime (salahtime-dev.tomorrowtools.dev).",
-      "sizeBytes": 15018977,
+      "sizeBytes": 15083217,
       "minSdk": 26,
-      "changelog": "Dev v3.0.42: time editor opens correct prayer with current adhan/jama'ah on wheels."
+      "changelog": "Dev v3.0.48: split map/list scroll, favourites filter, check-for-updates UX."
     }
   ],
   "sites": [
