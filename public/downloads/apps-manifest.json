@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-09-07T18:15:18Z",
+  "updatedAt": "2026-09-09T19:21:42Z",
   "policy": "Debug APKs are for developer sideload via TT Manager. Prefer release when available. Manager requires sha256.",
   "universeManifestUrl": "https://tomorrowtools.dev/api/universe/manifest.json",
   "apps": [
@@ -46,27 +46,40 @@
       "id": "salahtime",
       "name": "Salahtime",
       "packageName": "dev.tomorrowtools.salahtime",
-      "versionCode": 348,
-      "versionName": "3.0.48",
-      "apkUrl": "https://salahtime.tomorrowtools.dev/downloads/salahtime.apk?v=3.0.48&sha=1d2f12b2b620",
-      "sha256": "1d2f12b2b620f85e6383f64db298e994809a5344f337c1aa6365c339b8467fe0",
+      "versionCode": 365,
+      "versionName": "3.1.1-playtesting",
+      "apkUrl": "https://salahtime.tomorrowtools.dev/downloads/salahtime.apk?v=3.1.1-playtesting&sha=7cd640a3fbc0",
+      "sha256": "7cd640a3fbc07b8956905261d16fc4d113d40cd3f3df73a63b1d3609560189b6",
       "description": "Mosque discovery, prayer times, and maps for your area.",
-      "sizeBytes": 15399345,
+      "sizeBytes": 15448569,
       "minSdk": 26,
-      "changelog": "Prod v3.0.48: homepage layout gap fix, stale favourites filter, collapsible favourites."
+      "changelog": "Prod v3.1.1-playtesting: account UX — tester, language, profile settings; moderation via notification bell."
     },
     {
       "id": "salahtime-dev",
       "name": "salahtime-dev",
       "packageName": "dev.tomorrowtools.salahtime.dev",
-      "versionCode": 348,
-      "versionName": "3.0.48",
-      "apkUrl": "https://salahtime-dev.tomorrowtools.dev/downloads/salahtime-dev.apk?v=3.0.48&sha=aca12fd61a9d",
-      "sha256": "aca12fd61a9d6c0c7c33862aa65983b842957b0308a296cde0b29a56f8b7e339",
+      "versionCode": 365,
+      "versionName": "3.1.1-playtesting",
+      "apkUrl": "https://salahtime-dev.tomorrowtools.dev/downloads/salahtime-dev.apk?v=3.1.1-playtesting&sha=cf8eee041288",
+      "sha256": "cf8eee041288a600e19483e7242ea6e339ea6ca2537d78599dd82919b37dbba2",
       "description": "Dev channel for Salahtime (salahtime-dev.tomorrowtools.dev).",
-      "sizeBytes": 15083217,
+      "sizeBytes": 15083633,
       "minSdk": 26,
-      "changelog": "Dev v3.0.48: split map/list scroll, favourites filter, check-for-updates UX."
+      "changelog": "Dev v3.1.1-playtesting: strict admin console, private prayer spaces, preferred contact feedback."
+    },
+    {
+      "id": "salahtime-moderator",
+      "name": "Salahtime Moderator",
+      "packageName": "dev.tomorrowtools.salahtime.moderator",
+      "versionCode": 2,
+      "versionName": "1.0.0",
+      "apkUrl": "https://salahtime.tomorrowtools.dev/downloads/salahtime-moderator.apk?v=1.0.0&sha=bdbf177a0e25",
+      "sha256": "bdbf177a0e25ecfe80b9de0f4bcd71c4d5cacce049b246f4efb4845c80882078",
+      "sizeBytes": 12246672,
+      "minSdk": 26,
+      "changelog": "Moderator v1.0.0: map import review queue, approve/reject, notifications.",
+      "description": "Mosque discovery, prayer times, and maps for your area."
     }
   ],
   "sites": [
