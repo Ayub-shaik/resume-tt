@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-09-09T19:21:42Z",
+  "updatedAt": "2026-09-09T19:35:13Z",
   "policy": "Debug APKs are for developer sideload via TT Manager. Prefer release when available. Manager requires sha256.",
   "universeManifestUrl": "https://tomorrowtools.dev/api/universe/manifest.json",
   "apps": [
@@ -61,10 +61,10 @@
       "packageName": "dev.tomorrowtools.salahtime.dev",
       "versionCode": 365,
       "versionName": "3.1.1-playtesting",
-      "apkUrl": "https://salahtime-dev.tomorrowtools.dev/downloads/salahtime-dev.apk?v=3.1.1-playtesting&sha=cf8eee041288",
-      "sha256": "cf8eee041288a600e19483e7242ea6e339ea6ca2537d78599dd82919b37dbba2",
+      "apkUrl": "https://salahtime-dev.tomorrowtools.dev/downloads/salahtime-dev.apk?v=3.1.1-playtesting&sha=3dff9103ec96",
+      "sha256": "3dff9103ec9611609a6f4d74d59ab89e40744df495ef19be6d2c966409175de0",
       "description": "Dev channel for Salahtime (salahtime-dev.tomorrowtools.dev).",
-      "sizeBytes": 15083633,
+      "sizeBytes": 15132437,
       "minSdk": 26,
       "changelog": "Dev v3.1.1-playtesting: strict admin console, private prayer spaces, preferred contact feedback."
     },
