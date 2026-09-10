@@ -15,7 +15,7 @@ Internet → Cloudflare TLS → cloudflared tunnel (tomorrowtools)
 | Config | `~/.cloudflared/tomorrowtools-config.yml` ingress `mpi.tomorrowtools.dev` |
 | DNS | `cloudflared tunnel --config … route dns tomorrowtools mpi.tomorrowtools.dev` |
 | App unit | `~/.config/systemd/user/mpi-web.service` (enabled) |
-| Env | `/home/shaik/Desktop/interviewprep/.env.production` (mode 600, not in git) |
+| Env | `/home/shaik/Desktop/projects/mpi/.env.production` (mode 600, not in git) |
 | Origin | `127.0.0.1:3050` loopback only |
 | Google | Dedicated MPI OAuth client (`GOOGLE_CLIENT_ID` / `SECRET` in `.env.production`) |
 | Drive | Per-user OAuth via `/api/drive/connect` (tokens in SQLite `user_drive_tokens`) |
@@ -25,7 +25,7 @@ Internet → Cloudflare TLS → cloudflared tunnel (tomorrowtools)
 
 ```bash
 # rebuild + restart
-cd /home/shaik/Desktop/interviewprep
+cd /home/shaik/Desktop/projects/mpi
 npm run build
 systemctl --user restart mpi-web.service
 
