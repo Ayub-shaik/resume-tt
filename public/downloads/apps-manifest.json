@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-09-09T19:35:13Z",
+  "updatedAt": "2026-09-11T11:42:58Z",
   "policy": "Debug APKs are for developer sideload via TT Manager. Prefer release when available. Manager requires sha256.",
   "universeManifestUrl": "https://tomorrowtools.dev/api/universe/manifest.json",
   "apps": [
@@ -59,26 +59,26 @@
       "id": "salahtime-dev",
       "name": "salahtime-dev",
       "packageName": "dev.tomorrowtools.salahtime.dev",
-      "versionCode": 365,
-      "versionName": "3.1.1-playtesting",
-      "apkUrl": "https://salahtime-dev.tomorrowtools.dev/downloads/salahtime-dev.apk?v=3.1.1-playtesting&sha=3dff9103ec96",
-      "sha256": "3dff9103ec9611609a6f4d74d59ab89e40744df495ef19be6d2c966409175de0",
+      "versionCode": 366,
+      "versionName": "3.1.2-playtesting",
+      "apkUrl": "https://salahtime-dev.tomorrowtools.dev/downloads/salahtime-dev.apk?v=3.1.2-playtesting&sha=ad8b3a3cd064",
+      "sha256": "ad8b3a3cd064edfba248e262ff220ad6ed73d5050a352af563efdf380423c904",
       "description": "Dev channel for Salahtime (salahtime-dev.tomorrowtools.dev).",
-      "sizeBytes": 15132437,
+      "sizeBytes": 15132441,
       "minSdk": 26,
-      "changelog": "Dev v3.1.1-playtesting: strict admin console, private prayer spaces, preferred contact feedback."
+      "changelog": "Dev v3.1.2-playtesting: strict admin console, private prayer spaces, preferred contact feedback."
     },
     {
       "id": "salahtime-moderator",
       "name": "Salahtime Moderator",
       "packageName": "dev.tomorrowtools.salahtime.moderator",
-      "versionCode": 2,
-      "versionName": "1.0.0",
-      "apkUrl": "https://salahtime.tomorrowtools.dev/downloads/salahtime-moderator.apk?v=1.0.0&sha=bdbf177a0e25",
-      "sha256": "bdbf177a0e25ecfe80b9de0f4bcd71c4d5cacce049b246f4efb4845c80882078",
-      "sizeBytes": 12246672,
+      "versionCode": 5,
+      "versionName": "1.0.3",
+      "apkUrl": "https://salahtime.tomorrowtools.dev/downloads/salahtime-moderator.apk?v=1.0.3&sha=5fcf9acee65d",
+      "sha256": "5fcf9acee65d832d4060d8b83e435c37bcc791ddca7d38b68be15985d5d49748",
+      "sizeBytes": 12598551,
       "minSdk": 26,
-      "changelog": "Moderator v1.0.0: map import review queue, approve/reject, notifications.",
+      "changelog": "Moderator v1.0.3: map import review queue, approve/reject, notifications.",
       "description": "Mosque discovery, prayer times, and maps for your area."
     }
   ],
