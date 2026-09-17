@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-09-16T09:30:36Z",
+  "updatedAt": "2026-09-17T17:11:54Z",
   "policy": "Debug APKs are for developer sideload via TT Manager. Prefer release when available. Manager requires sha256.",
   "universeManifestUrl": "https://tomorrowtools.dev/api/universe/manifest.json",
   "apps": [
@@ -59,14 +59,14 @@
       "id": "salahtime-dev",
       "name": "salahtime-dev",
       "packageName": "dev.tomorrowtools.salahtime.dev",
-      "versionCode": 391,
-      "versionName": "3.1.27",
-      "apkUrl": "https://salahtime-dev.tomorrowtools.dev/downloads/salahtime-dev.apk?v=3.1.27&sha=fdae89bc4bc3",
-      "sha256": "fdae89bc4bc344c2d17f23915615f8d88e75a6422f2ef63f2c1cb4c3edce2f38",
+      "versionCode": 394,
+      "versionName": "3.1.30",
+      "apkUrl": "https://salahtime-dev.tomorrowtools.dev/downloads/salahtime-dev.apk?v=3.1.30&sha=d0d39bae93d3",
+      "sha256": "d0d39bae93d39f0e98c14f9b9e3d64da9e1caaabe74a40fb87078775686b79d8",
       "description": "Dev channel for Salahtime (salahtime-dev.tomorrowtools.dev).",
-      "sizeBytes": 15407121,
+      "sizeBytes": 15408845,
       "minSdk": 26,
-      "changelog": "Dev v3.1.27: account load + slow-network fix, contact one-liner, private spaces, map balloons/layers, auth UX."
+      "changelog": "Dev v3.1.30: account load + slow-network fix, contact one-liner, private spaces, map balloons/layers, auth UX."
     },
     {
       "id": "salahtime-moderator",
