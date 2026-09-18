@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-09-18T05:28:19Z",
+  "updatedAt": "2026-09-18T06:12:30Z",
   "policy": "Debug APKs are for developer sideload via TT Manager. Prefer release when available. Manager requires sha256.",
   "universeManifestUrl": "https://tomorrowtools.dev/api/universe/manifest.json",
   "apps": [
@@ -7,14 +7,14 @@
       "id": "manager",
       "name": "TT Manager",
       "packageName": "dev.tomorrowtools.manager",
-      "versionCode": 12,
-      "versionName": "1.0.11-download-fix",
+      "versionCode": 13,
+      "versionName": "1.0.12-scroll-fix",
       "apkUrl": "https://resume.tomorrowtools.dev/downloads/manager-debug.apk",
-      "sha256": "b8246b3c77e295a5bb3b219cb09dd35a128a882b261812ef9d50092c734b74c8",
+      "sha256": "a71dc8d231b19815318342dec28259b028dbc1049d2b9f298f6455ec247ded84",
       "description": "Install and update TomorrowTools Android apps from one place.",
-      "sizeBytes": 16923005,
+      "sizeBytes": 16923009,
       "minSdk": 26,
-      "changelog": "Fix download crash: main-thread progress, URI grants for installer, safer settings handoff."
+      "changelog": "Fix install scroll jump: pin status/download bar above app list (no LazyColumn insert)."
     },
     {
       "id": "resume",
