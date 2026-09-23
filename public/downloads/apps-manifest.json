@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-09-23T13:35:37Z",
+  "updatedAt": "2026-09-23T15:59:20Z",
   "policy": "Debug APKs are for developer sideload via TT Manager. Prefer release when available. Manager requires sha256.",
   "universeManifestUrl": "https://tomorrowtools.dev/api/universe/manifest.json",
   "apps": [
@@ -46,14 +46,14 @@
       "id": "salahtime",
       "name": "Salahtime",
       "packageName": "dev.tomorrowtools.salahtime",
-      "versionCode": 453,
-      "versionName": "3.1.89",
-      "apkUrl": "https://salahtime.tomorrowtools.dev/downloads/salahtime.apk?v=3.1.89&sha=5922a34d25a1",
-      "sha256": "5922a34d25a130286b6864d4a3863202ef7a6923b8b5681ac707e33dbeb43d3c",
+      "versionCode": 456,
+      "versionName": "3.1.91",
+      "apkUrl": "https://salahtime.tomorrowtools.dev/downloads/salahtime.apk?v=3.1.91&sha=de0add95d567",
+      "sha256": "de0add95d567bc9d24e700e37c9755e7ddf84c67e0f982bfb816b41bb31de3a9",
       "description": "Mosque discovery, prayer times, and maps for your area.",
-      "sizeBytes": 17899409,
+      "sizeBytes": 17899325,
       "minSdk": 26,
-      "changelog": "Prod v3.1.89: account UX — tester, language, profile settings; moderation via notification bell."
+      "changelog": "Prod v3.1.91: account UX — tester, language, profile settings; moderation via notification bell."
     },
     {
       "id": "salahtime-dev",
