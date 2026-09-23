@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-09-23T02:50:05Z",
+  "updatedAt": "2026-09-23T11:35:15Z",
   "policy": "Debug APKs are for developer sideload via TT Manager. Prefer release when available. Manager requires sha256.",
   "universeManifestUrl": "https://tomorrowtools.dev/api/universe/manifest.json",
   "apps": [
@@ -46,27 +46,27 @@
       "id": "salahtime",
       "name": "Salahtime",
       "packageName": "dev.tomorrowtools.salahtime",
-      "versionCode": 395,
-      "versionName": "3.1.31",
-      "apkUrl": "https://salahtime.tomorrowtools.dev/downloads/salahtime.apk?v=3.1.31&sha=f546d5e5e1e5",
-      "sha256": "f546d5e5e1e5cc527e80f86ae596843f2233446f3863e11600effd7123911eb5",
+      "versionCode": 451,
+      "versionName": "3.1.87",
+      "apkUrl": "https://salahtime.tomorrowtools.dev/downloads/salahtime.apk?v=3.1.87&sha=8425ac7d12d3",
+      "sha256": "8425ac7d12d31d91a7354432ce792a25a77158928ee97a3d607a425ddc95620c",
       "description": "Mosque discovery, prayer times, and maps for your area.",
-      "sizeBytes": 15708593,
+      "sizeBytes": 17849045,
       "minSdk": 26,
-      "changelog": "Prod v3.1.31: account UX — tester, language, profile settings; moderation via notification bell."
+      "changelog": "Prod v3.1.87: account UX — tester, language, profile settings; moderation via notification bell."
     },
     {
       "id": "salahtime-dev",
       "name": "salahtime-dev",
       "packageName": "dev.tomorrowtools.salahtime.dev",
-      "versionCode": 429,
-      "versionName": "3.1.65",
-      "apkUrl": "https://salahtime-dev.tomorrowtools.dev/downloads/salahtime-dev.apk?v=3.1.65&sha=e4cfc9f6d608",
-      "sha256": "e4cfc9f6d608a847e250161e000053a83a79ccf3b5f0e75481ce6d40ddb6976b",
+      "versionCode": 450,
+      "versionName": "3.1.86",
+      "apkUrl": "https://salahtime-dev.tomorrowtools.dev/downloads/salahtime-dev.apk?v=3.1.86&sha=4e92b57dacd8",
+      "sha256": "4e92b57dacd87d7191a4cf19e09393a454aa82e0f9f05c2dbb92f0a9d061cd2b",
       "description": "Dev channel for Salahtime (salahtime-dev.tomorrowtools.dev).",
-      "sizeBytes": 16477301,
+      "sizeBytes": 17548037,
       "minSdk": 26,
-      "changelog": "Dev v3.1.65: account load + slow-network fix, contact one-liner, private spaces, map balloons/layers, auth UX."
+      "changelog": "Dev v3.1.86: account load + slow-network fix, contact one-liner, private spaces, map balloons/layers, auth UX."
     },
     {
       "id": "salahtime-moderator",
