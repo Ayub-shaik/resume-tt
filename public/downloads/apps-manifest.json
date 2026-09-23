@@ -53,7 +53,7 @@
       "description": "Mosque discovery, prayer times, and maps for your area.",
       "sizeBytes": 17899325,
       "minSdk": 26,
-      "changelog": "Prod v3.1.91: account UX — tester, language, profile settings; moderation via notification bell."
+      "changelog": "Prod v3.1.91 (456): mosque detail v3, Assalam greeting, Jum'ah defaults, share flyer+link, new launcher icon, widget improvements."
     },
     {
       "id": "salahtime-dev",
