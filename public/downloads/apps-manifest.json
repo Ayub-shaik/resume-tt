@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-09-29T06:36:08Z",
+  "updatedAt": "2026-09-29T06:40:07Z",
   "policy": "Debug APKs are for developer sideload via TT Manager. Prefer release when available. Manager requires sha256.",
   "universeManifestUrl": "https://tomorrowtools.dev/api/universe/manifest.json",
   "apps": [
@@ -48,10 +48,10 @@
       "packageName": "dev.tomorrowtools.salahtime",
       "versionCode": 459,
       "versionName": "3.1.94",
-      "apkUrl": "https://salahtime.tomorrowtools.dev/downloads/salahtime.apk?v=3.1.94&sha=f948506b571d",
-      "sha256": "f948506b571d74a8f400bb68f7d5b53f3415a9b83328cd42ace0c5130f2041a9",
+      "apkUrl": "https://salahtime.tomorrowtools.dev/downloads/salahtime.apk?v=3.1.94&sha=4924e8541022",
+      "sha256": "4924e8541022cb1c6dd3a9b390196c09c5ee67770779f4717fb9993cac6b0126",
       "description": "Mosque discovery, prayer times, and maps for your area.",
-      "sizeBytes": 17987225,
+      "sizeBytes": 17987173,
       "minSdk": 26,
       "changelog": "Prod v3.1.94: salah chip hybrid fallback, private-space chips, resume cache-first, guest map explore."
     },
