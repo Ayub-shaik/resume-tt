@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-09-29T06:24:47Z",
+  "updatedAt": "2026-09-29T06:36:08Z",
   "policy": "Debug APKs are for developer sideload via TT Manager. Prefer release when available. Manager requires sha256.",
   "universeManifestUrl": "https://tomorrowtools.dev/api/universe/manifest.json",
   "apps": [
@@ -48,10 +48,10 @@
       "packageName": "dev.tomorrowtools.salahtime",
       "versionCode": 459,
       "versionName": "3.1.94",
-      "apkUrl": "https://salahtime.tomorrowtools.dev/downloads/salahtime.apk?v=3.1.94&sha=4924e8541022",
-      "sha256": "4924e8541022cb1c6dd3a9b390196c09c5ee67770779f4717fb9993cac6b0126",
+      "apkUrl": "https://salahtime.tomorrowtools.dev/downloads/salahtime.apk?v=3.1.94&sha=f948506b571d",
+      "sha256": "f948506b571d74a8f400bb68f7d5b53f3415a9b83328cd42ace0c5130f2041a9",
       "description": "Mosque discovery, prayer times, and maps for your area.",
-      "sizeBytes": 17987173,
+      "sizeBytes": 17987225,
       "minSdk": 26,
       "changelog": "Prod v3.1.94: salah chip hybrid fallback, private-space chips, resume cache-first, guest map explore."
     },
@@ -72,13 +72,13 @@
       "id": "salahtime-moderator",
       "name": "Salahtime Moderator",
       "packageName": "dev.tomorrowtools.salahtime.moderator",
-      "versionCode": 6,
-      "versionName": "1.0.4",
-      "apkUrl": "https://salahtime.tomorrowtools.dev/downloads/salahtime-moderator.apk?v=1.0.4&sha=71ef16977b3d",
-      "sha256": "71ef16977b3df119407a9303d9f58ef6bf51b2c53d0332fff0d7a2ba136a327a",
-      "sizeBytes": 12615727,
+      "versionCode": 8,
+      "versionName": "1.0.6",
+      "apkUrl": "https://salahtime.tomorrowtools.dev/downloads/salahtime-moderator.apk?v=1.0.6&sha=e57397037588",
+      "sha256": "e5739703758807940f9b3ebfaaab9911716ddecd47145944de7cd980b57368a2",
+      "sizeBytes": 12716374,
       "minSdk": 26,
-      "changelog": "Moderator v1.0.4: review history (approved/rejected), reopen, edit notes, re-approve/reject.",
+      "changelog": "Moderator v1.0.6: Google sign-in error 10 fix, browser sign-in fallback, UI polish.",
       "description": "Mosque discovery, prayer times, and maps for your area."
     }
   ],
