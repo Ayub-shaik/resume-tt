@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-09-29T06:59:01Z",
+  "updatedAt": "2026-09-29T07:14:21Z",
   "policy": "Debug APKs are for developer sideload via TT Manager. Prefer release when available. Manager requires sha256.",
   "universeManifestUrl": "https://tomorrowtools.dev/api/universe/manifest.json",
   "apps": [
@@ -72,13 +72,13 @@
       "id": "salahtime-moderator",
       "name": "Salahtime Moderator",
       "packageName": "dev.tomorrowtools.salahtime.moderator",
-      "versionCode": 8,
-      "versionName": "1.0.6",
-      "apkUrl": "https://salahtime.tomorrowtools.dev/downloads/salahtime-moderator.apk?v=1.0.6&sha=e57397037588",
-      "sha256": "e5739703758807940f9b3ebfaaab9911716ddecd47145944de7cd980b57368a2",
-      "sizeBytes": 12716374,
+      "versionCode": 9,
+      "versionName": "1.0.7",
+      "apkUrl": "https://salahtime.tomorrowtools.dev/downloads/salahtime-moderator.apk?v=1.0.7&sha=c1ab0961fcb3",
+      "sha256": "c1ab0961fcb3e6b9c00c4187f87d95c03644ae56c85094afdf88c438bdfb060c",
+      "sizeBytes": 12732758,
       "minSdk": 26,
-      "changelog": "Moderator v1.0.6: Google sign-in error 10 fix, browser sign-in fallback, UI polish.",
+      "changelog": "Moderator v1.0.7: Google sign-in error 10 fix, browser sign-in fallback, UI polish.",
       "description": "Mosque discovery, prayer times, and maps for your area."
     }
   ],
