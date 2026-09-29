@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-09-28T15:13:54Z",
+  "updatedAt": "2026-09-29T05:23:14Z",
   "policy": "Debug APKs are for developer sideload via TT Manager. Prefer release when available. Manager requires sha256.",
   "universeManifestUrl": "https://tomorrowtools.dev/api/universe/manifest.json",
   "apps": [
@@ -59,26 +59,26 @@
       "id": "salahtime-dev",
       "name": "salahtime-dev",
       "packageName": "dev.tomorrowtools.salahtime.dev",
-      "versionCode": 456,
-      "versionName": "3.1.91",
-      "apkUrl": "https://salahtime-dev.tomorrowtools.dev/downloads/salahtime-dev.apk?v=3.1.91&sha=860621b15aa2",
-      "sha256": "860621b15aa2bd766af82bd8d27aa2308806cf0ecccc0c5a14df4d3b4d12c738",
+      "versionCode": 458,
+      "versionName": "3.1.93",
+      "apkUrl": "https://salahtime-dev.tomorrowtools.dev/downloads/salahtime-dev.apk?v=3.1.93&sha=49a283ef516f",
+      "sha256": "49a283ef516f44f0a6a5e1f5dd99ee3794f2768b15c9dc4cf86c3544054a1d53",
       "description": "Dev channel for Salahtime (salahtime-dev.tomorrowtools.dev).",
-      "sizeBytes": 18003549,
+      "sizeBytes": 17987165,
       "minSdk": 26,
-      "changelog": "Dev v3.1.91: account load + slow-network fix, contact one-liner, private spaces, map balloons/layers, auth UX."
+      "changelog": "Dev v3.1.93: salah chip hybrid fallback, resume cache-first, guest map explore, map balloons."
     },
     {
       "id": "salahtime-moderator",
       "name": "Salahtime Moderator",
       "packageName": "dev.tomorrowtools.salahtime.moderator",
-      "versionCode": 6,
-      "versionName": "1.0.4",
-      "apkUrl": "https://salahtime.tomorrowtools.dev/downloads/salahtime-moderator.apk?v=1.0.4&sha=587355fa96d2",
+      "versionCode": 7,
+      "versionName": "1.0.5",
+      "apkUrl": "https://salahtime.tomorrowtools.dev/downloads/salahtime-moderator.apk?v=1.0.5&sha=587355fa96d2",
       "sha256": "587355fa96d2126f701b7a213b55b350d16f93c4e6bcaf78491192e30e38bbeb",
       "sizeBytes": 12621443,
       "minSdk": 26,
-      "changelog": "Moderator v1.0.4: review history (approved/rejected), reopen, edit notes, re-approve/reject.",
+      "changelog": "Moderator v1.0.5: review history (approved/rejected), reopen, edit notes, re-approve/reject.",
       "description": "Mosque discovery, prayer times, and maps for your area."
     }
   ],
