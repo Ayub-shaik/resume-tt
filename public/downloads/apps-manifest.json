@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-09-29T06:52:29Z",
+  "updatedAt": "2026-09-29T06:59:01Z",
   "policy": "Debug APKs are for developer sideload via TT Manager. Prefer release when available. Manager requires sha256.",
   "universeManifestUrl": "https://tomorrowtools.dev/api/universe/manifest.json",
   "apps": [
@@ -61,10 +61,10 @@
       "packageName": "dev.tomorrowtools.salahtime.dev",
       "versionCode": 459,
       "versionName": "3.1.94",
-      "apkUrl": "https://salahtime-dev.tomorrowtools.dev/downloads/salahtime-dev.apk?v=3.1.94&sha=a550ccdd62cb",
-      "sha256": "a550ccdd62cbffb9f7a919d26cd799d0944fb8cb6f09be560236fe6c774c9a43",
+      "apkUrl": "https://salahtime-dev.tomorrowtools.dev/downloads/salahtime-dev.apk?v=3.1.94&sha=f43180a52008",
+      "sha256": "f43180a52008337117a3a43e7c1200791235509a3cb69848b174099a1bab761f",
       "description": "Dev channel for Salahtime (salahtime-dev.tomorrowtools.dev).",
-      "sizeBytes": 17987165,
+      "sizeBytes": 18003549,
       "minSdk": 26,
       "changelog": "Dev v3.1.94: salah chip hybrid fallback, resume cache-first, guest map explore, map balloons."
     },
