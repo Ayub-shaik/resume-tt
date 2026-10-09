@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-10-09T09:04:22Z",
+  "updatedAt": "2026-10-09T17:08:14Z",
   "policy": "Debug APKs are for developer sideload via TT Manager. Prefer release when available. Manager requires sha256.",
   "universeManifestUrl": "https://tomorrowtools.dev/api/universe/manifest.json",
   "apps": [
@@ -48,10 +48,10 @@
       "packageName": "dev.tomorrowtools.salahtime",
       "versionCode": 0,
       "versionName": "3.2.18",
-      "apkUrl": "https://salahtime.tomorrowtools.dev/downloads/salahtime.apk?v=3.2.18&sha=276b7396318e",
-      "sha256": "276b7396318e20bce1b30ae16c76ecd7a02d7aa4219fcc1ead60f9d48ae2f112",
+      "apkUrl": "https://salahtime.tomorrowtools.dev/downloads/salahtime.apk?v=3.2.18&sha=4e32cfb4b20b",
+      "sha256": "4e32cfb4b20b457896e39084af7f43ed8331b86a5bbddaa8c3f4496bab2e116d",
       "description": "Mosque discovery, prayer times, and maps for your area.",
-      "sizeBytes": 9911454,
+      "sizeBytes": 9928266,
       "minSdk": 26,
       "changelog": "Prod v3.2.18: notification sound picker, prayer alarms on map card, My prayer alerts screen."
     },
@@ -59,14 +59,14 @@
       "id": "salahtime-dev",
       "name": "salahtime-dev",
       "packageName": "dev.tomorrowtools.salahtime.dev",
-      "versionCode": 491,
-      "versionName": "3.2.26",
-      "apkUrl": "https://salahtime-dev.tomorrowtools.dev/downloads/salahtime-dev.apk?v=3.2.26&sha=a0b61c5edfe0",
-      "sha256": "a0b61c5edfe07ab0fc60bbf6e28049e8f48854f0cb6baff92bfa0740229eeb36",
+      "versionCode": 493,
+      "versionName": "3.2.28",
+      "apkUrl": "https://salahtime-dev.tomorrowtools.dev/downloads/salahtime-dev.apk?v=3.2.28&sha=3210e2377bc8",
+      "sha256": "3210e2377bc8dd77300a9f14eeebbb004fdd5224d1f11d19e6cda19214be821e",
       "description": "Dev channel for Salahtime (salahtime-dev.tomorrowtools.dev).",
-      "sizeBytes": 9927626,
+      "sizeBytes": 9943854,
       "minSdk": 26,
-      "changelog": "Dev v3.2.26: bundled adhan/phrase sounds; prayer alarms + favourite/nearby notifications (immediate sync); POST_NOTIFICATIONS on launch."
+      "changelog": "Dev v3.2.28: bundled adhan/phrase sounds; prayer alarms + favourite/nearby notifications (immediate sync); POST_NOTIFICATIONS on launch."
     },
     {
       "id": "salahtime-moderator",
