@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-10-09T17:08:14Z",
+  "updatedAt": "2026-10-10T02:16:44Z",
   "policy": "Debug APKs are for developer sideload via TT Manager. Prefer release when available. Manager requires sha256.",
   "universeManifestUrl": "https://tomorrowtools.dev/api/universe/manifest.json",
   "apps": [
@@ -48,37 +48,37 @@
       "packageName": "dev.tomorrowtools.salahtime",
       "versionCode": 0,
       "versionName": "3.2.18",
-      "apkUrl": "https://salahtime.tomorrowtools.dev/downloads/salahtime.apk?v=3.2.18&sha=4e32cfb4b20b",
-      "sha256": "4e32cfb4b20b457896e39084af7f43ed8331b86a5bbddaa8c3f4496bab2e116d",
+      "apkUrl": "https://salahtime.tomorrowtools.dev/downloads/salahtime.apk?v=3.2.18&sha=c144afc42860",
+      "sha256": "c144afc42860fe42a16984e31abb1e59d0d5c5c0473962f8579d09562746b9b9",
       "description": "Mosque discovery, prayer times, and maps for your area.",
-      "sizeBytes": 9928266,
+      "sizeBytes": 9942294,
       "minSdk": 26,
-      "changelog": "Prod v3.2.18: notification sound picker, prayer alarms on map card, My prayer alerts screen."
+      "changelog": "Prod v3.2.18: compass and Qibla, prayer windows, cached prayer alerts, You-section icons."
     },
     {
       "id": "salahtime-dev",
       "name": "salahtime-dev",
       "packageName": "dev.tomorrowtools.salahtime.dev",
-      "versionCode": 493,
-      "versionName": "3.2.28",
-      "apkUrl": "https://salahtime-dev.tomorrowtools.dev/downloads/salahtime-dev.apk?v=3.2.28&sha=3210e2377bc8",
-      "sha256": "3210e2377bc8dd77300a9f14eeebbb004fdd5224d1f11d19e6cda19214be821e",
+      "versionCode": 494,
+      "versionName": "3.2.29",
+      "apkUrl": "https://salahtime-dev.tomorrowtools.dev/downloads/salahtime-dev.apk?v=3.2.29&sha=d0fad5b662f7",
+      "sha256": "d0fad5b662f766e99c2241d512455b18a6b8c7d6811223efec952a5dea9a51e0",
       "description": "Dev channel for Salahtime (salahtime-dev.tomorrowtools.dev).",
-      "sizeBytes": 9943854,
+      "sizeBytes": 9941650,
       "minSdk": 26,
-      "changelog": "Dev v3.2.28: bundled adhan/phrase sounds; prayer alarms + favourite/nearby notifications (immediate sync); POST_NOTIFICATIONS on launch."
+      "changelog": "Dev v3.2.29: bundled adhan/phrase sounds; prayer alarms + favourite/nearby notifications (immediate sync); POST_NOTIFICATIONS on launch."
     },
     {
       "id": "salahtime-moderator",
       "name": "Salahtime Moderator",
       "packageName": "dev.tomorrowtools.salahtime.moderator",
-      "versionCode": 15,
-      "versionName": "1.0.13",
-      "apkUrl": "https://salahtime.tomorrowtools.dev/downloads/salahtime-moderator.apk?v=1.0.13&sha=28a358068f28",
-      "sha256": "28a358068f28357714b03e31ce192537091be9ff84d68a380c343d95e7dc2c28",
+      "versionCode": 16,
+      "versionName": "1.0.14",
+      "apkUrl": "https://salahtime.tomorrowtools.dev/downloads/salahtime-moderator.apk?v=1.0.14&sha=971f7448e0fd",
+      "sha256": "971f7448e0fd7487cf8a95e10df668ff5cb90873c169373187baaf2658ed258e",
       "sizeBytes": 12755278,
       "minSdk": 26,
-      "changelog": "Moderator v1.0.13: queue controls, nearby mosques 100m on imports, filtered tab, alerts refresh.",
+      "changelog": "Moderator v1.0.14: queue controls, nearby mosques 100m on imports, filtered tab, alerts refresh.",
       "description": "Mosque discovery, prayer times, and maps for your area."
     }
   ],
