@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-10-10T02:16:44Z",
+  "updatedAt": "2026-10-10T13:51:07Z",
   "policy": "Debug APKs are for developer sideload via TT Manager. Prefer release when available. Manager requires sha256.",
   "universeManifestUrl": "https://tomorrowtools.dev/api/universe/manifest.json",
   "apps": [
@@ -59,27 +59,40 @@
       "id": "salahtime-dev",
       "name": "salahtime-dev",
       "packageName": "dev.tomorrowtools.salahtime.dev",
-      "versionCode": 494,
-      "versionName": "3.2.29",
-      "apkUrl": "https://salahtime-dev.tomorrowtools.dev/downloads/salahtime-dev.apk?v=3.2.29&sha=d0fad5b662f7",
-      "sha256": "d0fad5b662f766e99c2241d512455b18a6b8c7d6811223efec952a5dea9a51e0",
+      "versionCode": 498,
+      "versionName": "3.2.33",
+      "apkUrl": "https://salahtime-dev.tomorrowtools.dev/downloads/salahtime-dev.apk?v=3.2.33&sha=acf3361bbb23",
+      "sha256": "acf3361bbb239302e18d5c075e3e2673b08c33b2665a11adb5c29e07eb125c97",
       "description": "Dev channel for Salahtime (salahtime-dev.tomorrowtools.dev).",
-      "sizeBytes": 9941650,
+      "sizeBytes": 11613180,
       "minSdk": 26,
-      "changelog": "Dev v3.2.29: bundled adhan/phrase sounds; prayer alarms + favourite/nearby notifications (immediate sync); POST_NOTIFICATIONS on launch."
+      "changelog": "Dev v3.2.33: bundled adhan/phrase sounds; prayer alarms + favourite/nearby notifications (immediate sync); POST_NOTIFICATIONS on launch."
     },
     {
       "id": "salahtime-moderator",
       "name": "Salahtime Moderator",
       "packageName": "dev.tomorrowtools.salahtime.moderator",
-      "versionCode": 16,
-      "versionName": "1.0.14",
-      "apkUrl": "https://salahtime.tomorrowtools.dev/downloads/salahtime-moderator.apk?v=1.0.14&sha=971f7448e0fd",
-      "sha256": "971f7448e0fd7487cf8a95e10df668ff5cb90873c169373187baaf2658ed258e",
-      "sizeBytes": 12755278,
+      "versionCode": 18,
+      "versionName": "1.0.16",
+      "apkUrl": "https://salahtime.tomorrowtools.dev/downloads/salahtime-moderator.apk?v=1.0.16&sha=6696ca8f9641",
+      "sha256": "6696ca8f9641f2b789b8f518a1c67705fdf024186499bad7d46ba797db5addf4",
+      "sizeBytes": 12774050,
       "minSdk": 26,
-      "changelog": "Moderator v1.0.14: queue controls, nearby mosques 100m on imports, filtered tab, alerts refresh.",
+      "changelog": "Moderator v1.0.16: queue controls, nearby mosques 100m on imports, filtered tab, alerts refresh.",
       "description": "Mosque discovery, prayer times, and maps for your area."
+    },
+    {
+      "id": "storepoint",
+      "name": "StorePoint",
+      "packageName": "dev.tomorrowtools.storepoint",
+      "versionCode": 1,
+      "versionName": "0.1.0-dev",
+      "apkUrl": "https://storepoint.tomorrowtools.dev/downloads/storepoint-debug.apk",
+      "sha256": "67655d004f797051349d2bc259409fed459f35a43eeca8fcca069886a57f4c26",
+      "description": "Boutique store — swipe, cover flow, grid catalog with owner OTP auth.",
+      "sizeBytes": 165789838,
+      "minSdk": 26,
+      "changelog": "Initial dev APK: StorePoint catalog, auth, admin OTP/publish hooks."
     }
   ],
   "sites": [
