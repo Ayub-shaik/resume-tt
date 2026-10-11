@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-10-10T13:51:07Z",
+  "updatedAt": "2026-10-11T04:23:22Z",
   "policy": "Debug APKs are for developer sideload via TT Manager. Prefer release when available. Manager requires sha256.",
   "universeManifestUrl": "https://tomorrowtools.dev/api/universe/manifest.json",
   "apps": [
@@ -59,14 +59,14 @@
       "id": "salahtime-dev",
       "name": "salahtime-dev",
       "packageName": "dev.tomorrowtools.salahtime.dev",
-      "versionCode": 498,
-      "versionName": "3.2.33",
-      "apkUrl": "https://salahtime-dev.tomorrowtools.dev/downloads/salahtime-dev.apk?v=3.2.33&sha=acf3361bbb23",
-      "sha256": "acf3361bbb239302e18d5c075e3e2673b08c33b2665a11adb5c29e07eb125c97",
+      "versionCode": 500,
+      "versionName": "3.2.35",
+      "apkUrl": "https://salahtime-dev.tomorrowtools.dev/downloads/salahtime-dev.apk?v=3.2.35&sha=2516e2c8c972",
+      "sha256": "2516e2c8c9729042c4449a76e92234ae459acd5f1223265ef3b31036bd06db4b",
       "description": "Dev channel for Salahtime (salahtime-dev.tomorrowtools.dev).",
       "sizeBytes": 11613180,
       "minSdk": 26,
-      "changelog": "Dev v3.2.33: bundled adhan/phrase sounds; prayer alarms + favourite/nearby notifications (immediate sync); POST_NOTIFICATIONS on launch."
+      "changelog": "Dev v3.2.35: bundled adhan/phrase sounds; prayer alarms + favourite/nearby notifications (immediate sync); POST_NOTIFICATIONS on launch."
     },
     {
       "id": "salahtime-moderator",
@@ -82,17 +82,34 @@
       "description": "Mosque discovery, prayer times, and maps for your area."
     },
     {
-      "id": "storepoint",
-      "name": "StorePoint",
-      "packageName": "dev.tomorrowtools.storepoint",
-      "versionCode": 1,
-      "versionName": "0.1.0-dev",
-      "apkUrl": "https://storepoint.tomorrowtools.dev/downloads/storepoint-debug.apk",
-      "sha256": "67655d004f797051349d2bc259409fed459f35a43eeca8fcca069886a57f4c26",
-      "description": "Boutique store — swipe, cover flow, grid catalog with owner OTP auth.",
-      "sizeBytes": 165789838,
+      "id": "storepoint-customer",
+      "name": "StorePoint Shop",
+      "packageName": "dev.tomorrowtools.storepoint.customer",
+      "versionCode": 6,
+      "versionName": "0.2.1",
+      "apkUrl": "https://storepoint.tomorrowtools.dev/downloads/storepoint-native-customer-debug.apk?v=0.2.1&vc=6&sha=36266fcc41a1",
+      "sha256": "36266fcc41a1e265f0f684c3afe2de8581603b39e555b557720b9a912c3accb7",
+      "description": "Salam Traders customer app.",
+      "sizeBytes": 18506729,
       "minSdk": 26,
-      "changelog": "Initial dev APK: StorePoint catalog, auth, admin OTP/publish hooks."
+      "changelog": "v0.2.1 build 6: demo shop, brand kit, orders.",
+      "packageId": "dev.tomorrowtools.storepoint.customer",
+      "platform": "android"
+    },
+    {
+      "id": "storepoint-owner",
+      "name": "StorePoint Owner",
+      "packageName": "dev.tomorrowtools.storepoint.owner",
+      "versionCode": 6,
+      "versionName": "0.2.1",
+      "apkUrl": "https://storepoint.tomorrowtools.dev/downloads/storepoint-native-owner-debug.apk?v=0.2.1&vc=6&sha=a77133643ee0",
+      "sha256": "a77133643ee05cf03050c603296b0528c2edb083040689fe3254c31ff16fdbdd",
+      "description": "Owner ops.",
+      "sizeBytes": 16769102,
+      "minSdk": 26,
+      "changelog": "v0.2.1 build 6: order desk and brand kit.",
+      "packageId": "dev.tomorrowtools.storepoint.owner",
+      "platform": "android"
     }
   ],
   "sites": [
@@ -173,6 +190,12 @@
       "hostname": "jenkins.tomorrowtools.dev",
       "url": "https://jenkins.tomorrowtools.dev/",
       "summary": "Jenkins CD UI and GitHub webhooks for homelab builds."
+    },
+    {
+      "id": "storepoint",
+      "hostname": "storepoint.tomorrowtools.dev",
+      "url": "https://storepoint.tomorrowtools.dev/",
+      "summary": "StorePoint boutique — web catalog + native Shop and Owner APKs."
     }
   ]
 }
