@@ -1,7 +1,7 @@
 import { buildFactLedger, validateFacts } from "./facts.js";
 import { extractJsonObject } from "./json.js";
 import { neutralizeForPrompt, tailorSystemPrompt } from "./prompts.js";
-import { sanitizeAtsMarkdown } from "./sanitize.js";
+import { sanitizeAtsMarkdown, normalizeCoverLetterMarkdown } from "./sanitize.js";
 import {
   isSaturated,
   scoreTriple,
@@ -18,9 +18,10 @@ import type {
 function parseTailorResponse(raw: Record<string, unknown>) {
   const resumeMd = sanitizeAtsMarkdown(String(raw.resume_md || ""));
   if (!resumeMd.trim()) throw new Error("Tailor returned empty resume");
+  const coverRaw = String(raw.cover_md || "");
   return {
     resumeMd,
-    coverMd: sanitizeAtsMarkdown(String(raw.cover_md || "")),
+    coverMd: coverRaw.trim() ? normalizeCoverLetterMarkdown(coverRaw) : "",
     filenameStub: String(raw.filename_stub || "ATS_Resume").replace(/[^\w.-]+/g, "_"),
     notes: Array.isArray(raw.notes) ? raw.notes.slice(0, 12).map(String) : [],
   };
@@ -40,6 +41,7 @@ export async function runImprovePass(input: ImprovePassInput): Promise<ImprovePa
     includeCover = false,
     profileJson,
     fitScoreJson,
+    extraInstruction = "",
   } = input;
 
   const tier = selectModelTier(matchScore);
@@ -62,6 +64,21 @@ export async function runImprovePass(input: ImprovePassInput): Promise<ImprovePa
     neutralizeForPrompt(currentResume),
   ];
 
+  if (extraInstruction.trim()) {
+    userParts.push(
+      "",
+      "USER FOCUS (mandatory — stay within FACT LEDGER / master facts):",
+      neutralizeForPrompt(extraInstruction, 2000),
+      "",
+      "SECTION CHECKLIST for this focus (all required when a stack is emphasized):",
+      "- Headline/title line: emphasized stack first if present in facts; not the competing stack.",
+      "- Professional summary: open with emphasized stack; competing stack secondary.",
+      "- Skills: emphasized stack before competing clouds/tools.",
+      "- Experience: reorder bullets so emphasized-stack work appears earlier in each relevant role; do not leave it as a trailing 'also supports X' bullet while AWS/other leads.",
+      "- notes[] must list which sections you reweighted (headline, summary, skills, experience).",
+    );
+  }
+
   if (profileJson) {
     userParts.push("", "PROFILE JSON:", JSON.stringify(profileJson));
   }
@@ -69,7 +86,15 @@ export async function runImprovePass(input: ImprovePassInput): Promise<ImprovePa
     userParts.push("", "FIT SCORE JSON:", JSON.stringify(fitScoreJson));
   }
   if (includeCover) {
-    userParts.push("", "Include a one-page cover_md in the JSON response.");
+    userParts.push(
+      "",
+      "Include a one-page cover_md in the JSON response.",
+      "COVER LETTER RULES:",
+      "- Use real paragraph breaks (blank lines). Do NOT emit literal \\\\n or \\\\n\\\\n text — only actual newlines in cover_md.",
+      "- Professional grammar and spacing; never glue words together.",
+      "- Never duplicate acronym fragments (write AWS, not AWAWS) or name fragments (Ayub Shaik, not AyAyub).",
+      "- Structure: salutation, 3–4 body paragraphs, closing, signature (name + email + phone).",
+    );
   }
 
   const messages: Array<{ role: "system" | "user"; content: string }> = [
@@ -80,16 +105,19 @@ export async function runImprovePass(input: ImprovePassInput): Promise<ImprovePa
   let lastErr: unknown;
   let parsed: ReturnType<typeof parseTailorResponse> | null = null;
 
-  for (let attempt = 0; attempt < 2; attempt++) {
+  for (let attempt = 0; attempt < 3; attempt++) {
     try {
       const text = await complete(messages, {
         tier,
         sessionId: `resume-brain-v${version}-${focus}`,
       });
+      if (!String(text || "").trim()) {
+        throw new Error("Empty model response");
+      }
       const raw = extractJsonObject(text);
       const candidate = parseTailorResponse(raw);
       const validation = validateFacts(masterResume, candidate.resumeMd, factLedger);
-      if (!validation.ok && attempt === 0) {
+      if (!validation.ok && attempt < 2) {
         messages.push({
           role: "user",
           content: `REJECTED — fix violations without inventing facts:\n${validation.violations.join("\n")}\n\nReturn corrected JSON only.`,
@@ -100,11 +128,23 @@ export async function runImprovePass(input: ImprovePassInput): Promise<ImprovePa
       break;
     } catch (err) {
       lastErr = err;
+      const msg = err instanceof Error ? err.message : String(err);
+      if (
+        attempt < 2 &&
+        /No JSON object|Empty model|JSON|Unexpected token/i.test(msg)
+      ) {
+        messages.push({
+          role: "user",
+          content:
+            "Your last reply was not valid JSON. Reply with ONLY one JSON object (no markdown fences, no commentary) with keys resume_md, cover_md, filename_stub, notes. resume_md must be the full CV.",
+        });
+        continue;
+      }
     }
   }
 
   if (!parsed) {
-    throw lastErr instanceof Error ? lastErr : new Error("Improve pass failed");
+    throw lastErr instanceof Error ? lastErr : new Error("Improve failed");
   }
 
   const before = scoreTriple(currentResume, jdText, targetRole);
@@ -187,6 +227,7 @@ export async function runImproveMore(input: {
   focus?: ImprovePassInput["focus"];
   profileJson?: unknown;
   fitScoreJson?: unknown;
+  extraInstruction?: string;
 }): Promise<ImprovePassResult> {
   const next = Math.min(4, input.currentVersion + 1) as ResumeVersion;
   if (next === input.currentVersion) {
@@ -206,5 +247,6 @@ export async function runImproveMore(input: {
     includeCover: false,
     profileJson: input.profileJson,
     fitScoreJson: input.fitScoreJson,
+    extraInstruction: input.extraInstruction,
   });
 }

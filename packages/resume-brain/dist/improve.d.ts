@@ -23,5 +23,6 @@ export declare function runImproveMore(input: {
     focus?: ImprovePassInput["focus"];
     profileJson?: unknown;
     fitScoreJson?: unknown;
+    extraInstruction?: string;
 }): Promise<ImprovePassResult>;
 //# sourceMappingURL=improve.d.ts.map

@@ -1,28 +1,28 @@
 # Cursor session handoff
 
 ## Updated
-2026-08-17T19:22:00+05:30
+2026-10-11T09:40:00+05:30
 
 ## Goal
-RocketCV branding, TomorrowTools footers, Profile merge; push to origin.
+RocketCV revamp: Android card studio (Resume / Fit / Layout), parser-scored layouts filled with the improved resume, web studio following that, public template pages.
 
 ## Status
-done-for-now
+done-for-now (web and APK published)
 
 ## Done
-- Web identity is RocketCV + Play-style folded-document mark (`public/rocketcv-mark.svg`).
-- TomorrowTools is in ProductFooter (web) / bottom chrome (Android).
-- Profile is one destination: account, allowlist, Sign out.
-- Public host remains https://resume.tomorrowtools.dev
-- Pushed `4e4efe5` to origin/master.
+- Android `RocketCard` and thick `ScoreRing`. Bottom nav is Resume, Fit, Layout. Fit shows job match as matched/total plus missing rows.
+- `POST /api/ats/layout-preview` renders eight layouts to PNG and scores extracted PDF text. Templates API returns only those eight.
+- Web studio uses the same steps, ring, and layout cards. `/templates` is public. `/app` and `/profile` are noindex. `robots.ts` and `sitemap.ts` added.
+- Published 2026-10-11: web rebuilt and `resume-tt-web.service` restarted. RocketCV APK `1.0.19-layout-studio` versionCode 23 is in `public/downloads/rocketcv-debug-signal.apk` and `apps-manifest.json`.
 
 ## Next steps
-1. Rename Google OAuth consent screen away from AesthetIQ (Console).
-2. Ship a new Play APK when ready.
+1. In TT Manager, tap Refresh and update RocketCV (installed build must be below versionCode 23).
+2. Walk Resume → Fit → Layout on the updated app.
 
 ## Gotchas
-- Do not commit `.env.*` or the shared allowlist sqlite.
-- `rocketcv.tomorrowtools.dev` is not live DNS.
+- Parser score is text extraction of our PDF, not a commercial ATS.
+- Color-alias template ids still render if an old session asks for them; they are not listed.
+- `pdftoppm` and `pdftotext` must be on the server.
 
 ## Open decisions
-- Whether to add Cloudflare DNS for rocketcv.tomorrowtools.dev.
+- Google OAuth consent screen rename (unchanged).
