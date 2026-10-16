@@ -9,6 +9,7 @@ const SECURITY_HEADERS: Record<string, string> = {
   "Cross-Origin-Opener-Policy": "same-origin",
   "Cross-Origin-Resource-Policy": "same-origin",
   "X-DNS-Prefetch-Control": "off",
+  "Strict-Transport-Security": "max-age=31536000",
 };
 
 function csp(isDev: boolean, allowSelfFrame: boolean): string {
