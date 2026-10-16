@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-10-15T01:21:36Z",
+  "updatedAt": "2026-10-16T12:27:03Z",
   "policy": "Debug APKs are for developer sideload via TT Manager. Prefer release when available. Manager requires sha256.",
   "universeManifestUrl": "https://tomorrowtools.dev/api/universe/manifest.json",
   "apps": [
@@ -59,14 +59,14 @@
       "id": "salahtime-dev",
       "name": "salahtime-dev",
       "packageName": "dev.tomorrowtools.salahtime.dev",
-      "versionCode": 500,
-      "versionName": "3.2.35",
-      "apkUrl": "https://salahtime-dev.tomorrowtools.dev/downloads/salahtime-dev.apk?v=3.2.35&sha=f7e955bde19b",
-      "sha256": "f7e955bde19b6b9b152b629f426124cbf5dd46e3d4bef4dbba5b3aa255097974",
+      "versionCode": 507,
+      "versionName": "3.2.42",
+      "apkUrl": "https://salahtime-dev.tomorrowtools.dev/downloads/salahtime-dev.apk?v=3.2.42&sha=1619487081ef",
+      "sha256": "1619487081ef7c58e38c60fd2384d3e334d410c9ea7701f4c1b88053c50a70d7",
       "description": "Dev channel for Salahtime (salahtime-dev.tomorrowtools.dev).",
-      "sizeBytes": 13454464,
+      "sizeBytes": 13489300,
       "minSdk": 26,
-      "changelog": "Dev v3.2.35: bundled adhan/phrase sounds; prayer alarms + favourite/nearby notifications (immediate sync); POST_NOTIFICATIONS on launch."
+      "changelog": "Dev v3.2.42: home banner uses Google AdMob with Meta Audience Network bidding."
     },
     {
       "id": "salahtime-moderator",
