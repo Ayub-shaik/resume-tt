@@ -12,6 +12,12 @@ const nextConfig: NextConfig = {
   ],
   allowedDevOrigins: ["127.0.0.1", "localhost"],
   poweredByHeader: false,
+  async rewrites() {
+    return [
+      // Next strips trailing slashes from /downloads/ → /downloads, which is not a static file.
+      { source: "/downloads", destination: "/downloads/index.html" },
+    ];
+  },
 };
 
 export default nextConfig;

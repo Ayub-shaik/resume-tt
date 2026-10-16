@@ -21,8 +21,8 @@ export function AppNav({
         <div className="flex items-start justify-between gap-2">
           <div>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/rocketcv-mark.svg" alt="" className="mb-2 h-8 w-8" />
-            <h1 className="mt-1 font-[family-name:var(--font-display)] text-xl tracking-tight leading-tight text-[var(--ink)]">
+            <img src="/rocketcv-mark.svg" alt="" className="mb-2 h-10 w-10" />
+            <h1 className="mt-1 font-[family-name:var(--font-display)] text-2xl tracking-tight leading-none text-[var(--ink)]">
               RocketCV
             </h1>
             <p className="mt-1 text-[11px] font-medium tracking-[0.08em] text-[var(--accent)] uppercase">

@@ -14,9 +14,9 @@ const body = Manrope({
 });
 
 export const metadata: Metadata = {
-  title: "RocketCV — ATS Resume Builder",
+  title: "RocketCV — tailor a resume to a job",
   description:
-    "Most resumes never reach a human. Match yours to the JD you’re targeting — ATS analyse, tailor, and export.",
+    "Match your resume to a job, then export a layout and see how much of the PDF a text extract keeps.",
   icons: {
     icon: "/rocketcv-mark.svg",
     apple: "/rocketcv-mark.svg",

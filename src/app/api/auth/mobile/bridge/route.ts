@@ -1,5 +1,7 @@
 import { requireSession } from "@/lib/auth/session";
 import { signMobileToken } from "@/lib/auth/mobileToken";
+import { publicAppOrigin } from "@/lib/auth/publicOrigin";
+import { signIn } from "@/lib/auth/config";
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
@@ -8,20 +10,17 @@ export const runtime = "nodejs";
  * After Google sign-in in a Custom Tab / browser, redirect into the Android app
  * with a Bearer token (techbytes-style deep link handoff).
  *
- * Open: /api/auth/signin/google?callbackUrl=/api/auth/mobile/bridge
+ * Android opens: /api/auth/mobile/bridge?scheme=ttresume
  */
 export async function GET(req: Request) {
   const ctx = await requireSession();
   const url = new URL(req.url);
   const scheme = url.searchParams.get("scheme") || "ttresume";
+  const origin = publicAppOrigin(req);
+  const returnTo = `${origin}/api/auth/mobile/bridge?scheme=${encodeURIComponent(scheme)}`;
 
   if (!ctx) {
-    const signIn = new URL("/api/auth/signin/google", url.origin);
-    signIn.searchParams.set(
-      "callbackUrl",
-      `${url.origin}/api/auth/mobile/bridge?scheme=${encodeURIComponent(scheme)}`,
-    );
-    return NextResponse.redirect(signIn);
+    return signIn("google", { redirectTo: returnTo });
   }
 
   const token = signMobileToken({

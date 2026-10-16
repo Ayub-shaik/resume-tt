@@ -13,7 +13,8 @@ import {
   fetchPreviewBlob,
   ResumeAsIsPreview,
 } from "@/components/ResumeAsIsPreview";
-import { ImproveSpeedometers, type TailorRowState } from "@/components/ImproveSpeedometers";
+import { ScoreRing } from "@/components/ScoreRing";
+import type { TailorRowState } from "@/components/ImproveSpeedometers";
 import { VersionPreviewModal } from "@/components/VersionPreviewModal";
 import { diffResumeLines } from "@/lib/ats/resumeLineDiff";
 import {
@@ -1367,16 +1368,16 @@ export function AtsStudio() {
   }
 
   const primaryTabs: [Tab, string][] = [
-    ["prepare", "Prepare"],
-    ["analyze", "Analyse & improve"],
-    ["builder", "Builder"],
+    ["prepare", "Resume"],
+    ["analyze", "Fit"],
+    ["builder", "Layout"],
   ];
   // moreOpen state is declared with other hooks above
 
   return (
     // Desktop: fixed viewport with pane scroll. Mobile: allow page scroll
     // (overflow-hidden + h-dvh traps Builder like the MPI bug).
-    <div className="flex min-h-dvh flex-col md:h-dvh md:flex-row md:overflow-hidden">
+    <div className="rocket-studio flex min-h-dvh flex-col md:h-dvh md:flex-row md:overflow-hidden">
       {navOpen && (
         <button
           type="button"
@@ -1478,7 +1479,7 @@ export function AtsStudio() {
                 RocketCV
               </p>
               <p className="truncate text-xs text-[var(--muted)]">
-                Analyze · improve · layouts
+                Resume · fit · layout
               </p>
             </div>
           </div>
@@ -1927,49 +1928,43 @@ export function AtsStudio() {
                     </div>
 
                     {masterScores ? (
-                      <section className="rounded-xl border border-[var(--line)] bg-white/80 p-4">
-                        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                          <h3 className="font-[family-name:var(--font-display)] text-base font-semibold">
-                            Tailor scores
-                          </h3>
-                          {benchmarkScore != null ? (
-                            <p className="text-xs text-[var(--muted)]">
-                              Benchmark: {benchmarkScore}/100
-                            </p>
-                          ) : null}
-                        </div>
-                        <p className="mb-3 text-xs text-[var(--muted)]">
-                          Each row tailors your current working draft. After ATS
-                          passes, Overall uses the updated resume. Meters are
-                          relative revision indicators, not hire/ATS predictions.
-                        </p>
-                        <ImproveSpeedometers
-                          masterScores={masterScores}
-                          jdPresent={jdPresent}
-                          rows={tailorRows}
-                          busyFocus={busyFocus}
-                          onImprove={(focus) => void runBrainImprove(focus)}
-                          onExplainTailor={(metric) =>
-                            setScoreExplain({ type: "tailor", metric })
+                      <section className="rocket-card">
+                        <h3 className="mb-4 text-base font-semibold text-[#FAF6EF]">
+                          Job match
+                        </h3>
+                        <ScoreRing
+                          label="Job match"
+                          valueText={`${analysis.matchedKeywords?.length ?? 0}/${Math.max(1, (analysis.matchedKeywords?.length ?? 0) + (analysis.missingKeywords?.length ?? 0))}`}
+                          fraction={
+                            (analysis.matchedKeywords?.length ?? 0) /
+                            Math.max(
+                              1,
+                              (analysis.matchedKeywords?.length ?? 0) +
+                                (analysis.missingKeywords?.length ?? 0),
+                            )
                           }
-                          onShowChanges={(focus) => {
-                            const row = tailorRows[focus];
-                            if (row.changeLines.length) {
-                              setTailorRows((prev) => ({
-                                ...prev,
-                                [focus]: { ...prev[focus], feedActive: true },
-                              }));
-                            }
-                          }}
-                          onVersionClick={(focus, version) => {
-                            if (!version.resumeText) return;
-                            setVersionPreview({
-                              focus,
-                              label: version.label,
-                              resumeText: version.resumeText,
-                            });
-                          }}
                         />
+                        <ul className="mt-4 space-y-2">
+                          {(analysis.missingKeywords || []).slice(0, 12).map((term) => {
+                            const corpus = improvedText || resumeText;
+                            const canImprove = corpus.toLowerCase().includes(term.toLowerCase());
+                            return (
+                              <li key={term} className="flex items-center justify-between gap-3 text-sm text-[#FAF6EF]">
+                                <span>{term}</span>
+                                {canImprove ? (
+                                  <button
+                                    type="button"
+                                    className="text-sm font-semibold text-[#FFB020]"
+                                    disabled={Boolean(busyFocus)}
+                                    onClick={() => void runBrainImprove("jd")}
+                                  >
+                                    Improve
+                                  </button>
+                                ) : null}
+                              </li>
+                            );
+                          })}
+                        </ul>
                       </section>
                     ) : null}
 

@@ -12,3 +12,4 @@ public/downloads/*.apk
 
 # Android local caches
 android/.kotlin/
+graft/

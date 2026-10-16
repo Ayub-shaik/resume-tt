@@ -1,5 +1,5 @@
 import { requireSession } from "@/lib/auth/session";
-import { TEMPLATE_META } from "@/lib/ats/templates/shared";
+import { LAYOUT_BENEFIT, LAYOUT_META } from "@/lib/ats/templates/shared";
 import { jsonError, jsonOk } from "@/lib/api";
 import { clientKey, rateLimit } from "@/lib/security/rateLimit";
 
@@ -21,12 +21,13 @@ export async function GET(req: Request) {
   }
 
   return jsonOk({
-    templates: TEMPLATE_META.map((t) => ({
+    templates: LAYOUT_META.map((t) => ({
       id: t.id,
       name: t.name,
       blurb: t.blurb,
       category: t.category,
       accent: t.accent,
+      benefit: LAYOUT_BENEFIT[t.id as keyof typeof LAYOUT_BENEFIT],
     })),
   });
 }

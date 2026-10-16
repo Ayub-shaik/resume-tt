@@ -607,6 +607,41 @@ export function isTemplateId(v: string): v is TemplateId {
   return TEMPLATE_META.some((t) => t.id === v);
 }
 
+/** One layout per structure. Color aliases stay renderable but are not offered. */
+export const LAYOUT_IDS = [
+  "ats_lines",
+  "header_strip",
+  "timeline",
+  "one_page_dense",
+  "sidebar",
+  "executive",
+  "grid_projects",
+  "dual",
+] as const;
+
+export type LayoutId = (typeof LAYOUT_IDS)[number];
+
+export const LAYOUT_BENEFIT: Record<LayoutId, string> = {
+  ats_lines: "Use this when you apply through a portal. Ruled headings survive a text extract.",
+  header_strip: "Same single-column safety, with contact as the first thing a person sees.",
+  timeline: "Dates lead each role, so a recruiter sees when you did the work.",
+  one_page_dense: "Fits one page without a second column.",
+  sidebar: "Skills sit in a rail for a person opening the PDF. Many parsers read that rail late.",
+  executive: "Reads like a leadership document on paper or in email.",
+  grid_projects: "Projects lead, for roles judged on shipped work.",
+  dual: "Two reading zones for a portfolio-style skim. Parsers may flatten the columns.",
+};
+
+export function isLayoutId(v: string): v is LayoutId {
+  return (LAYOUT_IDS as readonly string[]).includes(v);
+}
+
+export const LAYOUT_META = LAYOUT_IDS.map((id) => {
+  const meta = TEMPLATE_META.find((t) => t.id === id);
+  if (!meta) throw new Error(`Missing layout template: ${id}`);
+  return meta;
+});
+
 export function contactLine(basics: Basics): string {
   return [basics.email, basics.phone, basics.location?.city, basics.url]
     .map((x) => (typeof x === "string" ? x.trim() : ""))
