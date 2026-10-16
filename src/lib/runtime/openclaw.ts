@@ -17,14 +17,22 @@ function statusFromError(err: unknown): number {
   return 0;
 }
 
+function isTransientAiError(err: unknown): boolean {
+  const status = statusFromError(err);
+  if (isRetryableStatus(status)) return true;
+  if (!(err instanceof Error)) return false;
+  return /empty content|empty-turn|couldn't generate|ECONNRESET|fetch failed|socket|502|503|504/i.test(
+    err.message,
+  );
+}
+
 /**
- * Call OpenClaw. Concurrent-safe when each caller passes a unique sessionKey
- * (see sessionKey.ts). Retries transient gateway overload — does not globally
- * queue other users' work.
+ * Call OpenClaw. Concurrent-safe when each caller passes a unique sessionKey.
+ * Retries transient gateway/upstream failures.
  */
 export async function runOpenClaw(
   messages: ChatMessage[],
-  opts?: { sessionKey?: string; signal?: AbortSignal },
+  opts?: { sessionKey?: string; signal?: AbortSignal; fast?: boolean },
 ): Promise<RuntimeResult> {
   const maxAttempts = 3;
   let lastErr: unknown;
@@ -34,13 +42,16 @@ export async function runOpenClaw(
       return await runConfiguredAi(messages, opts);
     } catch (err) {
       lastErr = err;
-      const status = statusFromError(err);
-      const abort =
-        err instanceof Error && /aborted|AbortError|timeout/i.test(err.message);
-      if (abort || attempt >= maxAttempts || !isRetryableStatus(status)) {
+      const hardAbort =
+        err instanceof Error &&
+        (err.name === "TimeoutError" ||
+          err.name === "AbortError" ||
+          (/aborted|timeout/i.test(err.message) &&
+            !/empty/i.test(err.message)));
+      if (hardAbort || attempt >= maxAttempts || !isTransientAiError(err)) {
         throw err;
       }
-      await sleep(350 * attempt * attempt);
+      await sleep(400 * attempt * attempt);
     }
   }
 

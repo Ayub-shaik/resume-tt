@@ -9,8 +9,25 @@ export class AiHttpError extends Error {
     super(`AI provider HTTP ${status}`);
     this.name = "AiHttpError";
     this.status = status;
-    void body; // retained for callers that may inspect via instanceof + status only
+    void body;
   }
+}
+
+function aiAbortSignal(user?: AbortSignal): AbortSignal {
+  const raw = Number(process.env.AI_TIMEOUT_MS);
+  const ms = Number.isFinite(raw) && raw > 0 ? raw : 180_000;
+  const timeout = AbortSignal.timeout(ms);
+  if (!user) return timeout;
+  return AbortSignal.any([user, timeout]);
+}
+
+function isAbortError(err: unknown): boolean {
+  return (
+    err instanceof Error &&
+    (err.name === "TimeoutError" ||
+      err.name === "AbortError" ||
+      /aborted|timeout/i.test(err.message))
+  );
 }
 
 /**
@@ -24,24 +41,33 @@ export async function runConfiguredAi(
   opts?: { sessionKey?: string; signal?: AbortSignal; fast?: boolean },
 ): Promise<RuntimeResult> {
   const config = resolveAiConfig({ fast: opts?.fast });
-  const { endpoint, apiKey, model } = config;
-  const response = await fetch(endpoint, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-      ...(opts?.sessionKey
-        ? { "x-openclaw-session-key": opts.sessionKey }
-        : {}),
-    },
-    body: JSON.stringify({
-      model,
-      messages,
-      temperature: 0.4,
-      user: opts?.sessionKey ? `tt:${opts.sessionKey}` : undefined,
-    }),
-    signal: opts?.signal,
-  });
+  const { endpoint, apiKey, model, backendModel } = config;
+  let response: Response;
+  try {
+    response = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+        ...(opts?.sessionKey
+          ? { "x-openclaw-session-key": opts.sessionKey }
+          : {}),
+        ...(backendModel ? { "x-openclaw-model": backendModel } : {}),
+      },
+      body: JSON.stringify({
+        model,
+        messages,
+        temperature: 0.4,
+        user: opts?.sessionKey ? `tt:${opts.sessionKey}` : undefined,
+      }),
+      signal: aiAbortSignal(opts?.signal),
+    });
+  } catch (err) {
+    if (isAbortError(err)) {
+      throw new Error("Timed out waiting for the AI runtime.");
+    }
+    throw err;
+  }
   if (!response.ok) {
     const body = await response.text();
     throw new AiHttpError(response.status, body);
@@ -58,6 +84,7 @@ export function resolveAiConfig(opts?: { fast?: boolean }): {
   endpoint: string;
   apiKey: string;
   model: string;
+  backendModel?: string;
 } {
   const baseUrl =
     process.env.AI_BASE_URL?.trim() ||
@@ -73,9 +100,14 @@ export function resolveAiConfig(opts?: { fast?: boolean }): {
     process.env.OPENCLAW_MODEL?.trim() ||
     "openclaw/default";
   const fast = process.env.AI_MODEL_FAST?.trim();
+  const backendModel =
+    process.env.AI_BACKEND_MODEL?.trim() ||
+    process.env.OPENCLAW_BACKEND_MODEL?.trim() ||
+    "custom-localhost-20128/auto/pro-chat";
   return {
     endpoint,
     apiKey,
     model: opts?.fast && fast ? fast : primary,
+    backendModel,
   };
 }
