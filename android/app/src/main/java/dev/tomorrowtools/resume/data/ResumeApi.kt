@@ -48,6 +48,9 @@ interface ResumeApi {
     @GET("api/ats/templates")
     suspend fun templates(): TemplatesPayload
 
+    @POST("api/ats/layout-preview")
+    suspend fun layoutPreview(@Body body: LayoutPreviewRequest): LayoutPreviewPayload
+
     @POST("api/brain/improve")
     suspend fun improve(
         @Body body: ImproveRequest,

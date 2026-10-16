@@ -38,6 +38,16 @@ import kotlinx.serialization.json.JsonObject
 @Serializable data class BrandPayload(val kit: CareerBrandKit)
 @Serializable data class TemplateMeta(val id: String, val name: String, val blurb: String? = null, val category: String? = null, val accent: String? = null)
 @Serializable data class TemplatesPayload(val templates: List<TemplateMeta> = emptyList())
+@Serializable data class LayoutPreviewRequest(val resume: JsonObject)
+@Serializable data class LayoutCard(
+    val id: String,
+    val name: String,
+    val png: String = "",
+    val parserScore: Int = 0,
+    val survived: String = "",
+    val benefit: String = "",
+)
+@Serializable data class LayoutPreviewPayload(val layouts: List<LayoutCard> = emptyList())
 @Serializable data class ImproveRequest(
     val action: String = "pass",
     val masterResume: String,

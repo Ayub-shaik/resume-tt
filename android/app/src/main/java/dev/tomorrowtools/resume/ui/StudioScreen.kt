@@ -1,9 +1,12 @@
 package dev.tomorrowtools.resume.ui
 
 import android.content.Intent
+import android.graphics.BitmapFactory
 import android.net.Uri
+import android.util.Base64
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -40,12 +43,14 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -56,6 +61,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -101,14 +108,19 @@ fun StudioScreen(vm: ResumeStudioVm) {
     }
     Box(Modifier.fillMaxSize()) {
         Scaffold(
+            containerColor = MaterialTheme.colorScheme.background,
             topBar = {
                 TopAppBar(
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background,
+                    titleContentColor = MaterialTheme.colorScheme.onBackground,
+                    actionIconContentColor = MaterialTheme.colorScheme.primary,
+                ),
                 title = { Text("RocketCV") },
                 actions = {
                     if (canOpenMpi) {
                         TextButton(onClick = { openMpiWithResumeContext(ctx, vm) }, enabled = !vm.busy) { Text("MPI") }
                     }
-                    TextButton(onClick = { vm.selectTab(ResumeTab.Builder) }, enabled = !vm.busy) { Text("Templates") }
                     TextButton(onClick = { moreOpen = true }, enabled = !vm.busy) { Text("More") }
                     DropdownMenu(expanded = moreOpen, onDismissRequest = { moreOpen = false }) {
                         DropdownMenuItem(
@@ -116,15 +128,11 @@ fun StudioScreen(vm: ResumeStudioVm) {
                             onClick = { moreOpen = false; vm.selectTab(ResumeTab.Brand) },
                         )
                         DropdownMenuItem(
-                            text = { Text("Templates / PDF") },
-                            onClick = { moreOpen = false; vm.selectTab(ResumeTab.Builder) },
-                        )
-                        DropdownMenuItem(
                             text = { Text("Profile") },
                             onClick = { moreOpen = false; vm.selectTab(ResumeTab.Profile) },
                         )
                         DropdownMenuItem(
-                            text = { Text("Jobs") },
+                            text = { Text("Jobs (open in browser)") },
                             onClick = {
                                 moreOpen = false
                                 ctx.startActivity(
@@ -147,27 +155,39 @@ fun StudioScreen(vm: ResumeStudioVm) {
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                    NavigationBar {
+                    NavigationBar(
+                        containerColor = MaterialTheme.colorScheme.surface,
+                    ) {
+                    val navColors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = MaterialTheme.colorScheme.onPrimary,
+                        selectedTextColor = MaterialTheme.colorScheme.primary,
+                        indicatorColor = MaterialTheme.colorScheme.primary,
+                        unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                     NavigationBarItem(
                     selected = vm.tab == ResumeTab.Prepare,
                     onClick = { if (!vm.busy) vm.selectTab(ResumeTab.Prepare) },
                     enabled = !vm.busy,
-                    icon = { Icon(Icons.Filled.UploadFile, contentDescription = "Prepare") },
-                    label = { Text("Prepare") },
+                    colors = navColors,
+                    icon = { Icon(Icons.Filled.UploadFile, contentDescription = "Resume") },
+                    label = { Text("Resume") },
                     )
                     NavigationBarItem(
-                    selected = vm.tab == ResumeTab.Analyse || vm.tab == ResumeTab.Brand || vm.tab == ResumeTab.Profile,
+                    selected = vm.tab == ResumeTab.Analyse,
                     onClick = { if (!vm.busy) vm.selectTab(ResumeTab.Analyse) },
                     enabled = !vm.busy,
-                    icon = { Icon(Icons.AutoMirrored.Filled.FactCheck, contentDescription = "Analyze and improve") },
-                    label = { Text("Analyze & improve") },
+                    colors = navColors,
+                    icon = { Icon(Icons.AutoMirrored.Filled.FactCheck, contentDescription = "Fit") },
+                    label = { Text("Fit") },
                     )
                     NavigationBarItem(
-                    selected = vm.tab == ResumeTab.Builder || vm.tab == ResumeTab.Tailor,
+                    selected = vm.tab == ResumeTab.Builder,
                     onClick = { if (!vm.busy) vm.selectTab(ResumeTab.Builder) },
                     enabled = !vm.busy,
-                    icon = { Icon(Icons.Filled.AutoFixHigh, contentDescription = "Templates") },
-                    label = { Text("Templates") },
+                    colors = navColors,
+                    icon = { Icon(Icons.Filled.AutoFixHigh, contentDescription = "Layout") },
+                    label = { Text("Layout") },
                     )
                     }
                 }
@@ -176,7 +196,7 @@ fun StudioScreen(vm: ResumeStudioVm) {
             Column(Modifier.padding(pad).fillMaxSize()) {
             if (vm.busy) LinearProgressIndicator(Modifier.fillMaxWidth())
             vm.busyMessage?.let {
-                Text(it, color = MaterialTheme.colorScheme.tertiary, modifier = Modifier.padding(8.dp))
+                Text(it, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(8.dp))
             }
             vm.error?.let {
                 Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(8.dp))
@@ -208,8 +228,7 @@ fun StudioScreen(vm: ResumeStudioVm) {
             }
             when (vm.tab) {
                 ResumeTab.Prepare -> PrepareTab(vm)
-                ResumeTab.Analyse -> AnalyseTab(vm)
-                ResumeTab.Tailor -> TailorTab(vm)
+                ResumeTab.Analyse, ResumeTab.Tailor -> AnalyseTab(vm)
                 ResumeTab.Brand -> BrandTab(vm)
                 ResumeTab.Builder -> BuilderTab(vm)
                 ResumeTab.Profile -> ProfileTab(vm)
@@ -283,11 +302,12 @@ private fun PrepareTab(vm: ResumeStudioVm) {
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Text("Prepare", style = MaterialTheme.typography.titleLarge)
-        Text("Paste or upload (.txt/.md/.pdf/.doc/.docx/.pptx/.xlsx/…). Scanned PDFs need OCR on server.")
+        Text("Resume", style = MaterialTheme.typography.titleLarge)
+        Text("Paste or upload a resume, then add the job you are aiming at.", color = RocketMuted)
+        RocketCard {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedButton(onClick = { vm.startFreshPackage() }, enabled = !vm.busy) { Text("Fresh package") }
-            OutlinedButton(
+            TextButton(onClick = { vm.startFreshPackage() }, enabled = !vm.busy) { Text("Fresh package") }
+            TextButton(
                 onClick = { vm.continueLastSession() },
                 enabled = !vm.busy,
             ) {
@@ -302,11 +322,15 @@ private fun PrepareTab(vm: ResumeStudioVm) {
             readOnly = vm.busy,
         )
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedButton(onClick = { pick.launch(PARSE_MIME_TYPES) }, enabled = !vm.busy) {
+            TextButton(onClick = { pick.launch(PARSE_MIME_TYPES) }, enabled = !vm.busy) {
                 ActionButtonLabel(vm, "Parsing resume", "Upload resume file")
             }
-            OutlinedButton(onClick = { vm.saveSession("prepare") }, enabled = !vm.busy) { Text("Save draft") }
+            TextButton(onClick = { vm.saveSession("prepare") }, enabled = !vm.busy) { Text("Save draft") }
         }
+        }
+        Spacer(Modifier.height(8.dp))
+        Text("Job", style = MaterialTheme.typography.titleSmall, color = RocketMuted)
+        RocketCard {
         OutlinedTextField(
             value = vm.jdUrl,
             onValueChange = vm::updateJdUrl,
@@ -315,7 +339,7 @@ private fun PrepareTab(vm: ResumeStudioVm) {
             singleLine = true,
             readOnly = vm.busy,
         )
-        OutlinedButton(onClick = { vm.fetchJd() }, enabled = vm.jdUrl.isNotBlank() && !vm.busy) {
+        TextButton(onClick = { vm.fetchJd() }, enabled = vm.jdUrl.isNotBlank() && !vm.busy) {
             ActionButtonLabel(vm, "Fetching JD", "Fetch JD from URL")
         }
         OutlinedTextField(
@@ -329,11 +353,10 @@ private fun PrepareTab(vm: ResumeStudioVm) {
             onClick = { vm.analyse() },
             enabled = !vm.busy && vm.resumeText.isNotBlank(),
             modifier = Modifier.fillMaxWidth(),
+            shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
         ) {
-            ActionButtonLabel(vm, "Analyzing", "Analyse")
+            ActionButtonLabel(vm, "Analyzing", "Score fit")
         }
-        OutlinedButton(onClick = { vm.selectTab(ResumeTab.Builder) }, enabled = !vm.busy, modifier = Modifier.fillMaxWidth()) {
-            Text("Go to Templates")
         }
     }
 }
@@ -350,58 +373,52 @@ private fun AnalyseTab(vm: ResumeStudioVm) {
             .padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Text("Analyze and improve", style = compact.titleMedium)
-        if (vm.scoresArePreImprove) {
-            Text(
-                "Scores from last Analyse (pre-improve). Tap Re-analyse after edits.",
-                style = compact.bodySmall,
-                color = MaterialTheme.colorScheme.tertiary,
-            )
-        }
+        Text("Fit", style = compact.titleMedium)
         if (vm.scores.hasAnyScore() || vm.analysisRaw != null) {
-            val before = vm.originalScores ?: vm.scores
-            Text("Scores", style = compact.titleSmall)
-            Speedometers(
-                overall = vm.scores.overall ?: before.overall,
-                ats = vm.scores.ats ?: before.ats,
-                keyword = vm.scores.keyword ?: before.keyword,
-                showOverall = hasJd || vm.scores.overall != null || before.overall != null,
-                showJd = hasJd,
-            )
-            if (!vm.scores.hasAnyScore() && vm.analysisRaw != null) {
-                Text(
-                    "Top-line scores unavailable — tap Re-analyse to refresh.",
-                    style = compact.bodySmall,
-                    color = MaterialTheme.colorScheme.error,
+            val currentMatched = vm.scores.matched.size
+            val currentTotal = (vm.scores.matched.size + vm.scores.missing.size).coerceAtLeast(1)
+            val before = vm.originalScores
+            val beforeMatched = before?.matched?.size
+            val beforeTotal = before?.let { (it.matched.size + it.missing.size).coerceAtLeast(1) }
+            val tick = if (beforeMatched != null && beforeTotal != null && beforeTotal > 0) {
+                beforeMatched.toFloat() / beforeTotal
+            } else null
+            val gained = before?.missing?.filter { it !in vm.scores.missing }?.take(3).orEmpty()
+            RocketCard {
+                ScoreRing(
+                    label = "Job match",
+                    valueText = "$currentMatched/$currentTotal",
+                    fraction = currentMatched.toFloat() / currentTotal,
+                    tickFraction = tick,
+                    modifier = Modifier.fillMaxWidth(),
                 )
-            }
-        }
-        vm.originalScores?.let { before ->
-            ScoreRow(
-                title = "ATS",
-                before = before.ats,
-                after = vm.scores.ats,
-                version = vm.versions.lastOrNull()?.label,
-                enabled = !vm.busy,
-                onImprove = { vm.improveWithFocus("ats") },
-            )
-            if (hasJd) {
-                ScoreRow(
-                    title = "JD",
-                    before = before.keyword,
-                    after = vm.scores.keyword,
-                    version = vm.versions.lastOrNull()?.label,
-                    enabled = !vm.busy,
-                    onImprove = { vm.improveWithFocus("jd") },
-                )
-                ScoreRow(
-                    title = "Overall",
-                    before = before.overall,
-                    after = vm.scores.overall,
-                    version = vm.versions.lastOrNull()?.label,
-                    enabled = !vm.busy,
-                    onImprove = { vm.improveWithFocus("balanced") },
-                )
+                if (beforeMatched != null && beforeTotal != null && (beforeMatched != currentMatched || beforeTotal != currentTotal)) {
+                    Text(
+                        "$beforeMatched/$beforeTotal → $currentMatched/$currentTotal" +
+                            if (gained.isNotEmpty()) " · ${gained.joinToString(", ")}" else "",
+                        style = compact.bodyMedium,
+                        color = RocketPaper,
+                    )
+                }
+                if (vm.scores.missing.isNotEmpty()) {
+                    Text("Still missing", style = compact.titleSmall, color = RocketMuted)
+                    vm.scores.missing.take(12).forEach { term ->
+                        val corpus = vm.tailoredMd ?: vm.resumeText
+                        val canImprove = corpus.contains(term, ignoreCase = true)
+                        Row(
+                            Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(term, modifier = Modifier.weight(1f), color = RocketPaper)
+                            if (canImprove) {
+                                TextButton(onClick = { vm.improveMissing(term) }, enabled = !vm.busy) {
+                                    Text("Improve")
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
         if (vm.versions.isNotEmpty()) {
@@ -554,128 +571,10 @@ private fun SuggestionCard(
 }
 
 @Composable
-private fun ScoreRow(
-    title: String,
-    before: Int?,
-    after: Int?,
-    version: String?,
-    enabled: Boolean,
-    onImprove: () -> Unit,
-) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(title, style = MaterialTheme.typography.labelLarge)
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Gauge("Before", before)
-                Button(onClick = onImprove, enabled = enabled) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("Improve", style = MaterialTheme.typography.labelSmall)
-                        if (version != null) Text(version, style = MaterialTheme.typography.labelSmall)
-                    }
-                }
-                Gauge("After", after)
-            }
-        }
-    }
-}
-
-@Composable
-private fun Speedometers(
-    overall: Int?,
-    ats: Int?,
-    keyword: Int?,
-    showOverall: Boolean = true,
-    showJd: Boolean = true,
-) {
-    Row(
-        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        if (showOverall) Gauge("Overall", overall)
-        Gauge("ATS", ats)
-        if (showJd) Gauge("JD", keyword)
-    }
-}
-
-@Composable
-private fun Gauge(label: String, value: Int?) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        CircularProgressIndicator(
-            progress = { (value ?: 0).coerceIn(0, 100) / 100f },
-            modifier = Modifier.size(56.dp).padding(2.dp),
-            strokeWidth = 5.dp,
-        )
-        Text(label, style = MaterialTheme.typography.labelSmall)
-        Text(value?.toString() ?: "—", style = MaterialTheme.typography.titleSmall)
-    }
-}
-
-@Composable
 private fun SectionList(title: String, items: List<String>) {
     if (items.isEmpty()) return
     Text(title, style = MaterialTheme.typography.titleMedium)
     items.forEach { Text("• $it") }
-}
-
-@Composable
-private fun TailorTab(vm: ResumeStudioVm) {
-    Column(
-        Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        Text("Improve", style = MaterialTheme.typography.titleLarge)
-        if (vm.scoresArePreImprove) {
-            Text(
-                "Gauges below are pre-improve scores — Re-score after Improve.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.tertiary,
-            )
-        }
-        Text("Focus")
-        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            listOf("ats", "jd", "balanced").forEach { f ->
-                FilterChip(
-                    selected = vm.focus == f,
-                    onClick = { vm.updateFocus(f) },
-                    enabled = !vm.busy,
-                    label = { Text(f) },
-                )
-            }
-        }
-        Speedometers(vm.scores.overall, vm.scores.ats, vm.scores.keyword)
-        Button(
-            onClick = { vm.tailor() },
-            enabled = !vm.busy && vm.jdText.isNotBlank(),
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            ActionButtonLabel(vm, "Improving", "Improve (${vm.focus})")
-        }
-        vm.tailoredMd?.let {
-            Text("Latest tailored resume", style = MaterialTheme.typography.titleMedium)
-            Text(it.take(4000))
-        }
-        if (vm.versions.isNotEmpty()) {
-            Text("Version history", style = MaterialTheme.typography.titleMedium)
-            vm.versions.asReversed().forEach { snap ->
-                TextButton(onClick = { vm.restoreVersion(snap) }) {
-                    Text("${snap.label} · ${snap.focus}")
-                }
-            }
-        }
-        OutlinedButton(onClick = { vm.analyse() }, enabled = !vm.busy, modifier = Modifier.fillMaxWidth()) {
-            ActionButtonLabel(vm, "Analyzing", "Re-score after tailor")
-        }
-        Button(onClick = { vm.selectTab(ResumeTab.Builder) }, enabled = !vm.busy, modifier = Modifier.fillMaxWidth()) {
-            Text("Continue to Templates")
-        }
-    }
 }
 
 @Composable
@@ -715,125 +614,96 @@ private fun BrandTab(vm: ResumeStudioVm) {
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
 private fun BuilderTab(vm: ResumeStudioVm) {
     val ctx = LocalContext.current
-    LaunchedEffect(Unit) { if (vm.templates.isEmpty()) vm.loadTemplates() }
+    LaunchedEffect(vm.pdfShareTick) {
+        val path = vm.pdfPath ?: return@LaunchedEffect
+        if (vm.pdfShareTick == 0) return@LaunchedEffect
+        val file = File(path)
+        if (!file.exists()) return@LaunchedEffect
+        val uri = FileProvider.getUriForFile(ctx, "dev.tomorrowtools.resume.fileprovider", file)
+        ctx.startActivity(
+            Intent(Intent.ACTION_SEND).apply {
+                type = "application/pdf"
+                putExtra(Intent.EXTRA_STREAM, uri)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            },
+        )
+    }
     Column(
         Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
             .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Text("Template Studio", style = MaterialTheme.typography.titleLarge)
+        Text("Layout", style = MaterialTheme.typography.titleLarge)
         Text(
-            "Ultra premium templates for ATS-safe exports. Pick your style, then generate and export.",
-            style = MaterialTheme.typography.bodyMedium,
+            "Each page is your improved resume. The ring is how much of that PDF a text extract kept.",
+            color = RocketMuted,
         )
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.primaryContainer,
-            ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-        ) {
-            Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text("Featured template", style = MaterialTheme.typography.labelMedium)
-                val selected = vm.templates.firstOrNull { it.id == vm.selectedTemplate }
+        if (vm.layoutPreviews.isEmpty()) {
+            RocketCard {
+                Text("Prepare pages", style = MaterialTheme.typography.titleMedium)
                 Text(
-                    selected?.name ?: "Classic",
-                    style = MaterialTheme.typography.titleMedium,
-                )
-                Text(
-                    selected?.blurb ?: "Polished hierarchy, clean typography, ATS-first structure.",
-                    style = MaterialTheme.typography.bodySmall,
+                    "Turn the improved resume into the eight layouts.",
+                    color = RocketMuted,
                 )
                 Button(
                     onClick = { vm.structureForBuilder() },
-                    enabled = !vm.busy,
+                    enabled = !vm.busy && vm.resumeText.isNotBlank(),
                     modifier = Modifier.fillMaxWidth(),
+                    shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
                 ) {
-                    ActionButtonLabel(vm, "Building template data", "Build section preview")
-                }
-                OutlinedButton(
-                    onClick = {
-                        ctx.startActivity(
-                            Intent(
-                                Intent.ACTION_VIEW,
-                                Uri.parse("${BuildConfig.API_BASE_URL.trimEnd('/')}/app"),
-                            ),
-                        )
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text("Open full section editor and exports")
+                    ActionButtonLabel(vm, "Building template data", "Prepare pages")
                 }
             }
-        }
-        Text("Choose template", style = MaterialTheme.typography.titleSmall)
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            vm.templates.forEach { t ->
-                val selected = vm.selectedTemplate == t.id
-                val accent = templateAccentColor(t.accent, t.id)
-                Card(
-                    onClick = { vm.selectTemplate(t.id) },
-                    modifier = Modifier.width(148.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = if (selected) MaterialTheme.colorScheme.primaryContainer
-                        else MaterialTheme.colorScheme.surfaceVariant,
-                    ),
-                    elevation = CardDefaults.cardElevation(defaultElevation = if (selected) 6.dp else 1.dp),
-                ) {
-                    Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Column(
-                            Modifier
-                                .fillMaxWidth()
-                                .height(86.dp)
-                                .background(Color.White, shape = MaterialTheme.shapes.small)
-                                .padding(8.dp),
-                            verticalArrangement = Arrangement.spacedBy(5.dp),
-                        ) {
-                            Box(
-                                Modifier.fillMaxWidth().height(13.dp)
-                                    .background(accent, shape = MaterialTheme.shapes.extraSmall),
-                            )
-                            Text("Name / title", style = MaterialTheme.typography.labelSmall)
-                            Box(Modifier.fillMaxWidth(0.78f).height(4.dp).background(Color.LightGray))
-                            Text("Summary", style = MaterialTheme.typography.labelSmall)
-                            Box(Modifier.fillMaxWidth(0.92f).height(4.dp).background(Color.LightGray))
-                            Box(Modifier.fillMaxWidth(0.62f).height(4.dp).background(Color.LightGray))
-                        }
-                        Text(t.name, style = MaterialTheme.typography.labelLarge, maxLines = 2)
-                        Text(
-                            t.blurb ?: "ATS-safe layout",
-                            style = MaterialTheme.typography.bodySmall,
-                            maxLines = 3,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        } else {
+            vm.layoutPreviews.forEach { card ->
+                val selected = vm.selectedTemplate == card.id
+                RocketCard(selected = selected, modifier = Modifier.clickable { vm.selectTemplate(card.id) }) {
+                    Text(card.name, style = MaterialTheme.typography.titleMedium, color = RocketPaper)
+                    val png = decodePng(card.png)
+                    if (png != null) {
+                        Image(
+                            bitmap = png,
+                            contentDescription = card.name,
+                            modifier = Modifier.fillMaxWidth().height(360.dp),
+                            contentScale = ContentScale.Fit,
                         )
+                    }
+                    ScoreRing(
+                        label = "Parser",
+                        valueText = card.parserScore.toString(),
+                        fraction = card.parserScore / 100f,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    Text(card.survived, color = RocketPaper)
+                    Text(card.benefit, color = RocketMuted)
+                    if (selected) {
+                        Button(
+                            onClick = { vm.exportPdf(ctx) },
+                            enabled = !vm.busy,
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
+                        ) {
+                            ActionButtonLabel(vm, "Exporting PDF", "Export this layout")
+                        }
                     }
                 }
             }
         }
-        Button(onClick = { vm.exportPdf(ctx) }, enabled = !vm.busy, modifier = Modifier.fillMaxWidth()) {
-            ActionButtonLabel(vm, "Exporting PDF", "Export Premium PDF")
-        }
-        vm.pdfPath?.let { path ->
-            Text("Saved: $path")
-            OutlinedButton(onClick = {
-                val file = File(path)
-                val uri = FileProvider.getUriForFile(ctx, "dev.tomorrowtools.resume.fileprovider", file)
-                ctx.startActivity(
-                    Intent(Intent.ACTION_SEND).apply {
-                        type = "application/pdf"
-                        putExtra(Intent.EXTRA_STREAM, uri)
-                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                    },
-                )
-            }) { Text("Share PDF") }
-        }
     }
+}
+
+private fun decodePng(dataUrl: String): androidx.compose.ui.graphics.ImageBitmap? {
+    if (!dataUrl.startsWith("data:image")) return null
+    val raw = dataUrl.substringAfter(",", "")
+    if (raw.isBlank()) return null
+    val bytes = Base64.decode(raw, Base64.DEFAULT)
+    val bmp = BitmapFactory.decodeByteArray(bytes, 0, bytes.size) ?: return null
+    return bmp.asImageBitmap()
 }
 
 private fun explainDimension(id: String, label: String, note: String?): String {

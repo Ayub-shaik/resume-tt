@@ -99,9 +99,12 @@ class ResumeStudioVm(app: Application) : AndroidViewModel(app) {
     var targetRole by mutableStateOf(""); private set
 
     var templates by mutableStateOf<List<TemplateMeta>>(emptyList()); private set
-    var selectedTemplate by mutableStateOf("classic"); private set
+    var selectedTemplate by mutableStateOf("ats_lines"); private set
     var jsonResume by mutableStateOf<JsonObject?>(null); private set
+    var layoutPreviews by mutableStateOf<List<LayoutCard>>(emptyList()); private set
+    private var layoutSource: String? = null
     var pdfPath by mutableStateOf<String?>(null); private set
+    var pdfShareTick by mutableStateOf(0); private set
 
     var resumes by mutableStateOf<List<ResumeRow>>(emptyList()); private set
     var sessions by mutableStateOf<List<SessionRow>>(emptyList()); private set
@@ -134,7 +137,27 @@ class ResumeStudioVm(app: Application) : AndroidViewModel(app) {
     fun updateJd(v: String) { jdText = v }
     fun updateJdUrl(v: String) { jdUrl = v }
     fun updateFocus(v: String) { focus = v }
-    fun selectTab(t: ResumeTab) { tab = t }
+    fun selectTab(t: ResumeTab) {
+        tab = t
+        if (t == ResumeTab.Builder) refreshLayoutIfNeeded()
+    }
+
+    private fun refreshLayoutIfNeeded() {
+        val source = (tailoredMd ?: resumeText).trim()
+        if (source.isEmpty()) return
+        if (source == layoutSource && layoutPreviews.isNotEmpty()) return
+        structureForBuilder()
+    }
+
+    fun improveMissing(term: String) {
+        val needle = term.trim()
+        if (needle.isEmpty()) return
+        val corpus = tailoredMd ?: resumeText
+        if (!corpus.contains(needle, ignoreCase = true)) return
+        queuedMissing = listOf(needle)
+        updateFocus("jd")
+        tailor()
+    }
     fun updateAsk(v: String) { askQuestion = v }
     fun updateLinkedin(v: String) { linkedinPaste = v }
     fun updateTargetRole(v: String) { targetRole = v }
@@ -153,6 +176,7 @@ class ResumeStudioVm(app: Application) : AndroidViewModel(app) {
         tailoredMd = null; versions = emptyList()
         brandKit = null; linkedinPaste = ""; targetRole = ""
         jsonResume = null; pdfPath = null; sessionId = null
+        layoutPreviews = emptyList(); layoutSource = null
         gateWarning = null; error = null
         scoresArePreImprove = false
         tab = ResumeTab.Prepare
@@ -490,7 +514,7 @@ class ResumeStudioVm(app: Application) : AndroidViewModel(app) {
                 .filter { it.length in 3..28 && it.any(Char::isLetter) }
                 .take(4)).distinct().take(12)
         }
-        selectTab(ResumeTab.Tailor)
+        selectTab(ResumeTab.Analyse)
         if (jdText.isNotBlank()) tailor()
         else error = "Add a job description, then Improve"
     }
@@ -619,7 +643,7 @@ class ResumeStudioVm(app: Application) : AndroidViewModel(app) {
         versions = (versions + VersionSnap("v${versions.size + 1}", md, focus, overall, ats, keyword)).takeLast(12)
         queuedMissing = emptyList()
         saveSession("improve")
-        tab = ResumeTab.Tailor
+        tab = ResumeTab.Analyse
         viewModelScope.launch {
             try {
                 persistSession("improve")
@@ -654,14 +678,27 @@ class ResumeStudioVm(app: Application) : AndroidViewModel(app) {
         overrideCurrent = overrideCurrent,
         retryWithOverride = { structureForBuilder(true) },
     ) {
+        val source = (tailoredMd ?: resumeText).trim()
+        if (source.isEmpty()) {
+            error = "Add a resume before preparing pages."
+        } else {
         val res = api.structure(
-            StructureRequest(action = "structure", resumeText = resumeText, jdText = jdText.ifBlank { "" }),
+            StructureRequest(action = "structure", resumeText = source, jdText = jdText.ifBlank { "" }),
             overrideCurrent = if (overrideCurrent) "true" else null,
         )
         jsonResume = res.jsonResume
+        val structured = res.jsonResume
+        if (structured != null) {
+            layoutPreviews = api.layoutPreview(LayoutPreviewRequest(structured)).layouts
+            layoutSource = source
+            if (layoutPreviews.none { it.id == selectedTemplate }) {
+                selectedTemplate = layoutPreviews.firstOrNull()?.id ?: "ats_lines"
+            }
+        }
         if (templates.isEmpty()) templates = api.templates().templates
         tab = ResumeTab.Builder
         saveSession("builder")
+        }
     }
 
     fun exportPdf(ctx: Context) = launchBusy("Exporting PDF") {
@@ -686,6 +723,7 @@ class ResumeStudioVm(app: Application) : AndroidViewModel(app) {
             val file = File(ctx.cacheDir, "resume-${selectedTemplate}.pdf")
             file.writeBytes(bytes)
             pdfPath = file.absolutePath
+            pdfShareTick += 1
         } else {
             val bodyJson = appJson.encodeToString(PdfBody(md, "ATS_Resume"))
             val req = Request.Builder()
@@ -705,6 +743,7 @@ class ResumeStudioVm(app: Application) : AndroidViewModel(app) {
             val file = File(ctx.cacheDir, "ats_resume.pdf")
             file.writeBytes(bytes)
             pdfPath = file.absolutePath
+            pdfShareTick += 1
         }
     }
 

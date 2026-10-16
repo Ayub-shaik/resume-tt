@@ -7,9 +7,9 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import dev.tomorrowtools.resume.ui.AuthScreen
+import dev.tomorrowtools.resume.ui.RocketTheme
 import dev.tomorrowtools.resume.ui.StudioScreen
 import dev.tomorrowtools.resume.vm.ResumeStudioVm
 
@@ -22,7 +22,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            MaterialTheme {
+            RocketTheme {
                 ResumeApp(vm)
             }
         }
