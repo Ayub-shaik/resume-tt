@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-10-16T12:27:03Z",
+  "updatedAt": "2026-10-16T16:31:45Z",
   "policy": "Debug APKs are for developer sideload via TT Manager. Prefer release when available. Manager requires sha256.",
   "universeManifestUrl": "https://tomorrowtools.dev/api/universe/manifest.json",
   "apps": [
@@ -61,10 +61,10 @@
       "packageName": "dev.tomorrowtools.salahtime.dev",
       "versionCode": 507,
       "versionName": "3.2.42",
-      "apkUrl": "https://salahtime-dev.tomorrowtools.dev/downloads/salahtime-dev.apk?v=3.2.42&sha=1619487081ef",
-      "sha256": "1619487081ef7c58e38c60fd2384d3e334d410c9ea7701f4c1b88053c50a70d7",
+      "apkUrl": "https://salahtime-dev.tomorrowtools.dev/downloads/salahtime-dev.apk?v=3.2.42&sha=066d012c9158",
+      "sha256": "066d012c91589dbd47e3f6ab9da76bf09700a97391728f4edea2644f2253a841",
       "description": "Dev channel for Salahtime (salahtime-dev.tomorrowtools.dev).",
-      "sizeBytes": 13489300,
+      "sizeBytes": 13725075,
       "minSdk": 26,
       "changelog": "Dev v3.2.42: home banner uses Google AdMob with Meta Audience Network bidding."
     },
