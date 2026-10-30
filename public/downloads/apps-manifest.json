@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-10-29T11:39:41Z",
+  "updatedAt": "2026-10-30T08:29:11Z",
   "policy": "Debug APKs are for developer sideload via TT Manager. Prefer release when available. Manager requires sha256.",
   "universeManifestUrl": "https://tomorrowtools.dev/api/universe/manifest.json",
   "apps": [
@@ -46,39 +46,39 @@
       "id": "salahtime",
       "name": "Salahtime",
       "packageName": "dev.tomorrowtools.salahtime",
-      "versionCode": 547,
-      "versionName": "3.2.82",
-      "apkUrl": "https://salahtime.tomorrowtools.dev/downloads/salahtime.apk?v=3.2.82&sha=b3d19322d1bc",
-      "sha256": "b3d19322d1bc0d4931b58beff0d76e5f2125bfafac7beba4bb928cb016d4d5a2",
+      "versionCode": 551,
+      "versionName": "3.2.86",
+      "apkUrl": "https://salahtime.tomorrowtools.dev/downloads/salahtime.apk?v=3.2.86&sha=82f193330850",
+      "sha256": "82f193330850e4ba28d27c40d99ad5d2937a0efcfa297b11cec77964ab2d91eb",
       "description": "Mosque discovery, prayer times, and maps for your area.",
-      "sizeBytes": 14963621,
+      "sizeBytes": 15075124,
       "minSdk": 26,
-      "changelog": "Prod v3.2.82: compass and Qibla, prayer windows, cached prayer alerts, You-section icons."
+      "changelog": "Prod v3.2.86: compass and Qibla, prayer windows, cached prayer alerts, You-section icons."
     },
     {
       "id": "salahtime-dev",
       "name": "salahtime-dev",
       "packageName": "dev.tomorrowtools.salahtime.dev",
-      "versionCode": 547,
-      "versionName": "3.2.82",
-      "apkUrl": "https://salahtime-dev.tomorrowtools.dev/downloads/salahtime-dev.apk?v=3.2.82&sha=4f8a0188e851",
-      "sha256": "4f8a0188e851286fa8187f7dbfac66722cbfbb9e7c46bb28fc474e192ec8a8a1",
+      "versionCode": 551,
+      "versionName": "3.2.86",
+      "apkUrl": "https://salahtime-dev.tomorrowtools.dev/downloads/salahtime-dev.apk?v=3.2.86&sha=84f4003fe571",
+      "sha256": "84f4003fe5715371f49f7455cdcfa18192e2f2041969a63811e573b2fd768c7c",
       "description": "Dev channel for Salahtime (salahtime-dev.tomorrowtools.dev).",
-      "sizeBytes": 14963649,
+      "sizeBytes": 15075144,
       "minSdk": 26,
-      "changelog": "Dev v3.2.82: home banner uses Google AdMob with Meta Audience Network bidding."
+      "changelog": "Dev v3.2.86: home banner uses Google AdMob with Meta Audience Network bidding."
     },
     {
       "id": "salahtime-moderator",
       "name": "Salahtime Moderator",
       "packageName": "dev.tomorrowtools.salahtime.moderator",
-      "versionCode": 24,
-      "versionName": "1.0.22",
-      "apkUrl": "https://salahtime.tomorrowtools.dev/downloads/salahtime-moderator.apk?v=1.0.22&sha=6d3388409a4c",
-      "sha256": "6d3388409a4c7febe32d5fadb2b963d10f56ca9bfd009ad9d409c8cdd90dec3c",
+      "versionCode": 25,
+      "versionName": "1.0.23",
+      "apkUrl": "https://salahtime.tomorrowtools.dev/downloads/salahtime-moderator.apk?v=1.0.23&sha=7b57e6169faf",
+      "sha256": "7b57e6169faf1426bf8bb3ffd6773b7e147b7ab45d44cb4849199edd0ba1cefa",
       "sizeBytes": 12810454,
       "minSdk": 26,
-      "changelog": "Moderator v1.0.22: queue controls, nearby mosques 100m on imports, filtered tab, alerts refresh.",
+      "changelog": "Moderator v1.0.23: queue controls, nearby mosques 100m on imports, filtered tab, alerts refresh.",
       "description": "Mosque discovery, prayer times, and maps for your area."
     },
     {
