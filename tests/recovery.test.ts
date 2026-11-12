@@ -142,9 +142,9 @@ describe("provider retries and auth secret", () => {
     const previous = { ...process.env };
     delete process.env.AUTH_SECRET;
     delete process.env.NEXTAUTH_SECRET;
-    process.env.NODE_ENV = "production";
+    (process.env as Record<string, string | undefined>).NODE_ENV = "production";
     expect(() => resolveAuthSecret()).toThrow(/must be set in production/);
-    process.env.NODE_ENV = "development";
+    (process.env as Record<string, string | undefined>).NODE_ENV = "development";
     expect(resolveAuthSecret()).toBe("mpi-dev-secret-change-me");
     process.env = previous;
   });
@@ -220,7 +220,7 @@ describe("sqlite at-rest encryption", () => {
     const previous = { ...process.env };
     delete process.env.DATA_AT_REST_KEY;
     delete process.env.SQLITE_ENCRYPTION_KEY;
-    process.env.NODE_ENV = "production";
+    (process.env as Record<string, string | undefined>).NODE_ENV = "production";
     expect(() => resolveDataAtRestKey()).toThrow(/DATA_AT_REST_KEY/);
     process.env = previous;
   });

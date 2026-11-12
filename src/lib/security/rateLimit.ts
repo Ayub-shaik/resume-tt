@@ -159,3 +159,29 @@ export function acquireUserAiLock(
 export function releaseUserAiLock(userId: string, token: string) {
   releaseUserAiJob(userId, token);
 }
+
+export function clientFingerprint(req: Request): string {
+  const h = req.headers;
+  const tls = h.get("cf-ja4") || h.get("cf-ja3-hash") || "";
+  const traits = ["user-agent", "accept-language", "accept-encoding", "sec-ch-ua", "sec-ch-ua-platform"].map((k) => h.get(k) || "").join("|");
+  let x = 5381;
+  for (const c of `${tls}#${traits}`) x = ((x << 5) + x + c.charCodeAt(0)) | 0;
+  return (x >>> 0).toString(36);
+}
+
+/**
+ * Failed-credential tracking per (account, client). No account lockout: locking after N failures lets an
+ * attacker lock real people out. Requests rejected by the cheap gates never reach this counter.
+ */
+const fails = new Map<string, { n: number; t: number }>();
+export function failedDelayMs(key: string): { delayMs: number; hardStop: boolean } {
+  const e = fails.get(key);
+  if (!e || Date.now() - e.t > 15 * 60_000) return { delayMs: 0, hardStop: false };
+  return { delayMs: e.n >= 3 ? Math.min(8000, 500 * 2 ** (e.n - 3)) : 0, hardStop: e.n >= 10 };
+}
+export function recordFailure(key: string) {
+  const now = Date.now(); const e = fails.get(key);
+  if (!e || now - e.t > 15 * 60_000) fails.set(key, { n: 1, t: now }); else { e.n += 1; e.t = now; }
+  if (fails.size > 20_000) for (const [k, v] of fails) if (now - v.t > 15 * 60_000) fails.delete(k);
+}
+export function clearFailures(key: string) { fails.delete(key); }

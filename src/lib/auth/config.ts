@@ -9,6 +9,7 @@ import {
   verifyUserPassword,
 } from "@/lib/auth/store";
 import { resolveAuthSecret } from "@/lib/auth/secret";
+import { clearFailures, clientFingerprint, clientKey, failedDelayMs, rateLimit, recordFailure } from "@/lib/security/rateLimit";
 
 const ADMIN_EMAIL = "ayubshaik642@gmail.com";
 
@@ -41,13 +42,26 @@ if (process.env.AUTH_DEV_LOGIN === "1" || !process.env.GOOGLE_CLIENT_ID) {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
       },
-      async authorize(credentials) {
+      async authorize(credentials, request) {
         const email = String(credentials?.email || "")
           .trim()
           .toLowerCase();
         const password = String(credentials?.password || "");
-        if (!email || !password || !isEmailAllowed(email)) return null;
-        if (!verifyUserPassword(email, password)) return null;
+        // Rate limit before any password hashing: per client IP, per TLS/header fingerprint, and
+        // progressive delay + temporary stop per (account, client). No global account lockout.
+        const req = request as Request;
+        if (!rateLimit({ key: clientKey(req, "auth:web:password"), limit: 20, windowMs: 60_000 }).ok) return null;
+        if (!rateLimit({ key: `auth:web:password:fp:${clientFingerprint(req)}`, limit: 90, windowMs: 10 * 60_000 }).ok) return null;
+        const failKey = `${email}|${clientKey(req, "pw")}`;
+        const gate = failedDelayMs(failKey);
+        if (gate.hardStop) return null;
+        if (gate.delayMs) await new Promise((r) => setTimeout(r, gate.delayMs));
+        // generic failure for unknown email and wrong password alike (anti-enumeration)
+        if (!email || !password || !isEmailAllowed(email) || !verifyUserPassword(email, password)) {
+          if (email) recordFailure(failKey);
+          return null;
+        }
+        clearFailures(failKey);
         const user = upsertUserFromGoogle({
           email,
           name: email === ADMIN_EMAIL ? "Admin" : email.split("@")[0] || email,

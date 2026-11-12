@@ -1,0 +1,7 @@
+[Unit]
+Description=RocketCV (resume-tt) daily encrypted database backup (age)
+
+[Service]
+Type=oneshot
+ExecStart=/home/shaik/Desktop/projects/resume-tt/deploy/backup/backup.sh
+Nice=10

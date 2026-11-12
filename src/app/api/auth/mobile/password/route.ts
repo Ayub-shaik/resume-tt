@@ -6,7 +6,7 @@ import {
   verifyUserPassword,
 } from "@/lib/auth/store";
 import { jsonError, jsonOk, readJsonBody } from "@/lib/api";
-import { clientKey, rateLimit } from "@/lib/security/rateLimit";
+import { clearFailures, clientFingerprint, clientKey, failedDelayMs, rateLimit, recordFailure } from "@/lib/security/rateLimit";
 import { z } from "zod";
 
 export const runtime = "nodejs";
@@ -24,6 +24,10 @@ export async function POST(req: Request) {
     });
   }
 
+  // Same TLS/header fingerprint from many IPs is a botnet signal; reject before any password hashing.
+  const fpl = rateLimit({ key: `auth:mobile:password:fp:${clientFingerprint(req)}`, limit: 90, windowMs: 10 * 60_000 });
+  if (!fpl.ok) return jsonError("Too many requests", 429, { retryAfterSec: fpl.retryAfterSec });
+
   const body = await readJsonBody<unknown>(req);
   if (!body.ok) return jsonError(body.error, 400);
   const parsed = z
@@ -36,9 +40,15 @@ export async function POST(req: Request) {
 
   const email = parsed.data.email.trim().toLowerCase();
   if (!isEmailAllowed(email)) return jsonError("Email not allowlisted", 403);
+  const failKey = `${email}|${clientKey(req, "pw")}`;
+  const gate = failedDelayMs(failKey);
+  if (gate.hardStop) return jsonError("Too many attempts. Please wait a few minutes.", 429, { retryAfterSec: 120 });
+  if (gate.delayMs) await new Promise((r) => setTimeout(r, gate.delayMs));
   if (!verifyUserPassword(email, parsed.data.password)) {
-    return jsonError("Invalid email or password", 401);
+    recordFailure(failKey);
+    return jsonError("Incorrect email or password", 401);
   }
+  clearFailures(failKey);
 
   const user =
     getUserByEmail(email) ||

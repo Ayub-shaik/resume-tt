@@ -14,3 +14,4 @@ public/downloads/*.apk
 android/.kotlin/
 graft/
 public/downloads/*.bak-*
+.next-new/
