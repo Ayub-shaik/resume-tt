@@ -1,7 +1,7 @@
 import { requireSession } from "@/lib/auth/session";
 import { deleteUserById } from "@/lib/auth/store";
 import { deleteAllUserOwnedData } from "@/lib/db";
-import { deleteUserDriveToken } from "@/lib/drive/store";
+import { deleteUserDriveToken, revokeUserDriveToken } from "@/lib/drive/store";
 import { jsonError, jsonOk } from "@/lib/api";
 
 export const runtime = "nodejs";
@@ -25,6 +25,8 @@ export async function DELETE(req: Request) {
     return jsonError('Confirmation required: {"confirm":"DELETE"}', 400);
   }
 
+  // Revoke at Google first (needs the token), then purge everything locally.
+  const driveRevoked = await revokeUserDriveToken(ctx.user.id);
   const deleted = deleteAllUserOwnedData(ctx.user.id);
   try {
     deleteUserDriveToken(ctx.user.id);
@@ -36,6 +38,7 @@ export async function DELETE(req: Request) {
   return jsonOk({
     ok: true,
     deleted,
+    driveRevoked,
     message: "Account and stored data erased. Sign out on all devices.",
   });
 }

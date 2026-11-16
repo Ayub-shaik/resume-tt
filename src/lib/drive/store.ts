@@ -70,3 +70,20 @@ export function deleteUserDriveToken(userId: string) {
     .prepare("DELETE FROM user_drive_tokens WHERE user_id = ?")
     .run(userId);
 }
+
+/** Best-effort revoke of the stored refresh token at Google (token sent in POST body, 8 s timeout). Never throws. */
+export async function revokeUserDriveToken(userId: string): Promise<boolean> {
+  try {
+    const tok = getUserDriveToken(userId);
+    if (!tok?.refreshToken) return false;
+    const res = await fetch("https://oauth2.googleapis.com/revoke", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({ token: tok.refreshToken }).toString(),
+      signal: AbortSignal.timeout(8_000),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}

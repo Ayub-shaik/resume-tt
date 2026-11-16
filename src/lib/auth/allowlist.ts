@@ -131,6 +131,6 @@ export function addAllowlistEmail(email: string, addedBy: string) {
 export function removeAllowlistEmail(email: string) {
   getAllowlistDb()
     .prepare("DELETE FROM allowlist WHERE email = ?")
-    .run(email.toLowerCase());
+    .run(email.trim().toLowerCase());
   return listAllowlist();
 }
