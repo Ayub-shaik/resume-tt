@@ -1,0 +1,98 @@
+[
+  {
+    "name": "@cursor/sdk",
+    "version": "1.3.1",
+    "license": "SEE LICENSE IN LICENSE.md",
+    "homepage": "https://cursor.com"
+  },
+  {
+    "name": "@firecrawl/anydoc",
+    "version": "0.1.7",
+    "license": "MIT",
+    "homepage": "https://github.com/firecrawl/anydoc#readme"
+  },
+  {
+    "name": "@react-pdf/renderer",
+    "version": "4.5.1",
+    "license": "MIT",
+    "homepage": "https://github.com/diegomura/react-pdf#readme"
+  },
+  {
+    "name": "@tomorrowtools/resume-brain",
+    "version": "0.1.0",
+    "license": "see package",
+    "homepage": ""
+  },
+  {
+    "name": "better-sqlite3",
+    "version": "13.0.2",
+    "license": "MIT",
+    "homepage": "http://github.com/WiseLibs/better-sqlite3"
+  },
+  {
+    "name": "better-sqlite3-multiple-ciphers",
+    "version": "12.11.1",
+    "license": "MIT",
+    "homepage": "https://github.com/m4heshd/better-sqlite3-multiple-ciphers"
+  },
+  {
+    "name": "docx",
+    "version": "9.7.1",
+    "license": "MIT",
+    "homepage": "https://docx.js.org"
+  },
+  {
+    "name": "googleapis",
+    "version": "173.0.0",
+    "license": "Apache-2.0",
+    "homepage": ""
+  },
+  {
+    "name": "mammoth",
+    "version": "1.12.0",
+    "license": "BSD-2-Clause",
+    "homepage": ""
+  },
+  {
+    "name": "next",
+    "version": "16.4.6",
+    "license": "MIT",
+    "homepage": "https://nextjs.org"
+  },
+  {
+    "name": "next-auth",
+    "version": "5.0.0-beta.32",
+    "license": "ISC",
+    "homepage": "https://nextjs.authjs.dev"
+  },
+  {
+    "name": "react",
+    "version": "19.2.4",
+    "license": "MIT",
+    "homepage": "https://react.dev/"
+  },
+  {
+    "name": "react-dom",
+    "version": "19.2.4",
+    "license": "MIT",
+    "homepage": "https://react.dev/"
+  },
+  {
+    "name": "unpdf",
+    "version": "1.8.0",
+    "license": "MIT",
+    "homepage": "https://github.com/unjs/unpdf#readme"
+  },
+  {
+    "name": "uuid",
+    "version": "14.0.1",
+    "license": "MIT",
+    "homepage": ""
+  },
+  {
+    "name": "zod",
+    "version": "4.6.7",
+    "license": "MIT",
+    "homepage": "https://zod.dev"
+  }
+]
