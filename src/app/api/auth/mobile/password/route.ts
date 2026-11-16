@@ -39,12 +39,11 @@ export async function POST(req: Request) {
   if (!parsed.success) return jsonError("email and password required", 400);
 
   const email = parsed.data.email.trim().toLowerCase();
-  if (!isEmailAllowed(email)) return jsonError("Email not allowlisted", 403);
-  const failKey = `${email}|${clientKey(req, "pw")}`;
+    const failKey = `${email}|${clientKey(req, "pw")}`;
   const gate = failedDelayMs(failKey);
   if (gate.hardStop) return jsonError("Too many attempts. Please wait a few minutes.", 429, { retryAfterSec: 120 });
   if (gate.delayMs) await new Promise((r) => setTimeout(r, gate.delayMs));
-  if (!verifyUserPassword(email, parsed.data.password)) {
+  if (!isEmailAllowed(email) || !verifyUserPassword(email, parsed.data.password)) {
     recordFailure(failKey);
     return jsonError("Incorrect email or password", 401);
   }

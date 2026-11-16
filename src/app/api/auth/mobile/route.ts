@@ -37,7 +37,7 @@ export async function POST(req: Request) {
   const google = await verifyGoogleIdToken(parsed.data.idToken);
   if (!google) return jsonError("Invalid Google ID token", 401);
   if (!isEmailAllowed(google.email)) {
-    return jsonError("Email not allowlisted", 403);
+    return jsonError("Incorrect email or password", 401);
   }
 
   const user = upsertUserFromGoogle({
