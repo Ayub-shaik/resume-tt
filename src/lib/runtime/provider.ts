@@ -1,3 +1,4 @@
+import { assertNoCrisis } from "@/lib/security/crisis";
 import { assertSafeInternalBaseUrl } from "@/lib/security/validate";
 import type { ChatMessage, RuntimeResult } from "./types";
 
@@ -40,6 +41,7 @@ export async function runConfiguredAi(
   messages: ChatMessage[],
   opts?: { sessionKey?: string; signal?: AbortSignal; fast?: boolean },
 ): Promise<RuntimeResult> {
+  assertNoCrisis(messages, "runConfiguredAi");
   const config = resolveAiConfig({ fast: opts?.fast });
   const { endpoint, apiKey, model, backendModel } = config;
   let response: Response;

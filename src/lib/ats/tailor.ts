@@ -1,6 +1,6 @@
 import { runOpenClaw } from "@/lib/runtime/openclaw";
 import { ephemeralOpenClawSession } from "@/lib/runtime/sessionKey";
-import { neutralizeForPrompt } from "@/lib/security/validate";
+import { neutralizeForPrompt, untrustedDoc } from "@/lib/security/validate";
 import { sanitizeAtsMarkdown } from "@/lib/ats/sanitize";
 import { extractJsonObject } from "@/lib/ats/json";
 
@@ -57,7 +57,7 @@ Return ONLY JSON:
       },
       {
         role: "user",
-        content: `JD:\n${neutralizeForPrompt(input.jdText)}\n\nMASTER RESUME:\n${neutralizeForPrompt(input.resumeText)}`,
+        content: `JD:\n${untrustedDoc("JD", input.jdText)}\n\nMASTER RESUME:\n${untrustedDoc("RESUME", input.resumeText)}`,
       },
     ],
     {

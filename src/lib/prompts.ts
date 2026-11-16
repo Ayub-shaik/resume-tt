@@ -1,3 +1,4 @@
+import { untrustedDoc } from "@/lib/security/validate";
 const PERSONA_GUIDES: Record<string, string> = {
   azure_devops_architect:
     "Persona: Azure DevOps Architect — deep ADO pipelines, service connections, YAML, agents, governance.",
@@ -160,10 +161,10 @@ Respond with ONLY valid JSON (no markdown fences):
 JD URL: ${input.jdUrl || "(none)"}
 
 ## JD
-${input.jdText || "(not provided)"}
+${input.jdText ? untrustedDoc("JD", input.jdText) : "(not provided)"}
 
 ## RESUME
-${input.resumeText || "(not provided)"}
+${input.resumeText ? untrustedDoc("RESUME", input.resumeText) : "(not provided)"}
 ${experienceBlock}`;
 }
 

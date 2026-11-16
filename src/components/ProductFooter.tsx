@@ -10,6 +10,11 @@ export function ProductFooter({
       </a>
       <span aria-hidden="true"> · </span>
       {product}
+      <span aria-hidden="true"> · </span>
+      <span>
+        Suggestions are AI-generated and can be wrong; check them before you use them.{" "}
+        <a href="/privacy#ai">How AI is used</a>
+      </span>
     </p>
   );
 }

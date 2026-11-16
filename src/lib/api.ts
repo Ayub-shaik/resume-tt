@@ -1,11 +1,16 @@
 import { NextResponse } from "next/server";
 import { LIMITS } from "@/lib/security/validate";
+import { CRISIS_REPLY } from "@/lib/security/crisis";
 
 export function jsonError(
   message: string,
   status = 400,
   extra?: Record<string, unknown>,
 ) {
+  if (message === CRISIS_REPLY) {
+    status = 422;
+    extra = { ...extra, crisis: true, reply: CRISIS_REPLY };
+  }
   return NextResponse.json(
     { error: message, ...extra },
     {

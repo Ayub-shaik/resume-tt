@@ -1,6 +1,6 @@
 import { runOpenClaw } from "@/lib/runtime/openclaw";
 import { ephemeralOpenClawSession } from "@/lib/runtime/sessionKey";
-import { neutralizeForPrompt } from "@/lib/security/validate";
+import { neutralizeForPrompt, untrustedDoc } from "@/lib/security/validate";
 import { extractJsonObject } from "@/lib/ats/json";
 import {
   atsFormatHeuristic,
@@ -153,8 +153,8 @@ ${input.memoryContext?.trim() ? `\nDurable prior-session memory (continuity only
         {
           role: "user",
           content: hasJd
-            ? `JD:\n${neutralizeForPrompt(input.jdText)}\n\nRESUME:\n${neutralizeForPrompt(input.resumeText)}\n\nSoft heuristic keyword match ${heuristic.pct}% matched=[${heuristic.matched.slice(0, 12).join(", ")}] missing=[${heuristic.missing.slice(0, 12).join(", ")}] formatScore=${formatScore}`
-            : `No JD provided. Analyze this resume for ATS quality and concrete improvements.\n\nRESUME:\n${neutralizeForPrompt(input.resumeText)}\n\nformatScore=${formatScore}`,
+            ? `JD:\n${untrustedDoc("JD", input.jdText)}\n\nRESUME:\n${untrustedDoc("RESUME", input.resumeText)}\n\nSoft heuristic keyword match ${heuristic.pct}% matched=[${heuristic.matched.slice(0, 12).join(", ")}] missing=[${heuristic.missing.slice(0, 12).join(", ")}] formatScore=${formatScore}`
+            : `No JD provided. Analyze this resume for ATS quality and concrete improvements.\n\nRESUME:\n${untrustedDoc("RESUME", input.resumeText)}\n\nformatScore=${formatScore}`,
         },
       ],
       {

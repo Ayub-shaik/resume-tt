@@ -10,7 +10,7 @@ import {
   rateLimit,
   releaseUserAiJob,
 } from "@/lib/security/rateLimit";
-import { LIMITS, neutralizeForPrompt, sanitizeText } from "@/lib/security/validate";
+import { LIMITS, neutralizeForPrompt, sanitizeText, untrustedDoc } from "@/lib/security/validate";
 import { getMemoryContext, runRecoveryJob, saveMemorySnapshot, updateRecoveryJob } from "@/lib/recovery/store";
 import { z } from "zod";
 
@@ -85,9 +85,9 @@ If the user asks to rewrite a line, offer one improved version that stays factua
         {
           role: "user",
           content: [
-            jdText ? `JD:\n${neutralizeForPrompt(jdText)}\n` : "",
+            jdText ? `JD:\n${untrustedDoc("JD", jdText)}\n` : "",
             resumeText
-              ? `RESUME (excerpt):\n${neutralizeForPrompt(resumeText.slice(0, 6000))}\n`
+              ? `RESUME (excerpt):\n${untrustedDoc("RESUME", resumeText.slice(0, 6000))}\n`
               : "",
             context
               ? `FOCUS LINE / SUGGESTION:\n${neutralizeForPrompt(context)}\n`

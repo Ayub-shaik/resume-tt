@@ -1,6 +1,6 @@
 import { runOpenClaw } from "@/lib/runtime/openclaw";
 import { ephemeralOpenClawSession } from "@/lib/runtime/sessionKey";
-import { neutralizeForPrompt } from "@/lib/security/validate";
+import { neutralizeForPrompt, untrustedDoc } from "@/lib/security/validate";
 import { extractJsonObject } from "@/lib/ats/json";
 import {
   JsonResumeSchema,
@@ -44,7 +44,7 @@ export async function structureResumeToJson(input: {
       { role: "system", content: `${STRUCTURE_SYSTEM}${memorySuffix(input.memoryContext)}` },
       {
         role: "user",
-        content: `Convert this resume to JSON Resume:\n\n${neutralizeForPrompt(input.resumeText)}`,
+        content: `Convert this resume to JSON Resume:\n\n${untrustedDoc("RESUME", input.resumeText)}`,
       },
     ],
     {
@@ -103,7 +103,7 @@ export async function tailorJsonResume(input: {
       { role: "system", content: `${TAILOR_JSON_SYSTEM}${memorySuffix(input.memoryContext)}` },
       {
         role: "user",
-        content: `JD:\n${neutralizeForPrompt(input.jdText)}\n\nJSON Resume:\n${JSON.stringify(input.jsonResume)}`,
+        content: `JD:\n${untrustedDoc("JD", input.jdText)}\n\nJSON Resume:\n${JSON.stringify(input.jsonResume)}`,
       },
     ],
     {
@@ -159,7 +159,7 @@ export async function improveJsonResume(input: {
         role: "user",
         content: `User instruction:\n${neutralizeForPrompt(instruction)}\n\n${
           input.jdText?.trim()
-            ? `Optional JD:\n${neutralizeForPrompt(input.jdText)}\n\n`
+            ? `Optional JD:\n${untrustedDoc("JD", input.jdText)}\n\n`
             : "No JD provided.\n\n"
         }JSON Resume:\n${JSON.stringify(input.jsonResume)}`,
       },
@@ -206,9 +206,9 @@ Return ONLY the final improved JSON Resume object in one response.`,
         role: "user",
         content: `User instruction:\n${neutralizeForPrompt(instruction)}\n\n${
           input.jdText?.trim()
-            ? `Optional JD:\n${neutralizeForPrompt(input.jdText)}\n\n`
+            ? `Optional JD:\n${untrustedDoc("JD", input.jdText)}\n\n`
             : "No JD provided.\n\n"
-        }Resume text:\n${neutralizeForPrompt(input.resumeText)}`,
+        }Resume text:\n${untrustedDoc("RESUME", input.resumeText)}`,
       },
     ],
     {

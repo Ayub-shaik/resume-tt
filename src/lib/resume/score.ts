@@ -1,6 +1,6 @@
 import { runInterviewModel } from "@/lib/runtime";
 import type { ResumeScore, RuntimePreference } from "@/lib/types";
-import { neutralizeForPrompt } from "@/lib/security/validate";
+import { neutralizeForPrompt, untrustedDoc } from "@/lib/security/validate";
 import { keywordHeuristic } from "@/lib/ats/keywords";
 
 export async function scoreResumeAgainstJd(input: {
@@ -42,8 +42,8 @@ Soft match: "CI/CD" covers "CI/CD pipeline"; don't nag synonyms.`,
       },
       {
         role: "user",
-        content: `JD:\n${neutralizeForPrompt(input.jdText)}
-RESUME:\n${neutralizeForPrompt(input.resumeText)}
+        content: `JD:\n${untrustedDoc("JD", input.jdText)}
+RESUME:\n${untrustedDoc("RESUME", input.resumeText)}
 Soft keyword coverage ${heuristic.pct}% matched=[${heuristic.matched.slice(0, 10).join(", ")}] missing=[${heuristic.missing.slice(0, 10).join(", ")}]
 Score fit for this JD. List gaps only — do not rewrite the resume body.`,
       },
