@@ -4,6 +4,36 @@ import fs from "fs";
 import os from "os";
 import path from "path";
 
+export const PARSE_TIMEOUT_MS = 15_000;
+
+/** Reject if an in-process parser does not finish in time (the parse itself cannot be cancelled, but the request is freed). */
+export async function withParseTimeout<T>(p: Promise<T>, ms = PARSE_TIMEOUT_MS): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      p,
+      new Promise<never>((_, rej) => {
+        timer = setTimeout(() => rej(new Error("Parsing this file took too long. Try a simpler file or paste the text.")), ms);
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
+export type SniffedKind = "pdf" | "zip" | "ole" | "rtf" | "text" | "unknown";
+
+/** Decide the real file kind from its leading bytes, never from the client-supplied name or MIME. */
+export function sniffKind(buf: Buffer): SniffedKind {
+  if (buf.length >= 5 && buf.subarray(0, 5).toString("latin1") === "%PDF-") return "pdf";
+  if (buf.length >= 4 && buf[0] === 0x50 && buf[1] === 0x4b && (buf[2] === 3 || buf[2] === 5) && (buf[3] === 4 || buf[3] === 6)) return "zip";
+  if (buf.length >= 8 && buf.subarray(0, 8).toString("hex") === "d0cf11e0a1b11ae1") return "ole";
+  if (buf.length >= 5 && buf.subarray(0, 5).toString("latin1") === "{\\rtf") return "rtf";
+  const sample = buf.subarray(0, 4000);
+  if (sample.includes(0)) return "unknown";
+  return "text";
+}
+
 function cleanupExtracted(text: string): string {
   return text
     .replace(/\r\n/g, "\n")
@@ -40,7 +70,7 @@ async function extractAnydoc(
       formatFromBytes(bytes) ||
       (ext ? formatFromExtension(ext) : null) ||
       undefined;
-    const md = await toMarkdownBytes(bytes, fmt ?? null);
+    const md = await withParseTimeout(toMarkdownBytes(bytes, fmt ?? null));
     const text = cleanupExtracted(md || "");
     if (text && !looksLikeBinaryGarbage(text)) return text;
   } catch {
@@ -66,7 +96,7 @@ function extractPdfPoppler(buf: Buffer): string {
     const r = spawnSync(
       "pdftotext",
       ["-layout", "-enc", "UTF-8", tmp, "-"],
-      { encoding: "buffer", maxBuffer: 12 * 1024 * 1024 },
+      { encoding: "buffer", maxBuffer: 12 * 1024 * 1024, timeout: PARSE_TIMEOUT_MS, killSignal: "SIGKILL" },
     );
     if (r.error || r.status !== 0) {
       throw new Error(r.stderr?.toString("utf8") || "pdftotext failed");
@@ -87,7 +117,7 @@ async function extractPdf(buf: Buffer): Promise<string> {
 
   const errors: string[] = [];
   try {
-    const t = await extractPdfUnpdf(buf);
+    const t = await withParseTimeout(extractPdfUnpdf(buf));
     if (t && !looksLikeBinaryGarbage(t)) return t;
     errors.push("unpdf returned empty/garbage");
   } catch (e) {
@@ -111,7 +141,7 @@ async function extractDocx(buf: Buffer): Promise<string> {
 
   try {
     const mammoth = await import("mammoth");
-    const result = await mammoth.extractRawText({ buffer: buf });
+    const result = await withParseTimeout(mammoth.extractRawText({ buffer: buf }));
     const text = cleanupExtracted(result.value || "");
     if (text) return text;
   } catch {
@@ -124,6 +154,8 @@ async function extractDocx(buf: Buffer): Promise<string> {
     const r = spawnSync("unzip", ["-p", tmp, "word/document.xml"], {
       encoding: "buffer",
       maxBuffer: 12 * 1024 * 1024,
+      timeout: PARSE_TIMEOUT_MS,
+      killSignal: "SIGKILL",
     });
     if (r.error || r.status !== 0) {
       throw new Error("Could not read .docx");
@@ -168,10 +200,17 @@ export async function extractResumeText(
     name.endsWith(".docx") ||
     name.endsWith(".docm") ||
     mime.includes("wordprocessingml");
+  const kind = sniffKind(buf);
+  if (kind === "unknown") {
+    throw new Error("Unsupported or binary file. Use .txt, .md, .pdf, .doc, .docx, .pptx, or paste text.");
+  }
+  if ((isPdf && kind !== "pdf") || (isDocx && kind !== "zip")) {
+    throw new Error("File content does not match its type. Upload a real PDF or DOCX.");
+  }
+  if (kind === "pdf" && !isPdf) return extractPdf(buf);
   const isPlain =
-    name.endsWith(".txt") ||
-    name.endsWith(".md") ||
-    mime.startsWith("text/");
+    kind === "text" &&
+    (name.endsWith(".txt") || name.endsWith(".md") || mime.startsWith("text/"));
 
   if (isPlain) {
     const asUtf8 = cleanupExtracted(buf.toString("utf8"));
@@ -181,6 +220,7 @@ export async function extractResumeText(
 
   if (isPdf) return extractPdf(buf);
   if (isDocx) return extractDocx(buf);
+  if (kind === "zip" && /\.pdf$/i.test(name)) throw new Error("File content does not match its type. Upload a real PDF or DOCX.");
 
   if (OFFICE_EXT.test(name) || mime.includes("officedocument") || mime.includes("msword") || mime.includes("ms-powerpoint") || mime.includes("ms-excel") || mime.includes("opendocument") || mime.includes("rtf") || mime.includes("epub")) {
     const any = await extractAnydoc(buf, filename);
