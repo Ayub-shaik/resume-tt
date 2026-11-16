@@ -26,7 +26,7 @@ export async function GET(req: Request, ctx: Ctx) {
   if (!isUuid(id)) return jsonError("Invalid resume id", 400);
   const resume = getResume(id);
   if (!resume) return jsonError("Resume not found", 404);
-  if (resume.userId && resume.userId !== session.user.id) {
+  if (resume.userId !== session.user.id) {
     return jsonError("Resume not found", 404);
   }
   return jsonOk({ resume });

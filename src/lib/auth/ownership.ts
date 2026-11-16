@@ -1,11 +1,11 @@
 import type { Interview, Resume } from "@/lib/types";
 
-/** True if row is owned by user, or legacy null-owner (claimed on first touch). */
+/** True only if the row is owned by this user. Legacy null-owner rows are not readable by anyone. */
 export function canAccess(
   row: { userId?: string | null },
   userId: string,
 ): boolean {
-  return !row.userId || row.userId === userId;
+  return Boolean(row.userId) && row.userId === userId;
 }
 
 export function assertInterviewAccess(

@@ -68,7 +68,7 @@ export async function POST(req: Request) {
     const resume = scoreBody.data.resumeId
       ? getResume(scoreBody.data.resumeId)
       : null;
-    if (!resume || (resume.userId && resume.userId !== ctx.user.id)) {
+    if (!resume || resume.userId !== ctx.user.id) {
       return jsonError("Resume not found", 404);
     }
     try {

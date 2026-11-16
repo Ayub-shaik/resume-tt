@@ -308,7 +308,7 @@ export function listResumes(userId?: string | null): Resume[] {
   if (userId) {
     return getDb()
       .prepare(
-        "SELECT * FROM resumes WHERE user_id = ? OR user_id IS NULL ORDER BY created_at DESC",
+        "SELECT * FROM resumes WHERE user_id = ? ORDER BY created_at DESC",
       )
       .all(userId)
       .map((r) => mapResume(r as Record<string, unknown>));
@@ -350,7 +350,7 @@ export function updateResumeScore(id: string, score: ResumeScore): Resume | null
 export function deleteResume(id: string, userId?: string | null): boolean {
   const existing = getResume(id);
   if (!existing) return false;
-  if (userId && existing.userId && existing.userId !== userId) return false;
+  if (userId && existing.userId !== userId) return false;
   const result = getDb().prepare("DELETE FROM resumes WHERE id = ?").run(id);
   return Number(result.changes) > 0;
 }
@@ -359,7 +359,7 @@ export function listInterviews(userId?: string | null): Interview[] {
   if (userId) {
     return getDb()
       .prepare(
-        "SELECT * FROM interviews WHERE user_id = ? OR user_id IS NULL ORDER BY updated_at DESC",
+        "SELECT * FROM interviews WHERE user_id = ? ORDER BY updated_at DESC",
       )
       .all(userId)
       .map((r) => mapInterview(r as Record<string, unknown>));
@@ -556,7 +556,7 @@ export function updateInterview(
 export function deleteInterview(id: string, userId?: string | null): boolean {
   const current = getInterview(id);
   if (!current) return false;
-  if (userId && current.userId && current.userId !== userId) return false;
+  if (userId && current.userId !== userId) return false;
 
   const database = getDb();
   const tx = database.transaction(() => {
