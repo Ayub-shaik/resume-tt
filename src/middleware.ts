@@ -12,10 +12,17 @@ const SECURITY_HEADERS: Record<string, string> = {
   "Strict-Transport-Security": "max-age=31536000",
 };
 
-function csp(isDev: boolean, allowSelfFrame: boolean): string {
-  const script = isDev
-    ? "script-src 'self' 'unsafe-eval' 'unsafe-inline'"
-    : "script-src 'self' 'unsafe-inline'";
+function newNonce(): string {
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  let binary = "";
+  for (const b of bytes) binary += String.fromCharCode(b);
+  return btoa(binary);
+}
+
+function csp(isDev: boolean, allowSelfFrame: boolean, nonce: string): string {
+  // Nonce only (no 'unsafe-inline' for scripts); style-src keeps it for Next/Tailwind style attributes.
+  const script = `script-src 'self' 'nonce-${nonce}'${isDev ? " 'unsafe-eval'" : ""}`;
   return [
     "default-src 'self'",
     script,
@@ -34,10 +41,15 @@ function csp(isDev: boolean, allowSelfFrame: boolean): string {
 }
 
 export function middleware(req: NextRequest) {
-  const res = NextResponse.next();
+  const nonce = newNonce();
   const isDev = process.env.NODE_ENV !== "production";
   const path = req.nextUrl.pathname;
   const allowSelfFrame = path === "/api/drive/raw";
+  const policy = csp(isDev, allowSelfFrame, nonce);
+  const reqHeaders = new Headers(req.headers);
+  reqHeaders.set("x-nonce", nonce);
+  reqHeaders.set("Content-Security-Policy", policy);
+  const res = NextResponse.next({ request: { headers: reqHeaders } });
 
   for (const [k, v] of Object.entries(SECURITY_HEADERS)) {
     if (allowSelfFrame && k === "X-Frame-Options") continue;
@@ -47,7 +59,7 @@ export function middleware(req: NextRequest) {
     // Explicit SAMEORIGIN so Chromium will embed the PDF stream in our preview iframe.
     res.headers.set("X-Frame-Options", "SAMEORIGIN");
   }
-  res.headers.set("Content-Security-Policy", csp(isDev, allowSelfFrame));
+  res.headers.set("Content-Security-Policy", policy);
 
   if (req.nextUrl.pathname.startsWith("/api/")) {
     const method = req.method.toUpperCase();
