@@ -2,6 +2,7 @@
 G-MAIN | - | RocketCV: resume app, secure and compliant on live branch
 R-CONST | - | owner constitution ~/.claude/CLAUDE.md sections 2-5
 R-SEC | - | security baseline 2026-11-16 (~/.claude/workspace/security-baseline.md)
+R-WEBSCAN | - | Owner web security scan 2026-11-23 flagged unsafe-inline in script-src
 RC-001 | done | JD fetch SSRF: https only, pinned IP per hop, drop r.jina.ai fallback
 RC-002 | done | Mobile login uniform 401 for non-allowlisted emails
 RC-003 | done | Central crisis guardrail before every AI call, untrusted resume/JD text delimited, AI-use 
