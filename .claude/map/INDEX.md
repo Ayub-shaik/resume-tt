@@ -14,3 +14,4 @@ RC-008 | done | AUTH_DEV_LOGIN defaults to 0
 RC-009 | open | OWNER: /downloads serves ~13 APKs incl debug and .bak manifests
 RC-010 | open | resume-brain prompts not delimited; 2 resume-brain test files fail to load
 RT-009 | done | Audit-grade handbook (60 pages, 28 tracked risks) local and gitignored; data dir perms 700
+RT-010 | done | Per-request CSP nonce in src/middleware.ts replaces unsafe-inline in script-src
